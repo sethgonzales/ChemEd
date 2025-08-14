@@ -13,9 +13,9 @@ export const THEME = {
     secondary: '#dc2626',
     secondaryText: '#ffffff',
   },
-  teal: {
-    label: 'Jaguar teal',
-    primary: '#14b8a6',
+  brown: {
+    label: 'Beaver brown',
+    primary: '#dc4405',
     primaryText: '#ffffff',
     secondary: '#000000',
     secondaryText: '#ffffff',
@@ -33,6 +33,13 @@ export const THEME = {
     primaryText: '#ffffff',
     secondary: '#ffffff',
     secondaryText: '#000000',
+  },
+  teal: {
+    label: 'Jaguar teal',
+    primary: '#14b8a6',
+    primaryText: '#ffffff',
+    secondary: '#000000',
+    secondaryText: '#ffffff',
   },
 } as const;
 
