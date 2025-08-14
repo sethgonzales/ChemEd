@@ -31,7 +31,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const saved = localStorage.getItem('themeName') as ThemeName | null;
+    const saved = localStorage.getItem('chem.theme') as ThemeName | null;
 
     if (saved && saved in THEME) {
       setThemeName(saved);
@@ -46,7 +46,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   function handleSetTheme(name: ThemeName) {
     setThemeName(name);
     applyTheme(name);
-    localStorage.setItem('themeName', name);
+    localStorage.setItem('chem.theme', name);
   }
 
   return (
