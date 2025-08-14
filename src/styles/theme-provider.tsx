@@ -11,14 +11,12 @@ import { applyColorScale } from '~/utils/theme';
 interface ThemeContextValue {
   themeName: ThemeName;
   setThemeName: (name: ThemeName) => void;
-  themeIsReady: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeName, setThemeName] = useState<ThemeName>('purple');
-  const [themeIsReady, setThemeIsReady] = useState(false);
 
   const applyTheme = (name: ThemeName) => {
     const { primary, secondary, primaryText, secondaryText } = THEME[name];
@@ -39,8 +37,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     } else {
       applyTheme(themeName);
     }
-
-    setThemeIsReady(true);
   }, []);
 
   function handleSetTheme(name: ThemeName) {
@@ -50,9 +46,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ThemeContext.Provider
-      value={{ themeName, setThemeName: handleSetTheme, themeIsReady }}
-    >
+    <ThemeContext.Provider value={{ themeName, setThemeName: handleSetTheme }}>
       {children}
     </ThemeContext.Provider>
   );
