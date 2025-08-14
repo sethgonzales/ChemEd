@@ -32,5 +32,5 @@ export const applyColorScale = (
   });
 
   root.style.setProperty(`--${type}`, baseColor);
-  root.style.setProperty(`--color-chem-${type}`, `var(--${type})`);
+  root.style.setProperty(`--color-${type}`, `var(--${type})`);
 };

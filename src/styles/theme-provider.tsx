@@ -26,8 +26,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyColorScale('secondary', secondary);
 
     const root = document.documentElement;
-    root.style.setProperty('--text-primary', primaryText);
-    root.style.setProperty('--text-secondary', secondaryText);
+    root.style.setProperty('--text-primary-base', primaryText);
+    root.style.setProperty('--text-secondary-base', secondaryText);
   };
 
   useEffect(() => {
