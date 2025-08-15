@@ -28,7 +28,7 @@ export const THEME = {
     secondaryText: '#000000',
   },
   'burnt-orange': {
-    label: 'Warrior Orange',
+    label: 'Warrior orange',
     primary: '#c2410c',
     primaryText: '#ffffff',
     secondary: '#ffffff',

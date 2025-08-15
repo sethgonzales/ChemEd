@@ -5,7 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
-import { THEME, ThemeName } from '~/styles/colors';
+import { THEME, ThemeName } from '~/styles/theme';
 import { applyColorScale } from '~/utils/theme';
 
 interface ThemeContextValue {
