@@ -12,6 +12,7 @@
     "@tabler/icons-react": "^3.34.1",
     "clsx": "^2.1.1",
     "colord": "^2.9.3",
+    "flowbite-react": "^0.12.7",
     "next": "15.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
