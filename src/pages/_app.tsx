@@ -10,7 +10,9 @@ export default function App({ Component, pageProps }: AppProps) {
     <ThemeProvider>
       <Suspense fallback={<Loading />}>
         <Header />
-        <Component {...pageProps} />
+        <div className="p-10 text-secondary-500">
+          <Component {...pageProps} />
+        </div>
       </Suspense>
     </ThemeProvider>
   );

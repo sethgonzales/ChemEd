@@ -53,7 +53,7 @@
 
 
 body {
-  background: var(--color-primary);
+  background: var(--color-primary-400);
   color: var(--color-text);
   font-family: Arial, Helvetica, sans-serif;
 }
