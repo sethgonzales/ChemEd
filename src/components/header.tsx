@@ -1,4 +1,4 @@
-import { ThemeSelect } from '~/components/ui/theme-select';
+import { ThemeSelect } from '~/components/theme-select';
 
 export default function Header() {
   return (

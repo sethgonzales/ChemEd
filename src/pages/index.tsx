@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import Card from '~/components/ui/card';
+import Card from '~/components/card';
 import { SIMULATIONS } from '~/constants';
 
 export default function Home() {

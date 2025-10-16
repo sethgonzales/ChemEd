@@ -1,4 +1,3 @@
-// components/ui/Dropdown.tsx
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { IconChevronDown } from '@tabler/icons-react';
 import { cn } from '~/utils/cn';
@@ -58,7 +57,9 @@ export default function Dropdown({
 
       {isOpen && (
         <div className="absolute z-10 mt-2 bg-primary-300 divide-y divide-primary-400 rounded-lg shadow w-44">
-          <ul className="py-2 text-sm text-text-primary">{children}</ul>
+          <ul className="py-2 text-sm text-text-primary space-y-0.5">
+            {children}
+          </ul>
         </div>
       )}
     </div>
