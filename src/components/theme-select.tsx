@@ -16,7 +16,7 @@ export function ThemeSelect() {
   return (
     <Dropdown
       label={THEME[themeName]?.label ?? 'Select theme'}
-      className="w-42"
+      className="w-full sm:w-42"
     >
       {Object.entries(THEME).map(([key, value]) => (
         <li key={key}>

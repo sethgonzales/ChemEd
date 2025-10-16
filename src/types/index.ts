@@ -1,4 +1,4 @@
-export interface ElementData {
+export interface IElementData {
   atomicNumber: number; // number of protons
   symbol: string; // e.g. "H", "He"
   name: string; // e.g. "Hydrogen"

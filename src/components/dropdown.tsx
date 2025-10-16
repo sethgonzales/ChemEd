@@ -35,7 +35,10 @@ export default function Dropdown({
   }, [isOpen, closeOnClickAway]);
 
   return (
-    <div ref={dropdownRef} className="relative inline-block text-left">
+    <div
+      ref={dropdownRef}
+      className="relative inline-block text-left w-full sm:w-auto"
+    >
       <button
         onClick={(e) => {
           e.preventDefault();

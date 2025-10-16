@@ -1,6 +1,6 @@
-import { ElementData } from '~/types';
+import { IElementData } from '~/types';
 
-export const elements: ElementData[] = [
+export const ELEMENTS: IElementData[] = [
   {
     atomicNumber: 1,
     symbol: 'H',
