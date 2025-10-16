@@ -37,7 +37,10 @@ export default function Dropdown({
   return (
     <div ref={dropdownRef} className="relative inline-block text-left">
       <button
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={(e) => {
+          e.preventDefault();
+          setIsOpen((prev) => !prev);
+        }}
         className={cn(
           'text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none',
           'focus:ring-primary-300 font-semibold rounded-lg text-sm px-3 py-2.5',

@@ -21,7 +21,10 @@ export function ThemeSelect() {
       {Object.entries(THEME).map(([key, value]) => (
         <li key={key}>
           <button
-            onClick={() => setThemeName(key as keyof typeof THEME)}
+            onClick={(e) => {
+              e.preventDefault();
+              setThemeName(key as keyof typeof THEME);
+            }}
             className={cn(
               'block w-full text-left px-4 py-2 hover:bg-primary-600 cursor-pointer',
               'focus:ring-2 focus:outline-none',
