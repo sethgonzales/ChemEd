@@ -31,7 +31,7 @@ export const THEME = {
     label: 'Warriors',
     primary: '#c2410c',
     primaryText: '#ffffff',
-    secondary: '#ffffff',
+    secondary: '#000000',
     secondaryText: '#000000',
   },
   teal: {

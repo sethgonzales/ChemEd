@@ -57,3 +57,22 @@ body {
   color: var(--color-text);
   font-family: Arial, Helvetica, sans-serif;
 }
+@layer components {
+  /* Base slider */
+  .slider-thumb {
+    @apply w-full h-2 rounded-full appearance-none cursor-pointer bg-primary-600;
+  }
+
+  /* WebKit */
+  .slider-thumb::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+
+    @apply w-4 h-4 rounded-full bg-primary-100 border-0 cursor-pointer;
+  }
+
+  /* Firefox */
+  .slider-thumb::-moz-range-thumb {
+    @apply w-4 h-4 rounded-full bg-primary-100 border-0 cursor-pointer;
+  }
+}

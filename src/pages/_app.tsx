@@ -1,9 +1,11 @@
 import { Suspense } from 'react';
-import '~/styles/globals.css';
 import { ThemeProvider } from '~/styles/theme-provider';
-import Loading from '~/components/loading';
-import type { AppProps } from 'next/app';
+import '~/styles/globals.css';
+
 import Header from '~/components/header';
+import Loading from '~/components/loading';
+
+import type { AppProps } from 'next/app';
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
