@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" fill="none">
+  <!-- H2O Lewis structure -->
+  <!-- Oxygen -->
+  <text x="100" y="75" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="24" fill="currentColor">O</text>
+
+  <!-- Bonds to H -->
+  <line x1="85" y1="78" x2="55" y2="105" stroke="currentColor" stroke-width="2"/>
+  <line x1="115" y1="78" x2="145" y2="105" stroke="currentColor" stroke-width="2"/>
+
+  <!-- Hydrogen atoms -->
+  <text x="45" y="118" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="24" fill="currentColor">H</text>
+  <text x="155" y="118" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="24" fill="currentColor">H</text>
+
+  <!-- Lone pair 1 (top-left of O) -->
+  <circle cx="82" cy="50" r="2.5" fill="currentColor"/>
+  <circle cx="88" cy="44" r="2.5" fill="currentColor"/>
+
+  <!-- Lone pair 2 (top-right of O) -->
+  <circle cx="112" cy="44" r="2.5" fill="currentColor"/>
+  <circle cx="118" cy="50" r="2.5" fill="currentColor"/>
+</svg>

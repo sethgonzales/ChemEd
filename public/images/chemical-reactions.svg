@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" fill="none">
+  <!-- Reactant molecule -->
+  <circle cx="30" cy="70" r="12" fill="currentColor" opacity="0.8"/>
+  <circle cx="58" cy="70" r="12" fill="currentColor" opacity="0.8"/>
+  <line x1="42" y1="70" x2="46" y2="70" stroke="currentColor" stroke-width="2.5"/>
+
+  <!-- Plus sign -->
+  <text x="80" y="76" text-anchor="middle" font-family="Arial" font-size="18" fill="currentColor" opacity="0.6">+</text>
+
+  <!-- Second reactant -->
+  <circle cx="100" cy="70" r="12" fill="currentColor" opacity="0.8"/>
+
+  <!-- Arrow -->
+  <line x1="120" y1="70" x2="148" y2="70" stroke="currentColor" stroke-width="2.5"/>
+  <polyline points="143,62 151,70 143,78" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+
+  <!-- Product molecules -->
+  <circle cx="168" cy="55" r="10" fill="currentColor" opacity="0.7"/>
+  <circle cx="185" cy="55" r="10" fill="currentColor" opacity="0.7"/>
+  <line x1="178" y1="52" x2="178" y2="58" stroke="currentColor" stroke-width="2"/>
+
+  <circle cx="175" cy="90" r="10" fill="currentColor" opacity="0.7"/>
+</svg>
