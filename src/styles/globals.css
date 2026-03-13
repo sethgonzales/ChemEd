@@ -21,6 +21,10 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
+  /* Font sizes */
+  --font-size-2xs: 0.625rem;
+  --font-size-2xs--line-height: 0.75rem;
+
   /* Base Colors */
   --color-text-primary: var(--text-primary-base);
   --color-text-secondary: var(--text-secondary-base);
