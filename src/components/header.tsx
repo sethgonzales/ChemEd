@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 
 import { findElementsBySymbol } from '~/utils';
 import { ThemeSelect } from '~/components/theme-select';
+import { useChime } from '~/utils/use-knock';
 
 import { IElementData } from '~/types';
 
@@ -14,9 +15,12 @@ const getColorByElement = (atomicNumber: number) =>
 
 function ElementCard({ element }: { element: IElementData }) {
   const [color, setColor] = useState(getColorByElement(element.atomicNumber));
+  const playChime = useChime();
 
-  const handleHover = () =>
+  const handleHover = () => {
     setColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
+    playChime();
+  };
 
   const handleHoverOut = () =>
     setColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
