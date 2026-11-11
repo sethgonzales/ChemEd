@@ -51,6 +51,14 @@ function resonance(
 
 const singles = (n: number): BondOrder[] => Array(n).fill(1);
 
+export const LEVELS: Record<Molecule['level'], string> = {
+  1: 'Single bonds',
+  2: 'Multiple bonds',
+  3: 'Ions and formal charge',
+  4: 'Resonance',
+  5: 'Octet exceptions',
+};
+
 export const MOLECULES: Molecule[] = [
   // Level 1: single bonds
   {

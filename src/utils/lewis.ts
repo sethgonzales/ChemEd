@@ -8,13 +8,18 @@ export type LewisAtom = {
   y: number;
   lonePairs: number;
   radicals: number; // unpaired electrons
+  marks?: { charge?: number; partial?: '+' | '-' }; // what the student wrote
 };
 
 export type BondOrder = 1 | 2 | 3;
 
 export type LewisBond = { a: number; b: number; order: BondOrder };
 
-export type LewisStructure = { atoms: LewisAtom[]; bonds: LewisBond[] };
+export type LewisStructure = {
+  atoms: LewisAtom[];
+  bonds: LewisBond[];
+  bracket?: { charge: number }; // ion brackets and the overall charge written on them
+};
 
 export type Target = { formula: string; charge: number };
 
@@ -27,6 +32,9 @@ export type Feedback = {
     | 'skeleton'
     | 'formal-charge'
     | 'unneeded-expansion'
+    | 'charge-mark'
+    | 'partial-mark'
+    | 'bracket'
     | 'electronegativity'
     | 'correct'
     | 'resonance'
@@ -68,6 +76,19 @@ const INCOMPLETE_OCTET_OK = new Set(['Be', 'B', 'Al']);
 const SUBSCRIPTS = '₀₁₂₃₄₅₆₇₈₉';
 const subscript = (formula: string) =>
   formula.replace(/\d/g, (d) => SUBSCRIPTS[Number(d)]);
+
+const SUPERSCRIPTS = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+
+/** 'SO4', -2 → 'SO₄²⁻' */
+export function formatFormula(formula: string, charge = 0) {
+  if (charge === 0) return subscript(formula);
+  const size = Math.abs(charge);
+  const digits =
+    size === 1
+      ? ''
+      : [...String(size)].map((d) => SUPERSCRIPTS[Number(d)]).join('');
+  return subscript(formula) + digits + (charge > 0 ? '⁺' : '⁻');
+}
 
 function element(symbol: string) {
   const el = findElement(symbol);
@@ -427,13 +448,17 @@ const excessElectrons = (s: LewisStructure) =>
   }, 0);
 
 // Lower when negative charge sits on more electronegative atoms
+function electronegativity(symbol: string) {
+  const en = ELECTRONEGATIVITY[symbol];
+  if (en === undefined) throw new Error(`No electronegativity for ${symbol}`);
+  return en;
+}
+
 function electronegativityScore(s: LewisStructure) {
-  return s.atoms.reduce((sum, a) => {
-    const en = ELECTRONEGATIVITY[a.symbol];
-    if (en === undefined)
-      throw new Error(`No electronegativity for ${a.symbol}`);
-    return sum + formalCharge(s, a.id) * en;
-  }, 0);
+  return s.atoms.reduce(
+    (sum, a) => sum + formalCharge(s, a.id) * electronegativity(a.symbol),
+    0,
+  );
 }
 
 // Keeps the items with the lowest score
@@ -454,6 +479,94 @@ export function bestStructures(structures: LewisStructure[]) {
     lowest(lowest(structures, totalFormalCharge), excessElectrons),
     electronegativityScore,
   );
+}
+
+// Bonds with a larger electronegativity difference count as polar
+const POLAR_DIFFERENCE = 0.4;
+
+const showCharge = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
+
+/**
+ * Problems with the charge and δ marks a student wrote: charges must match
+ * the formal charges, and δ− goes on the more electronegative end of a polar
+ * bond. δ marks are optional.
+ */
+export function checkMarks(s: LewisStructure): Feedback[] {
+  const feedback: Feedback[] = [];
+  for (const atom of s.atoms) {
+    const written = atom.marks?.charge ?? 0;
+    const actual = formalCharge(s, atom.id);
+    if (written !== actual) {
+      const message =
+        actual === 0
+          ? `${atom.symbol}'s formal charge is 0, so it needs no charge mark.`
+          : written === 0
+            ? `Mark ${atom.symbol}'s formal charge (${showCharge(actual)}).`
+            : `${atom.symbol}'s formal charge is ${showCharge(actual)}, not ${showCharge(written)}.`;
+      feedback.push({ kind: 'charge-mark', atom: atom.id, message });
+    }
+
+    const partial = atom.marks?.partial;
+    if (!partial) continue;
+    const en = electronegativity(atom.symbol);
+    const polar = s.bonds
+      .flatMap((b) => (b.a === atom.id ? [b.b] : b.b === atom.id ? [b.a] : []))
+      .map((id) => atomById(s, id))
+      .map((n) => ({
+        symbol: n.symbol,
+        difference: en - electronegativity(n.symbol),
+      }))
+      .filter((n) => Math.abs(n.difference) > POLAR_DIFFERENCE);
+    const pull = polar.reduce((sum, n) => sum + n.difference, 0);
+
+    if (!polar.length || pull === 0) {
+      feedback.push({
+        kind: 'partial-mark',
+        atom: atom.id,
+        message: `${atom.symbol} has no polar bonds, so it needs no δ mark.`,
+      });
+    } else if ((pull > 0 ? '-' : '+') !== partial) {
+      // name the partner the atom differs from most
+      const partner = polar.reduce((a, b) =>
+        Math.abs(b.difference) > Math.abs(a.difference) ? b : a,
+      );
+      feedback.push({
+        kind: 'partial-mark',
+        atom: atom.id,
+        message:
+          pull > 0
+            ? `${atom.symbol} is more electronegative than ${partner.symbol}, so it gets δ−.`
+            : `${atom.symbol} is less electronegative than ${partner.symbol}, so it gets δ+.`,
+      });
+    }
+  }
+  return feedback;
+}
+
+/** An ion's charge as chemists write it: + , −, 2+, 3− */
+export function ionCharge(charge: number) {
+  const size = Math.abs(charge);
+  return `${size > 1 ? size : ''}${charge > 0 ? '+' : '−'}`;
+}
+
+/** Polyatomic ions go in brackets with their overall charge; molecules don't. */
+export function checkBrackets(s: LewisStructure, charge: number): Feedback[] {
+  const message = (() => {
+    if (charge === 0) {
+      return s.bracket ? 'Only ions are drawn in brackets.' : null;
+    }
+    if (!s.bracket) {
+      return `Draw a polyatomic ion in brackets with its overall charge (${ionCharge(charge)}).`;
+    }
+    if (s.bracket.charge === 0) {
+      return `Write the ion's overall charge (${ionCharge(charge)}) on the brackets.`;
+    }
+    if (s.bracket.charge !== charge) {
+      return `The ion's overall charge is ${ionCharge(charge)}, not ${ionCharge(s.bracket.charge)}.`;
+    }
+    return null;
+  })();
+  return message ? [{ kind: 'bracket', message }] : [];
 }
 
 /** How a student's structure compares with a molecule's accepted answers. */
@@ -483,7 +596,17 @@ export function assessStructure(
 
   if (problems.length) return { verdict: 'invalid', feedback: problems };
 
-  if (answers.some((a) => sameStructure(s, a))) {
+  // a correct structure still needs its charges (and any δ marks) right
+  const markProblems = [...checkMarks(s), ...checkBrackets(s, molecule.charge)];
+  const isBest = answers.some((a) => sameStructure(s, a));
+  const isAccepted = (molecule.alsoAccepted ?? []).some((a) =>
+    sameStructure(s, fromAnswer(molecule.skeleton, a)),
+  );
+  if ((isBest || isAccepted) && markProblems.length) {
+    return { verdict: 'valid', feedback: markProblems };
+  }
+
+  if (isBest) {
     const n = answers.length;
     return {
       verdict: 'best',
@@ -498,10 +621,7 @@ export function assessStructure(
     };
   }
 
-  const alsoAccepted = (molecule.alsoAccepted ?? []).map((a) =>
-    fromAnswer(molecule.skeleton, a),
-  );
-  if (alsoAccepted.some((a) => sameStructure(s, a))) {
+  if (isAccepted) {
     return {
       verdict: 'accepted',
       feedback: [

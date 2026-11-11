@@ -1,10 +1,13 @@
 import {
   assessStructure,
   bestStructures,
+  checkBrackets,
+  checkMarks,
   checkStructure,
   electronCount,
   electronsUsed,
   formalCharge,
+  formatFormula,
   netCharge,
   octetStatus,
   parseFormula,
@@ -35,6 +38,17 @@ function lewis(
       radicals,
     })),
     bonds: bonds.map(([a, b, order]) => ({ a, b, order })),
+  };
+}
+
+/** A copy of a structure with charge or δ marks written on some atoms */
+function withMarks(
+  s: LewisStructure,
+  marks: Record<number, { charge?: number; partial?: '+' | '-' }>,
+): LewisStructure {
+  return {
+    ...s,
+    atoms: s.atoms.map((a) => (marks[a.id] ? { ...a, marks: marks[a.id] } : a)),
   };
 }
 
@@ -648,7 +662,15 @@ describe('assessStructure', () => {
   };
 
   it('marks a best answer correct and mentions resonance', () => {
-    const result = assessStructure(nitrate, nitrateMolecule);
+    const marked = {
+      ...withMarks(nitrate, {
+        0: { charge: 1 },
+        2: { charge: -1 },
+        3: { charge: -1 },
+      }),
+      bracket: { charge: -1 },
+    };
+    const result = assessStructure(marked, nitrateMolecule);
     expect(result.verdict).toBe('best');
     expect(result.feedback.map((f) => f.message).join(' ')).toMatch(
       /one of 3 resonance structures/,
@@ -667,9 +689,23 @@ describe('assessStructure', () => {
         [0, 2, 1],
       ],
     );
-    const result = assessStructure(octetForm, sulfurDioxide);
+    const result = assessStructure(
+      withMarks(octetForm, { 0: { charge: 1 }, 2: { charge: -1 } }),
+      sulfurDioxide,
+    );
     expect(result.verdict).toBe('accepted');
     expect(result.feedback[0].message).toBe(sulfurDioxide.note);
+  });
+
+  it('asks for formal charge marks on an otherwise correct structure', () => {
+    const result = assessStructure(nitrate, nitrateMolecule);
+    expect(result.verdict).toBe('valid');
+    expect(result.feedback.map((f) => f.kind)).toEqual([
+      'charge-mark',
+      'charge-mark',
+      'charge-mark',
+      'bracket',
+    ]);
   });
 
   it('passes on checkStructure problems as invalid', () => {
@@ -761,5 +797,122 @@ describe('assessStructure', () => {
     const result = assessStructure(tripleForm, co2);
     expect(result.verdict).toBe('valid');
     expect(result.feedback.map((f) => f.kind)).toContain('formal-charge');
+  });
+});
+
+describe('formatFormula', () => {
+  it.each([
+    ['H2O', 0, 'H₂O'],
+    ['NO3', -1, 'NO₃⁻'],
+    ['SO4', -2, 'SO₄²⁻'],
+    ['NH4', 1, 'NH₄⁺'],
+    ['PO4', -3, 'PO₄³⁻'],
+    ['C2H4', 0, 'C₂H₄'],
+  ])('%s with charge %i is %s', (formula, charge, expected) => {
+    expect(formatFormula(formula, charge)).toBe(expected);
+  });
+});
+
+describe('checkMarks', () => {
+  const marked = withMarks(nitrate, {
+    0: { charge: 1 },
+    2: { charge: -1 },
+    3: { charge: -1 },
+  });
+
+  it('is happy when written charges match the formal charges', () => {
+    expect(checkMarks(marked)).toEqual([]);
+    expect(checkMarks(water)).toEqual([]);
+  });
+
+  it('asks for a missing charge mark', () => {
+    const feedback = checkMarks(
+      withMarks(nitrate, { 2: { charge: -1 }, 3: { charge: -1 } }),
+    );
+    expect(feedback).toEqual([
+      { kind: 'charge-mark', atom: 0, message: "Mark N's formal charge (+1)." },
+    ]);
+  });
+
+  it('corrects a wrong charge mark', () => {
+    const feedback = checkMarks(withMarks(marked, { 0: { charge: -1 } }));
+    expect(feedback[0].message).toBe("N's formal charge is +1, not −1.");
+  });
+
+  it('flags a charge mark on an atom with no formal charge', () => {
+    const feedback = checkMarks(withMarks(water, { 0: { charge: 1 } }));
+    expect(feedback[0].message).toBe(
+      "O's formal charge is 0, so it needs no charge mark.",
+    );
+  });
+
+  it('accepts δ marks with δ− on the more electronegative atom', () => {
+    const polar = withMarks(water, {
+      0: { partial: '-' },
+      1: { partial: '+' },
+      2: { partial: '+' },
+    });
+    expect(checkMarks(polar)).toEqual([]);
+  });
+
+  it('corrects reversed δ marks', () => {
+    const feedback = checkMarks(withMarks(water, { 0: { partial: '+' } }));
+    expect(feedback).toEqual([
+      {
+        kind: 'partial-mark',
+        atom: 0,
+        message: 'O is more electronegative than H, so it gets δ−.',
+      },
+    ]);
+  });
+
+  it('flags δ marks on an atom with no polar bonds', () => {
+    const chlorine = lewis(
+      [
+        ['Cl', 3],
+        ['Cl', 3],
+      ],
+      [[0, 1, 1]],
+    );
+    const feedback = checkMarks(withMarks(chlorine, { 0: { partial: '+' } }));
+    expect(feedback[0].message).toBe(
+      'Cl has no polar bonds, so it needs no δ mark.',
+    );
+  });
+});
+
+describe('checkBrackets', () => {
+  it('is happy with a bracketed ion carrying its charge', () => {
+    expect(checkBrackets({ ...nitrate, bracket: { charge: -1 } }, -1)).toEqual(
+      [],
+    );
+    expect(checkBrackets(water, 0)).toEqual([]);
+  });
+
+  it('asks for brackets around a polyatomic ion', () => {
+    expect(checkBrackets(nitrate, -1)).toEqual([
+      {
+        kind: 'bracket',
+        message:
+          'Draw a polyatomic ion in brackets with its overall charge (−).',
+      },
+    ]);
+  });
+
+  it('asks for the overall charge on the brackets', () => {
+    const [f] = checkBrackets({ ...nitrate, bracket: { charge: 0 } }, -2);
+    expect(f.message).toBe(
+      "Write the ion's overall charge (2−) on the brackets.",
+    );
+  });
+
+  it('corrects a wrong overall charge', () => {
+    const [f] = checkBrackets({ ...ammonium, bracket: { charge: -1 } }, 1);
+    expect(f.message).toBe("The ion's overall charge is +, not −.");
+  });
+
+  it('flags brackets around a neutral molecule', () => {
+    const [f] = checkBrackets({ ...water, bracket: { charge: 0 } }, 0);
+    expect(f.message).toBe('Only ions are drawn in brackets.');
   });
 });

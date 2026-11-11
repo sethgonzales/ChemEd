@@ -1,0 +1,222 @@
+import { MOLECULES } from '~/constants/molecules';
+import { editorReducer, emptyEditor, skeletonEditor } from './lewis-editor';
+import { electronsUsed } from './lewis';
+
+const water = MOLECULES.find((m) => m.id === 'water')!;
+
+describe('skeletonEditor', () => {
+  it('starts from the molecule’s skeleton with single bonds and no lone pairs', () => {
+    const { structure, history } = skeletonEditor(water);
+    expect(structure.atoms.map((a) => a.symbol)).toEqual(['O', 'H', 'H']);
+    expect(structure.atoms.every((a) => a.lonePairs === 0)).toBe(true);
+    expect(structure.bonds.map((b) => b.order)).toEqual([1, 1]);
+    expect(electronsUsed(structure)).toBe(4);
+    expect(history).toEqual([]);
+  });
+
+  it('lays the atoms out so they don’t overlap', () => {
+    const { atoms } = skeletonEditor(water).structure;
+    expect(new Set(atoms.map((a) => `${a.x},${a.y}`)).size).toBe(3);
+  });
+});
+
+describe('emptyEditor', () => {
+  it('starts with no atoms', () => {
+    expect(emptyEditor().structure).toEqual({ atoms: [], bonds: [] });
+  });
+});
+
+describe('editorReducer', () => {
+  const start = skeletonEditor(water);
+
+  it('adds and removes lone pairs, from 0 up to 4', () => {
+    let s = start;
+    for (let i = 0; i < 6; i++) {
+      s = editorReducer(s, { type: 'addLonePair', atom: 0 });
+    }
+    expect(s.structure.atoms[0].lonePairs).toBe(4);
+
+    for (let i = 0; i < 6; i++) {
+      s = editorReducer(s, { type: 'removeLonePair', atom: 0 });
+    }
+    expect(s.structure.atoms[0].lonePairs).toBe(0);
+  });
+
+  it('toggles an unpaired electron', () => {
+    const on = editorReducer(start, { type: 'toggleRadical', atom: 0 });
+    expect(on.structure.atoms[0].radicals).toBe(1);
+    const off = editorReducer(on, { type: 'toggleRadical', atom: 0 });
+    expect(off.structure.atoms[0].radicals).toBe(0);
+  });
+
+  it('sets a bond’s order, creating the bond if needed', () => {
+    let s = editorReducer(start, {
+      type: 'setBondOrder',
+      a: 1,
+      b: 0,
+      order: 2,
+    });
+    expect(s.structure.bonds[0]).toEqual({ a: 0, b: 1, order: 2 });
+    s = editorReducer(s, { type: 'setBondOrder', a: 1, b: 2, order: 3 });
+    expect(s.structure.bonds).toContainEqual({ a: 1, b: 2, order: 3 });
+  });
+
+  it('ignores a bond from an atom to itself', () => {
+    const s = editorReducer(start, {
+      type: 'setBondOrder',
+      a: 0,
+      b: 0,
+      order: 1,
+    });
+    expect(s).toBe(start);
+  });
+
+  it('removes a bond', () => {
+    const s = editorReducer(start, { type: 'removeBond', a: 1, b: 0 });
+    expect(s.structure.bonds).toEqual([{ a: 0, b: 2, order: 1 }]);
+  });
+
+  it('moves an atom', () => {
+    const s = editorReducer(start, { type: 'moveAtom', atom: 1, x: 5, y: 6 });
+    expect(s.structure.atoms[1]).toMatchObject({ x: 5, y: 6 });
+  });
+
+  it('moves a lone pair from one atom to another', () => {
+    let s = editorReducer(start, { type: 'addLonePair', atom: 0 });
+    s = editorReducer(s, { type: 'moveLonePair', from: 0, to: 1 });
+    expect(s.structure.atoms[0].lonePairs).toBe(0);
+    expect(s.structure.atoms[1].lonePairs).toBe(1);
+    expect(s.history).toHaveLength(2);
+  });
+
+  it('only moves a lone pair that exists, to an atom with room', () => {
+    expect(editorReducer(start, { type: 'moveLonePair', from: 0, to: 1 })).toBe(
+      start,
+    );
+    let full = start;
+    for (let i = 0; i < 4; i++) {
+      full = editorReducer(full, { type: 'addLonePair', atom: 1 });
+    }
+    full = editorReducer(full, { type: 'addLonePair', atom: 0 });
+    expect(editorReducer(full, { type: 'moveLonePair', from: 0, to: 1 })).toBe(
+      full,
+    );
+  });
+
+  it('places atoms with new ids', () => {
+    let s = emptyEditor();
+    s = editorReducer(s, { type: 'addAtom', symbol: 'O', x: 0, y: 0 });
+    s = editorReducer(s, { type: 'addAtom', symbol: 'H', x: 1, y: 0 });
+    expect(s.structure.atoms.map((a) => [a.id, a.symbol])).toEqual([
+      [0, 'O'],
+      [1, 'H'],
+    ]);
+    expect(s.structure.atoms[1]).toMatchObject({ lonePairs: 0, radicals: 0 });
+  });
+
+  it('can bond a new atom to an existing one in a single undoable step', () => {
+    let s = emptyEditor();
+    s = editorReducer(s, { type: 'addAtom', symbol: 'O', x: 0, y: 0 });
+    s = editorReducer(s, {
+      type: 'addAtom',
+      symbol: 'H',
+      x: 1,
+      y: 0,
+      bondTo: 0,
+    });
+    expect(s.structure.bonds).toEqual([{ a: 0, b: 1, order: 1 }]);
+    s = editorReducer(s, { type: 'undo' });
+    expect(s.structure.atoms).toHaveLength(1);
+    expect(s.structure.bonds).toEqual([]);
+  });
+
+  it('removes an atom along with its bonds', () => {
+    const s = editorReducer(start, { type: 'removeAtom', atom: 1 });
+    expect(s.structure.atoms.map((a) => a.id)).toEqual([0, 2]);
+    expect(s.structure.bonds).toEqual([{ a: 0, b: 2, order: 1 }]);
+  });
+
+  it('never reuses the id of a removed atom', () => {
+    let s = editorReducer(start, { type: 'removeAtom', atom: 2 });
+    s = editorReducer(s, { type: 'addAtom', symbol: 'H', x: 0, y: 1 });
+    expect(s.structure.atoms.at(-1)!.id).toBe(3);
+  });
+
+  it('adds and subtracts a written charge, dropping it at zero', () => {
+    let s = editorReducer(start, { type: 'adjustCharge', atom: 0, delta: 1 });
+    s = editorReducer(s, { type: 'adjustCharge', atom: 0, delta: 1 });
+    expect(s.structure.atoms[0].marks).toEqual({ charge: 2 });
+    s = editorReducer(s, { type: 'adjustCharge', atom: 0, delta: -1 });
+    s = editorReducer(s, { type: 'adjustCharge', atom: 0, delta: -1 });
+    expect(s.structure.atoms[0].marks).toBeUndefined();
+  });
+
+  it('cycles a δ mark: δ+ → δ− → none', () => {
+    const marks = [];
+    let s = start;
+    for (let i = 0; i < 3; i++) {
+      s = editorReducer(s, { type: 'cyclePartial', atom: 1 });
+      marks.push(s.structure.atoms[1].marks?.partial);
+    }
+    expect(marks).toEqual(['+', '-', undefined]);
+    expect(s.structure.atoms[1].marks).toBeUndefined();
+  });
+
+  it('clears all marks on an atom', () => {
+    let s = editorReducer(start, { type: 'adjustCharge', atom: 0, delta: 1 });
+    s = editorReducer(s, { type: 'cyclePartial', atom: 0 });
+    s = editorReducer(s, { type: 'clearMarks', atom: 0 });
+    expect(s.structure.atoms[0].marks).toBeUndefined();
+  });
+
+  it('toggles brackets and adjusts their charge', () => {
+    let s = editorReducer(start, { type: 'toggleBracket' });
+    expect(s.structure.bracket).toEqual({ charge: 0 });
+    s = editorReducer(s, { type: 'adjustBracketCharge', delta: -1 });
+    s = editorReducer(s, { type: 'adjustBracketCharge', delta: -1 });
+    expect(s.structure.bracket).toEqual({ charge: -2 });
+    s = editorReducer(s, { type: 'toggleBracket' });
+    expect(s.structure.bracket).toBeUndefined();
+  });
+
+  it('only adjusts the charge of brackets that exist', () => {
+    expect(
+      editorReducer(start, { type: 'adjustBracketCharge', delta: 1 }),
+    ).toBe(start);
+  });
+
+  it('cleans up the layout in one undoable step', () => {
+    let s = editorReducer(start, { type: 'moveAtom', atom: 1, x: 0.1, y: 0.1 });
+    s = editorReducer(s, { type: 'cleanUp' });
+    const [o, h] = s.structure.atoms;
+    expect(Math.hypot(o.x - h.x, o.y - h.y)).toBeCloseTo(1);
+    s = editorReducer(s, { type: 'undo' });
+    expect(s.structure.atoms[1]).toMatchObject({ x: 0.1, y: 0.1 });
+  });
+
+  it('undoes one change at a time', () => {
+    let s = editorReducer(start, { type: 'addLonePair', atom: 0 });
+    s = editorReducer(s, { type: 'setBondOrder', a: 0, b: 1, order: 2 });
+    s = editorReducer(s, { type: 'undo' });
+    expect(s.structure.bonds[0].order).toBe(1);
+    expect(s.structure.atoms[0].lonePairs).toBe(1);
+    s = editorReducer(s, { type: 'undo' });
+    expect(s.structure).toEqual(start.structure);
+    expect(editorReducer(s, { type: 'undo' })).toBe(s);
+  });
+
+  it('records no history for changes that change nothing', () => {
+    const s = editorReducer(start, { type: 'removeLonePair', atom: 0 });
+    expect(s).toBe(start);
+  });
+
+  it('replaces the structure on load and clears history', () => {
+    const changed = editorReducer(start, { type: 'addLonePair', atom: 0 });
+    const loaded = editorReducer(changed, {
+      type: 'load',
+      editor: skeletonEditor(water),
+    });
+    expect(loaded.structure).toEqual(start.structure);
+    expect(loaded.history).toEqual([]);
+  });
+});
