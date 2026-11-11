@@ -8,6 +8,7 @@
 - [ ] **Fork and integrate [atom-animation](https://github.com/matt765/atom-animation)** — ⚠️ **blocked on permission.**
   - Licence: "Personal Use License" — use and study for personal/educational purposes only; **modification and redistribution are prohibited**. Forking it into ChemEd and deploying it would break that.
   - Next step: ask the author (Mateusz Wyrębek, @matt765) for permission or a more permissive licence. Until then, only use it as inspiration and write our own code.
+- [ ] **Set up Firebase** — the project isn't connected to Firebase yet. Decide what it's for (Hosting to put the app online, and/or Auth and Firestore to save students' work), then add the config and deploy.
 
 ## Simulations
 
@@ -15,7 +16,7 @@
 - [ ] Electron Configurations
 - [ ] Chemical Reactions
 - [ ] Titrations
-- [ ] **Reaction Balancing** — students get an unbalanced equation and type coefficients; a balance-beam scale tips toward the heavier side as they go, and the goal is to make the beam level.
+- [x] **Reaction Balancing**, inside Chemical Reactions: practice levels, your own equation, Show answer ([plan](docs/plans/reaction-balancing.md)) — students get an unbalanced equation and type coefficients; a balance-beam scale tips toward the heavier side as they go, and the goal is to make the beam level.
   - Reactants sit in one pan and products in the other, weighted by total mass (coefficient × molar mass).
   - Watch out: equal total mass doesn't guarantee every element balances (two different sets of atoms can weigh the same). Only call it balanced, and show the level beam, when every element's atom count matches; per-element counters next to the scale can show which element is off.
   - Could be its own card or part of Chemical Reactions — decide when we plan it.
