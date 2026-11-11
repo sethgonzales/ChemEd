@@ -9,6 +9,15 @@
   - Licence: "Personal Use License" — use and study for personal/educational purposes only; **modification and redistribution are prohibited**. Forking it into ChemEd and deploying it would break that.
   - Next step: ask the author (Mateusz Wyrębek, @matt765) for permission or a more permissive licence. Until then, only use it as inspiration and write our own code.
 - [ ] **Set up Firebase** — the project isn't connected to Firebase yet. Decide what it's for (Hosting to put the app online, and/or Auth and Firestore to save students' work), then add the config and deploy.
+  - [ ] **Student logins** (Firebase Auth), with each student's progress saved (Firestore).
+  - [ ] **8-bit avatar builder** for logged-in students: body/gender, skin tone, eyes, hair, facial features, clothing.
+    - Accessories unlock through **achievements** earned in the simulations (balancing reactions, Lewis quizzes, and any future simulation).
+    - Signed-out visitors can try the builder first (saved only in their browser); signing in keeps it and starts earning unlocks.
+  - [ ] **8-bit Seth guide**: an 8-bit version of Seth in a bottom corner of every page, **desktop only** (hidden on phones).
+    - Wanders around the corner now and then, with speech bubbles giving tips, encouragement and how-to help for the page's simulation.
+    - Can take over the in-simulation hints, e.g. the balancing feedback when something's wrong.
+    - Needs: a photo or description of Seth to design the likeness; respect reduced motion; easy to hide or mute.
+    - Doesn't need Firebase, so it could be built before logins.
 
 ## Simulations
 
@@ -23,6 +32,8 @@
 
 ## Improvements (from the simulation review)
 
+- [ ] Periodic Table: apply the shared design (`Stage`, `Container` description, colour roles in CLAUDE.md); check the home page cards match too
+
 - [ ] Periodic Table: more colour modes (metal/nonmetal, electronegativity, atomic radius) and search
 - [ ] Periodic Table: show synthetic element masses as `[266]` rather than `266.00`
 - [ ] Periodic Table: Lu and Lr sit in the f-block row but are coloured d-block blue
@@ -30,5 +41,4 @@
 - [ ] Accessibility: element buttons need `aria-pressed` and arrow-key navigation; white text on yellow p-block cells is low contrast; canvas needs a text alternative and should respect reduced motion
 - [ ] Mark placeholder simulations as "Coming soon"
 - [ ] Replace the default README
-- [ ] Slider: replace the hard-coded `id="range-input"` with `useId()`
 - [ ] Migrate `next lint` (deprecated) to the ESLint CLI
