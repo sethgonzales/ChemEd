@@ -1,244 +1,158 @@
-import { useReducer, useRef, useState } from 'react';
+import { useState } from 'react';
+import Button from '~/components/button';
 import Container from '~/components/container';
-import LewisCanvas, { pointIn, targetOf } from '~/components/lewis-canvas';
-import LewisToolbar, {
-  DRAWING_TOOLS,
-  MARK_TOOLS,
-  type ToolItem,
-} from '~/components/lewis-toolbar';
+import ElementPicker from '~/components/element-picker';
+import LewisBuilder from '~/components/lewis-builder';
+import type { ToolItem } from '~/components/lewis-toolbar';
+import { COMMON_ELEMENTS, DRAWABLE_ELEMENTS } from '~/constants/lewis-elements';
 import { LEVELS, MOLECULES } from '~/constants/molecules';
 import { cn } from '~/utils/cn';
 import {
-  assessStructure,
   electronsUsed,
   formatFormula,
+  formulaOf,
+  netCharge,
+  octetStatus,
   parseFormula,
   totalValenceElectrons,
   type LewisStructure,
   type Molecule,
 } from '~/utils/lewis';
-import {
-  editorReducer,
-  emptyEditor,
-  skeletonEditor,
-  type EditorAction,
-} from '~/utils/lewis-editor';
-import { nextAtomPosition } from '~/utils/lewis-layout';
-import {
-  dragAction,
-  snapAction,
-  toolAction,
-  type Target,
-  type Tool,
-} from '~/utils/lewis-tools';
-import { usePointerDrag, type DragPoint } from '~/utils/use-pointer-drag';
+import { assessDrawing, assessResonance } from '~/utils/lewis-arrows';
+import { emptyEditor, skeletonEditor } from '~/utils/lewis-editor';
+import type { Tool } from '~/utils/lewis-tools';
 
+type Mode = 'draw' | 'quiz';
 type Start = 'given' | 'empty';
 
-// A drag either carries a tool from the toolbar or picks up part of the drawing
-type DragPayload =
-  | { from: 'toolbar'; tool: Tool; label: string }
-  | { from: 'drawing'; source: Target; label: string };
+const MODES: { mode: Mode; label: string }[] = [
+  { mode: 'draw', label: 'Draw' },
+  { mode: 'quiz', label: 'Quiz' },
+];
 
-const VERDICT_LABEL = {
-  best: null, // the feedback message already says "Correct!"
-  accepted: 'Accepted',
-  valid: 'Almost',
-  invalid: 'Not yet',
-} as const;
+const HELP =
+  'Pick a tool and tap the drawing, or drag a tool straight onto an atom or bond. With Select, drag atoms to move them and lone pairs between atoms. Curved arrows go from a lone pair or bond to an atom or bond.';
+
+const elementIcon = (symbol: string, count?: number) => (
+  <span className="text-sm font-bold">
+    {symbol}
+    {count !== undefined && (
+      <sub className="text-[9px] font-normal ml-px">{count}</sub>
+    )}
+  </span>
+);
+
+/** Draw anything, with any of the drawable elements */
+function DrawMode() {
+  const [palette, setPalette] = useState(COMMON_ELEMENTS);
+  const [picking, setPicking] = useState(false);
+
+  const elementTools = (): ToolItem[] =>
+    palette.map((symbol) => ({
+      tool: `element:${symbol}`,
+      label: `Add ${symbol}`,
+      icon: elementIcon(symbol),
+      draggable: true,
+    }));
+
+  const counter = (s: LewisStructure) => {
+    const used = electronsUsed(s);
+    // net charge needs every atom's formal charge, which needs atoms
+    const formula = s.atoms.length
+      ? formatFormula(formulaOf(s), netCharge(s))
+      : '';
+    return (
+      <>
+        {used} valence electron{used === 1 ? '' : 's'}
+        {formula && <> · {formula}</>}
+      </>
+    );
+  };
+
+  // formal charges only mean something once every atom has a full shell
+  const chargesReady = (s: LewisStructure) =>
+    s.atoms.length > 0 && s.atoms.every((a) => octetStatus(s, a.id).ok);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm">Build any Lewis structure. {HELP}</p>
+      <LewisBuilder
+        initial={emptyEditor()}
+        initialTool="element:C"
+        elementTools={elementTools}
+        assess={assessDrawing}
+        counter={counter}
+        chargesReady={chargesReady}
+        paletteExtra={(selectTool: (tool: Tool) => void) => (
+          <>
+            <Button onClick={() => setPicking(true)}>More elements</Button>
+            {picking && (
+              <ElementPicker
+                elements={DRAWABLE_ELEMENTS}
+                onClose={() => setPicking(false)}
+                onPick={(symbol) => {
+                  if (!palette.includes(symbol)) {
+                    setPalette([...palette, symbol]);
+                  }
+                  selectTool(`element:${symbol}`);
+                  setPicking(false);
+                }}
+              />
+            )}
+          </>
+        )}
+      />
+    </div>
+  );
+}
 
 const DEFAULT_MOLECULE = MOLECULES.find((m) => m.id === 'water')!;
 
-const startingEditor = (molecule: Molecule, start: Start) =>
-  start === 'given' ? skeletonEditor(molecule) : emptyEditor();
-
-const startingTool = (molecule: Molecule, start: Start): Tool =>
-  start === 'given'
-    ? 'lonePair'
-    : `element:${Object.keys(parseFormula(molecule.formula))[0]}`;
-
-function Button({
-  pressed,
-  onClick,
-  children,
-  disabled,
-}: {
-  pressed?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        'px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer',
-        'disabled:opacity-40 disabled:cursor-not-allowed',
-        pressed
-          ? 'bg-secondary-500 text-text-secondary'
-          : 'bg-primary-700 hover:bg-primary-800 text-white',
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function Setting({
-  checked,
-  onChange,
-  children,
-}: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex items-center gap-2 text-sm cursor-pointer">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      {children}
-    </label>
-  );
-}
-
-export default function LewisStructures() {
+/** Draw a given molecule and get it graded */
+function QuizMode() {
   const [molecule, setMolecule] = useState(DEFAULT_MOLECULE);
   const [start, setStart] = useState<Start>('given');
-  const [tool, setTool] = useState<Tool>('lonePair');
-  const [bars, setBars] = useState(false);
-  const [hints, setHints] = useState(true);
-  const [snap, setSnap] = useState(true);
-  const [checked, setChecked] = useState<LewisStructure | null>(null);
-  const [editor, dispatch] = useReducer(
-    editorReducer,
-    startingEditor(DEFAULT_MOLECULE, 'given'),
-  );
-  const svgRef = useRef<SVGSVGElement>(null);
-  const { structure } = editor;
-
-  const restart = (next: Molecule, nextStart: Start) => {
-    setMolecule(next);
-    setStart(nextStart);
-    setTool(startingTool(next, nextStart));
-    setChecked(null);
-    dispatch({ type: 'load', editor: startingEditor(next, nextStart) });
-  };
 
   const total = totalValenceElectrons(molecule.formula, molecule.charge);
-  const used = electronsUsed(structure);
-
-  // feedback belongs to the structure that was checked
-  const result =
-    checked === structure ? assessStructure(structure, molecule) : null;
-  const problems = new Set(
-    result?.feedback.flatMap((f) => (f.atom === undefined ? [] : [f.atom])),
-  );
-
   const needed = parseFormula(molecule.formula);
-  const left = (symbol: string) =>
-    needed[symbol] - structure.atoms.filter((a) => a.symbol === symbol).length;
-  const elementTools: ToolItem[] = Object.keys(needed).map((symbol) => ({
-    tool: `element:${symbol}`,
-    label: `Add ${symbol} (${left(symbol)} left)`,
-    icon: (
-      <span className="text-sm font-bold">
-        {symbol}
-        <sub className="text-[9px] font-normal ml-px">{left(symbol)}</sub>
-      </span>
-    ),
-    disabled: left(symbol) <= 0,
-    draggable: true,
-  }));
-  const labelOf = (t: Tool) =>
-    [...DRAWING_TOOLS, ...MARK_TOOLS, ...elementTools].find(
-      (item) => item.tool === t,
-    )?.label ?? '';
 
-  const apply = (action: EditorAction | null) => {
-    if (action) dispatch(snap ? snapAction(action, structure) : action);
-  };
+  // only the formula's atoms are available, so element tools run out
+  const elementTools = (s: LewisStructure): ToolItem[] =>
+    Object.keys(needed).map((symbol) => {
+      const left =
+        needed[symbol] - s.atoms.filter((a) => a.symbol === symbol).length;
+      return {
+        tool: `element:${symbol}`,
+        label: `Add ${symbol} (${left} left)`,
+        icon: elementIcon(symbol, left),
+        disabled: left <= 0,
+        draggable: true,
+      };
+    });
 
-  // Empty-canvas targets need a real point; fall back to a free spot when the
-  // drawing hasn't been laid out (or the pointer position is unknown)
-  const placed = (target: Target): Target =>
-    target.kind === 'canvas' && !Number.isFinite(target.x)
-      ? { kind: 'canvas', ...nextAtomPosition(structure) }
-      : target;
-
-  const elementLeft = (t: Tool) =>
-    !t.startsWith('element:') || left(t.slice('element:'.length)) > 0;
-
-  const onDrop = (payload: DragPayload, at: DragPoint) => {
-    const el = document.elementFromPoint(at.clientX, at.clientY);
-    const svg = svgRef.current;
-    // only drops onto this drawing count
-    if (!svg || !el || !svg.contains(el)) return;
-    const point = pointIn(svg, at.clientX, at.clientY);
-    const hit = targetOf(el);
-    if (!hit) return;
-    const target = placed(
-      hit.kind === 'canvas'
-        ? { kind: 'canvas', x: point?.x ?? NaN, y: point?.y ?? NaN }
-        : hit,
+  const counter = (s: LewisStructure) => {
+    const used = electronsUsed(s);
+    return (
+      <>
+        <div className="h-2 rounded-full bg-primary-700 overflow-hidden mb-1">
+          <div
+            className={cn(
+              'h-full transition-all',
+              used > total ? 'bg-red-500' : 'bg-secondary-500',
+            )}
+            style={{ width: `${Math.min(100, (used / total) * 100)}%` }}
+          />
+        </div>
+        {used} of {total} valence electrons placed
+      </>
     );
-
-    if (payload.from === 'toolbar') {
-      if (elementLeft(payload.tool)) {
-        apply(toolAction(payload.tool, target, structure));
-      }
-      return;
-    }
-    // moving an atom needs to know where it was dropped
-    if (!point && payload.source.kind === 'atom' && tool === 'select') return;
-    apply(dragAction(tool, payload.source, target, point ?? { x: 0, y: 0 }));
   };
-  const { drag, start: startDrag, consumeClick } = usePointerDrag(onDrop);
-
-  const onTap = (target: Target) => {
-    if (consumeClick() || !elementLeft(tool)) return;
-    apply(toolAction(tool, placed(target), structure));
-  };
-
-  const onPressDrawing = (target: Target, e: React.PointerEvent) => {
-    const canDrag =
-      (tool === 'select' &&
-        (target.kind === 'atom' || target.kind === 'lonePair')) ||
-      (tool.startsWith('bond') && target.kind === 'atom');
-    if (!canDrag) return;
-    const label =
-      target.kind === 'lonePair'
-        ? '••'
-        : target.kind === 'atom'
-          ? (structure.atoms.find((a) => a.id === target.id)?.symbol ?? '')
-          : '';
-    startDrag({ from: 'drawing', source: target, label }, e);
-  };
-
-  // a bond being drawn shows as a dashed line to the pointer
-  const dragPoint =
-    drag && svgRef.current
-      ? pointIn(svgRef.current, drag.at.clientX, drag.at.clientY)
-      : null;
-  const preview =
-    drag?.payload.from === 'drawing' &&
-    drag.payload.source.kind === 'atom' &&
-    tool.startsWith('bond') &&
-    dragPoint
-      ? { from: drag.payload.source.id, to: dragPoint }
-      : null;
 
   const levelMolecules = MOLECULES.filter((m) => m.level === molecule.level);
+  const choose = (m: Molecule) => setMolecule(m);
 
   return (
-    <Container header="Lewis Structures" className="gap-4">
-      {/* Molecule and starting point */}
+    <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-end">
         <label className="flex flex-col gap-1 text-sm">
           Level
@@ -246,7 +160,7 @@ export default function LewisStructures() {
             value={molecule.level}
             onChange={(e) => {
               const level = Number(e.target.value);
-              restart(MOLECULES.find((m) => m.level === level)!, start);
+              choose(MOLECULES.find((m) => m.level === level)!);
             }}
             className="rounded-lg bg-primary-700 text-white px-3 py-2"
           >
@@ -262,7 +176,7 @@ export default function LewisStructures() {
           <select
             value={molecule.id}
             onChange={(e) =>
-              restart(MOLECULES.find((m) => m.id === e.target.value)!, start)
+              choose(MOLECULES.find((m) => m.id === e.target.value)!)
             }
             className="rounded-lg bg-primary-700 text-white px-3 py-2"
           >
@@ -274,16 +188,10 @@ export default function LewisStructures() {
           </select>
         </label>
         <div className="flex gap-2">
-          <Button
-            pressed={start === 'given'}
-            onClick={() => restart(molecule, 'given')}
-          >
+          <Button pressed={start === 'given'} onClick={() => setStart('given')}>
             Given skeleton
           </Button>
-          <Button
-            pressed={start === 'empty'}
-            onClick={() => restart(molecule, 'empty')}
-          >
+          <Button pressed={start === 'empty'} onClick={() => setStart('empty')}>
             Empty canvas
           </Button>
         </div>
@@ -292,113 +200,63 @@ export default function LewisStructures() {
       <h3 className="text-lg font-semibold">
         {molecule.name}, {formatFormula(molecule.formula, molecule.charge)}
       </h3>
-      <p className="text-sm -mt-2">
-        Pick a tool and tap the drawing, or drag a tool straight onto an atom or
-        bond. With Select, drag atoms to move them and lone pairs between atoms.
-      </p>
+      <p className="text-sm -mt-2">{HELP}</p>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <LewisToolbar
-          groups={[DRAWING_TOOLS, MARK_TOOLS, elementTools]}
-          active={tool}
-          onSelect={setTool}
-          onPress={(t, e) =>
-            startDrag({ from: 'toolbar', tool: t, label: labelOf(t) }, e)
-          }
-        />
+      {/* a new molecule or starting point starts a fresh drawing */}
+      <LewisBuilder
+        key={`${molecule.id}-${start}`}
+        initial={start === 'given' ? skeletonEditor(molecule) : emptyEditor()}
+        initialTool={
+          start === 'given' ? 'lonePair' : `element:${Object.keys(needed)[0]}`
+        }
+        elementTools={elementTools}
+        assess={(forms) => assessResonance(forms, molecule)}
+        counter={counter}
+        chargesReady={(s) => electronsUsed(s) === total}
+      />
+    </div>
+  );
+}
 
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
-          <div className="bg-white rounded-lg min-h-64 flex items-center justify-center p-2">
-            <LewisCanvas
-              ref={svgRef}
-              structure={structure}
-              onTap={onTap}
-              onPress={onPressDrawing}
-              problems={problems}
-              bars={bars}
-              hints={hints}
-              showCharges={used === total}
-              preview={preview}
-            />
-          </div>
+export default function LewisStructures() {
+  const [mode, setMode] = useState<Mode>('draw');
 
-          <div
-            data-testid="electron-counter"
-            aria-live="polite"
-            className="text-sm"
+  return (
+    <Container header="Lewis Structures" className="gap-4">
+      <div role="tablist" aria-label="Mode" className="flex gap-2">
+        {MODES.map(({ mode: m, label }) => (
+          <button
+            key={m}
+            id={`lewis-tab-${m}`}
+            type="button"
+            role="tab"
+            aria-selected={mode === m}
+            aria-controls={`lewis-panel-${m}`}
+            onClick={() => setMode(m)}
+            className={cn(
+              'px-4 py-2 rounded-lg font-semibold cursor-pointer',
+              mode === m
+                ? 'bg-white text-gray-900'
+                : 'bg-primary-700 text-white hover:bg-primary-800',
+            )}
           >
-            <div className="h-2 rounded-full bg-primary-700 overflow-hidden mb-1">
-              <div
-                className={cn(
-                  'h-full transition-all',
-                  used > total ? 'bg-red-500' : 'bg-secondary-500',
-                )}
-                style={{ width: `${Math.min(100, (used / total) * 100)}%` }}
-              />
-            </div>
-            {used} of {total} valence electrons placed
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              onClick={() => dispatch({ type: 'undo' })}
-              disabled={!editor.history.length}
-            >
-              Undo
-            </Button>
-            <Button onClick={() => restart(molecule, start)}>Reset</Button>
-            <Button
-              onClick={() => dispatch({ type: 'cleanUp' })}
-              disabled={!structure.atoms.length}
-            >
-              Clean Up
-            </Button>
-            <Button pressed onClick={() => setChecked(structure)}>
-              Check your work
-            </Button>
-          </div>
-
-          <div className="flex flex-wrap gap-x-4 gap-y-1">
-            <Setting checked={hints} onChange={setHints}>
-              Show hints
-            </Setting>
-            <Setting checked={snap} onChange={setSnap}>
-              Snap to bond angles
-            </Setting>
-            <Setting checked={bars} onChange={setBars}>
-              Lone pairs as bars
-            </Setting>
-          </div>
-
-          {result && (
-            <div
-              data-testid="feedback"
-              role="status"
-              className="bg-primary-600 rounded-lg p-3 text-sm space-y-1"
-            >
-              {VERDICT_LABEL[result.verdict] && (
-                <p className="font-bold">{VERDICT_LABEL[result.verdict]}</p>
-              )}
-              <ul className="space-y-1">
-                {result.feedback.map((f, i) => (
-                  <li key={i}>{f.message}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* what's being dragged follows the pointer */}
-      {drag && !preview && (
+      {/* both stay mounted, so switching modes keeps each drawing */}
+      {MODES.map(({ mode: m }) => (
         <div
-          aria-hidden="true"
-          className="fixed z-50 pointer-events-none px-2 py-1 rounded-md bg-secondary-500 text-text-secondary text-xs font-semibold shadow-lg"
-          style={{ left: drag.at.clientX + 12, top: drag.at.clientY + 12 }}
+          key={m}
+          id={`lewis-panel-${m}`}
+          role="tabpanel"
+          aria-labelledby={`lewis-tab-${m}`}
+          hidden={mode !== m}
         >
-          {drag.payload.label}
+          {m === 'draw' ? <DrawMode /> : <QuizMode />}
         </div>
-      )}
+      ))}
     </Container>
   );
 }

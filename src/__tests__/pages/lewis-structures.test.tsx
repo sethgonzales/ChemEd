@@ -13,7 +13,10 @@ const tool = (name: string | RegExp) =>
     { name },
   );
 
-const counter = () => screen.getByTestId('electron-counter');
+// both modes stay mounted; only the active one is visible
+const panel = () => screen.getByRole('tabpanel');
+
+const counter = () => within(panel()).getByTestId('electron-counter');
 
 const drawing = () => screen.getByRole('group', { name: 'Lewis structure' });
 
@@ -32,7 +35,13 @@ async function checkWork() {
   await userEvent.click(
     screen.getByRole('button', { name: 'Check your work' }),
   );
-  return screen.getByTestId('feedback');
+  return within(panel()).getByTestId('feedback');
+}
+
+function renderQuiz() {
+  const result = render(<LewisStructures />);
+  fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }));
+  return result;
 }
 
 async function pick(level: string, molecule: string) {
@@ -46,9 +55,9 @@ async function pick(level: string, molecule: string) {
   );
 }
 
-describe('Lewis Structures page', () => {
+describe('Lewis Structures page: quiz', () => {
   it('starts with water on a given skeleton joined by single bonds', () => {
-    render(<LewisStructures />);
+    renderQuiz();
     expect(
       screen.getByRole('heading', { name: 'Water, H₂O' }),
     ).toBeInTheDocument();
@@ -60,7 +69,7 @@ describe('Lewis Structures page', () => {
   });
 
   it('has a ChemDraw-style toolbar with one tool active at a time', async () => {
-    render(<LewisStructures />);
+    renderQuiz();
     for (const name of [
       'Select',
       'Single bond',
@@ -80,14 +89,14 @@ describe('Lewis Structures page', () => {
 
   describe('tapping with a tool', () => {
     it('adds a lone pair to an atom', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(atom('O'));
       expect(counter()).toHaveTextContent('6 of 8');
       expect(atom('O')).toHaveAccessibleName(/1 lone pair/);
     });
 
     it('sets a bond to the bond tool’s order', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(tool('Triple bond'));
       await userEvent.click(
         screen.getAllByRole('button', { name: 'O–H single bond' })[0],
@@ -98,7 +107,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('adds an unpaired electron', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(tool('Unpaired electron'));
       await userEvent.click(atom('O'));
       expect(counter()).toHaveTextContent('5 of 8');
@@ -106,7 +115,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('erases lone pairs, bonds and atoms', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(atom('O'));
       await userEvent.click(tool('Eraser'));
 
@@ -129,7 +138,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('works by keyboard', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       atom('O').focus();
       await userEvent.keyboard('{Enter}');
       expect(counter()).toHaveTextContent('6 of 8');
@@ -138,13 +147,13 @@ describe('Lewis Structures page', () => {
 
   describe('dragging from the toolbar', () => {
     it('drops a lone pair onto an atom', () => {
-      render(<LewisStructures />);
+      renderQuiz();
       drag(tool('Lone pair'), atom('O'));
       expect(counter()).toHaveTextContent('6 of 8');
     });
 
     it('drops a bond order onto a bond', () => {
-      render(<LewisStructures />);
+      renderQuiz();
       drag(
         tool('Double bond'),
         screen.getAllByRole('button', { name: 'O–H single bond' })[0],
@@ -155,13 +164,13 @@ describe('Lewis Structures page', () => {
     });
 
     it('doesn’t change the active tool', () => {
-      render(<LewisStructures />);
+      renderQuiz();
       drag(tool('Unpaired electron'), atom('O'));
       expect(tool('Lone pair')).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('does nothing when dropped on nothing', () => {
-      render(<LewisStructures />);
+      renderQuiz();
       drag(tool('Lone pair'), document.body);
       expect(counter()).toHaveTextContent('4 of 8');
     });
@@ -169,7 +178,7 @@ describe('Lewis Structures page', () => {
 
   describe('dragging on the drawing with Select', () => {
     it('moves a lone pair to another atom', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(atom('O'));
       await userEvent.click(tool('Select'));
       drag(screen.getByRole('button', { name: 'Lone pair on O' }), atom('H'));
@@ -178,7 +187,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('removes a lone pair dragged off into empty space', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(atom('O'));
       await userEvent.click(tool('Select'));
       drag(screen.getByRole('button', { name: 'Lone pair on O' }), drawing());
@@ -186,7 +195,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('moves an atom to where it is dropped', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(tool('Select'));
       const svg = drawing();
       jest.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
@@ -205,7 +214,7 @@ describe('Lewis Structures page', () => {
 
   describe('starting from an empty canvas', () => {
     async function emptyCanvas() {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(
         screen.getByRole('button', { name: 'Empty canvas' }),
       );
@@ -274,7 +283,7 @@ describe('Lewis Structures page', () => {
 
   describe('checking your work', () => {
     it('explains what is wrong when checked too early', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       const feedback = await checkWork();
       expect(feedback).toHaveTextContent('Not yet');
       expect(feedback).toHaveTextContent(
@@ -284,21 +293,21 @@ describe('Lewis Structures page', () => {
     });
 
     it('says correct for a finished structure', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(atom('O'));
       await userEvent.click(atom('O'));
       expect(await checkWork()).toHaveTextContent('Correct!');
     });
 
     it('clears feedback once the structure changes', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await checkWork();
       await userEvent.click(atom('O'));
-      expect(screen.queryByTestId('feedback')).not.toBeInTheDocument();
+      expect(within(panel()).queryByTestId('feedback')).not.toBeInTheDocument();
     });
 
     it('mentions resonance for a correct resonance structure', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await pick('4', 'nitrate');
       // bonds and atoms render in skeleton order, so the first N–O bond
       // belongs to the first oxygen
@@ -330,14 +339,14 @@ describe('Lewis Structures page', () => {
   });
 
   it('undoes the last change', async () => {
-    render(<LewisStructures />);
+    renderQuiz();
     await userEvent.click(atom('O'));
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(counter()).toHaveTextContent('4 of 8');
   });
 
   it('switches molecules from the level and molecule pickers', async () => {
-    render(<LewisStructures />);
+    renderQuiz();
     await pick('4', 'nitrate');
     expect(
       screen.getByRole('heading', { name: 'Nitrate ion, NO₃⁻' }),
@@ -346,7 +355,7 @@ describe('Lewis Structures page', () => {
   });
 
   it('shows formal charges only once every electron is placed', async () => {
-    render(<LewisStructures />);
+    renderQuiz();
     // bare skeleton: O would read +4, which means nothing yet
     expect(drawing().textContent).not.toContain('+4');
     await pick('3', 'ammonium');
@@ -355,7 +364,7 @@ describe('Lewis Structures page', () => {
   });
 
   it('can draw lone pairs as bars', async () => {
-    const { container } = render(<LewisStructures />);
+    const { container } = renderQuiz();
     await userEvent.click(atom('O'));
     expect(
       container.querySelectorAll('[data-pair] circle:not(.hit)'),
@@ -372,7 +381,7 @@ describe('Lewis Structures page', () => {
 
   describe('charges, δ marks and ion brackets', () => {
     it('has mark tools in the toolbar', () => {
-      render(<LewisStructures />);
+      renderQuiz();
       for (const name of [
         'Positive charge',
         'Negative charge',
@@ -384,7 +393,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('writes charges on atoms by tap or drag, and erases them', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await pick('3', 'ammonium');
       await userEvent.click(tool('Positive charge'));
       await userEvent.click(atom('N'));
@@ -405,7 +414,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('asks for formal charges and brackets on an ion', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await pick('3', 'ammonium');
       const feedback = await checkWork();
       expect(feedback).toHaveTextContent('Almost');
@@ -416,7 +425,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('marks an ion correct once its charges and brackets are right', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await pick('3', 'ammonium');
       await userEvent.click(tool('Positive charge'));
       await userEvent.click(atom('N'));
@@ -433,7 +442,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('grades δ marks', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(atom('O'));
       await userEvent.click(atom('O'));
       await userEvent.click(tool('Partial charge (δ+/δ−)'));
@@ -455,7 +464,7 @@ describe('Lewis Structures page', () => {
 
   describe('hints', () => {
     it('are on by default at every level and can be hidden', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await pick('5', 'sulfate');
       const hints = screen.getByRole('checkbox', { name: 'Show hints' });
       expect(hints).toBeChecked();
@@ -490,7 +499,7 @@ describe('Lewis Structures page', () => {
     }
 
     it('snaps a moved atom to a bond length from its neighbour', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(tool('Select'));
       layOut();
       drag(atom('H'), drawing());
@@ -498,7 +507,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('can be switched off', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       const snap = screen.getByRole('checkbox', {
         name: 'Snap to bond angles',
       });
@@ -511,7 +520,7 @@ describe('Lewis Structures page', () => {
     });
 
     it('tidies the drawing with Clean Up, which Undo reverses', async () => {
-      render(<LewisStructures />);
+      renderQuiz();
       await userEvent.click(
         screen.getByRole('checkbox', { name: 'Snap to bond angles' }),
       );
@@ -526,5 +535,219 @@ describe('Lewis Structures page', () => {
       await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
       expect(distanceFromO(atom('H'))).toBeCloseTo(moved);
     });
+  });
+
+  describe('resonance forms', () => {
+    const tab = (name: string) =>
+      within(
+        screen.getByRole('tablist', { name: 'Resonance forms' }),
+      ).getByRole('tab', { name });
+    const ooBonds = () => screen.getAllByRole('button', { name: /^O–O/ });
+
+    /** Ozone form 1: O=O–O⁻ with the central O⁺ (atom 0 central, 1 and 2 outer) */
+    async function ozoneFormOne() {
+      await pick('4', 'ozone');
+      await userEvent.click(tool('Double bond'));
+      await userEvent.click(ooBonds()[0]);
+      await userEvent.click(tool('Lone pair'));
+      for (const [i, pairs] of [1, 2, 3].entries()) {
+        for (let k = 0; k < pairs; k++) await userEvent.click(atom('O', i));
+      }
+      await userEvent.click(tool('Positive charge'));
+      await userEvent.click(atom('O', 0));
+      await userEvent.click(tool('Negative charge'));
+      await userEvent.click(atom('O', 2));
+    }
+
+    /** From a copy of form 1, makes form 2: ⁻O–O=O */
+    async function ozoneFormTwo(container: HTMLElement) {
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Add resonance form' }),
+      );
+      await userEvent.click(tool('Single bond'));
+      await userEvent.click(ooBonds()[0]);
+      await userEvent.click(tool('Double bond'));
+      await userEvent.click(ooBonds()[1]);
+      // move a lone pair from O2 to O1, and the negative charge with it
+      await userEvent.click(tool('Select'));
+      drag(container.querySelector('[data-pair="2"]')!, atom('O', 1));
+      await userEvent.click(tool('Eraser'));
+      await userEvent.click(container.querySelector('[data-mark="2"]')!);
+      await userEvent.click(tool('Negative charge'));
+      await userEvent.click(atom('O', 1));
+    }
+
+    it('starts with one form and adds, switches and removes forms', async () => {
+      renderQuiz();
+      expect(tab('Form 1')).toHaveAttribute('aria-selected', 'true');
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Add resonance form' }),
+      );
+      expect(tab('Form 2')).toHaveAttribute('aria-selected', 'true');
+
+      await userEvent.click(tab('Form 1'));
+      expect(tab('Form 1')).toHaveAttribute('aria-selected', 'true');
+
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Remove form' }),
+      );
+      expect(screen.queryByRole('tab', { name: 'Form 2' })).toBeNull();
+      expect(
+        screen.getByRole('button', { name: 'Remove form' }),
+      ).toBeDisabled();
+    });
+
+    it('keeps each form’s edits separate', async () => {
+      renderQuiz();
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Add resonance form' }),
+      );
+      await userEvent.click(atom('O'));
+      expect(counter()).toHaveTextContent('6 of 8');
+      await userEvent.click(tab('Form 1'));
+      expect(counter()).toHaveTextContent('4 of 8');
+    });
+
+    it('draws a curved arrow by dragging, and erases it', async () => {
+      const { container } = renderQuiz();
+      await pick('4', 'ozone');
+      await userEvent.click(atom('O', 2));
+      await userEvent.click(tool('Curved arrow'));
+      drag(container.querySelector('[data-pair="2"]')!, ooBonds()[1]);
+      const arrow = screen.getByRole('button', {
+        name: 'Curved arrow from lone pair on O to O–O bond',
+      });
+      await userEvent.click(tool('Eraser'));
+      await userEvent.click(arrow);
+      expect(
+        screen.queryByRole('button', { name: /^Curved arrow from/ }),
+      ).toBeNull();
+    });
+
+    it('draws a curved arrow with two taps', async () => {
+      renderQuiz();
+      await pick('4', 'ozone');
+      await userEvent.click(tool('Curved arrow'));
+      await userEvent.click(ooBonds()[0]);
+      expect(
+        screen.getByText('Now tap where the electrons go.'),
+      ).toBeInTheDocument();
+      await userEvent.click(atom('O', 1));
+      expect(
+        screen.getByRole('button', { name: 'Curved arrow from O–O bond to O' }),
+      ).toBeInTheDocument();
+    });
+
+    it('grades a full set of resonance forms with arrows', async () => {
+      const { container } = renderQuiz();
+      await ozoneFormOne();
+      // arrows on form 1: O2's lone pair forms a π bond; O0=O1's π bond moves to O1
+      await userEvent.click(tool('Curved arrow'));
+      drag(container.querySelector('[data-pair="2"]')!, ooBonds()[1]);
+      drag(ooBonds()[0], atom('O', 1));
+      await ozoneFormTwo(container);
+      expect(await checkWork()).toHaveTextContent(
+        'Correct! All 2 resonance structures found.',
+      );
+    });
+
+    it('says when arrows don’t lead to the next form', async () => {
+      const { container } = renderQuiz();
+      await ozoneFormOne();
+      await userEvent.click(tool('Curved arrow'));
+      drag(container.querySelector('[data-pair="2"]')!, ooBonds()[1]);
+      await ozoneFormTwo(container);
+      expect(await checkWork()).toHaveTextContent(
+        "Your arrows on form 1 don't lead to form 2.",
+      );
+    });
+
+    it('grades every form when there are several', async () => {
+      renderQuiz();
+      await pick('4', 'nitrate');
+      await userEvent.click(
+        screen.getByRole('button', { name: 'Add resonance form' }),
+      );
+      const feedback = await checkWork();
+      expect(feedback).toHaveTextContent(/Form 1: /);
+    });
+  });
+});
+
+describe('Lewis Structures page: modes', () => {
+  it('starts in Draw, with Quiz next to it', () => {
+    render(<LewisStructures />);
+    expect(screen.getByRole('tab', { name: 'Draw' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.queryByRole('combobox', { name: 'Level' })).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }));
+    expect(screen.getByRole('combobox', { name: 'Level' })).toBeInTheDocument();
+  });
+
+  it('keeps each mode’s drawing when switching between them', () => {
+    render(<LewisStructures />);
+    drag(tool('Add O'), drawing());
+    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Draw' }));
+    expect(atom('O')).toBeInTheDocument();
+  });
+});
+
+describe('Lewis Structures page: draw', () => {
+  it('has the common elements in the toolbar, without limits', () => {
+    render(<LewisStructures />);
+    for (const symbol of ['H', 'C', 'N', 'O', 'F', 'P', 'S', 'Cl', 'Br', 'I']) {
+      expect(tool(`Add ${symbol}`)).toBeEnabled();
+    }
+    expect(tool('Add C')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('adds other elements from the element picker', async () => {
+    render(<LewisStructures />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'More elements' }),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Choose an element' });
+    // only elements the builder can check are offered
+    expect(within(dialog).queryByRole('button', { name: /Iron/ })).toBeNull();
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: /Xenon/ }),
+    );
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(tool('Add Xe')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('builds and checks a structure with no target molecule', async () => {
+    render(<LewisStructures />);
+    drag(tool('Add O'), drawing());
+    drag(tool('Add H'), atom('O'));
+    drag(tool('Add H'), atom('O'));
+    drag(tool('Lone pair'), atom('O'));
+    drag(tool('Lone pair'), atom('O'));
+    expect(counter()).toHaveTextContent('8 valence electrons');
+    expect(counter()).toHaveTextContent('H₂O');
+    expect(await checkWork()).toHaveTextContent(
+      'Looks good! Every atom has a full shell and the charges are marked.',
+    );
+  });
+
+  it('explains what’s wrong with a drawing', async () => {
+    render(<LewisStructures />);
+    drag(tool('Add O'), drawing());
+    expect(await checkWork()).toHaveTextContent(
+      'O has 0 electrons around it. It needs 8.',
+    );
+  });
+
+  it('starts over with Reset', async () => {
+    render(<LewisStructures />);
+    drag(tool('Add O'), drawing());
+    await userEvent.click(
+      within(panel()).getByRole('button', { name: 'Reset' }),
+    );
+    expect(screen.queryByRole('button', { name: / atom:/ })).toBeNull();
   });
 });

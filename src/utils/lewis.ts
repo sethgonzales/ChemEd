@@ -15,9 +15,18 @@ export type BondOrder = 1 | 2 | 3;
 
 export type LewisBond = { a: number; b: number; order: BondOrder };
 
+/** A curved arrow moving an electron pair from a lone pair or bond */
+export type CurvedArrow = {
+  from:
+    | { kind: 'lonePair'; atom: number }
+    | { kind: 'bond'; a: number; b: number };
+  to: { kind: 'atom'; id: number } | { kind: 'bond'; a: number; b: number };
+};
+
 export type LewisStructure = {
   atoms: LewisAtom[];
   bonds: LewisBond[];
+  arrows?: CurvedArrow[]; // electron movement drawn on this resonance form
   bracket?: { charge: number }; // ion brackets and the overall charge written on them
 };
 
@@ -228,6 +237,51 @@ function octetMessage(
     return `${symbol} has ${electrons} electrons. It needs 2.`;
   }
   return `${symbol} has ${electrons} electrons around it. It needs ${target}.`;
+}
+
+/** The drawn formula in Hill order: C, then H, then the rest alphabetically */
+export function formulaOf(s: LewisStructure) {
+  const counts: Record<string, number> = {};
+  for (const a of s.atoms) counts[a.symbol] = (counts[a.symbol] ?? 0) + 1;
+  const symbols = Object.keys(counts).sort((a, b) => a.localeCompare(b));
+  const order = counts.C
+    ? [
+        'C',
+        ...(counts.H ? ['H'] : []),
+        ...symbols.filter((x) => x !== 'C' && x !== 'H'),
+      ]
+    : symbols;
+  return order.map((x) => (counts[x] > 1 ? `${x}${counts[x]}` : x)).join('');
+}
+
+/**
+ * Problems with a freely drawn structure, which has no target molecule:
+ * connectivity and octets, then (once those are right) charge marks and ion
+ * brackets for the drawing's own net charge.
+ */
+export function checkDrawing(s: LewisStructure): Feedback[] {
+  if (!s.atoms.length) {
+    return [{ kind: 'atoms', message: 'Add some atoms first.' }];
+  }
+  const feedback: Feedback[] = [];
+  if (!connected(s)) {
+    feedback.push({
+      kind: 'disconnected',
+      message: 'Every atom must be bonded into one structure.',
+    });
+  }
+  for (const atom of s.atoms) {
+    const status = octetStatus(s, atom.id);
+    if (!status.ok) {
+      feedback.push({
+        kind: 'octet',
+        atom: atom.id,
+        message: octetMessage(atom.symbol, status),
+      });
+    }
+  }
+  if (feedback.some((f) => f.kind === 'octet')) return feedback;
+  return [...feedback, ...checkMarks(s), ...checkBrackets(s, netCharge(s))];
 }
 
 /** Everything wrong with a student's structure, as short messages. */

@@ -1,4 +1,4 @@
-import type { BondOrder, LewisStructure } from './lewis';
+import type { BondOrder, CurvedArrow, LewisStructure } from './lewis';
 import type { EditorAction } from './lewis-editor';
 import { nextAtomPosition, snapPosition } from './lewis-layout';
 
@@ -14,6 +14,7 @@ export type Tool =
   | 'chargeMinus'
   | 'partial'
   | 'brackets'
+  | 'curvedArrow'
   | `element:${string}`;
 
 /** What a tap, drop or drag landed on. Canvas points are in bond lengths. */
@@ -23,6 +24,7 @@ export type Target =
   | { kind: 'lonePair'; atom: number }
   | { kind: 'mark'; atom: number } // an atom's charge or δ mark
   | { kind: 'bracket' } // the ion brackets around the whole structure
+  | { kind: 'arrow'; index: number } // a curved arrow
   | { kind: 'canvas'; x: number; y: number };
 
 const BOND_ORDER: Partial<Record<Tool, BondOrder>> = {
@@ -107,10 +109,36 @@ export function toolAction(
       if (target.kind === 'mark') {
         return { type: 'clearMarks', atom: target.atom };
       }
+      if (target.kind === 'arrow') {
+        return { type: 'removeArrow', index: target.index };
+      }
       return null;
     default:
       return null;
   }
+}
+
+/**
+ * A curved arrow from a lone pair or bond to an atom or bond (a lone pair
+ * counts as its atom); null for anything else.
+ */
+export function arrowBetween(
+  source: Target,
+  target: Target,
+): CurvedArrow | null {
+  const from: CurvedArrow['from'] | null =
+    source.kind === 'lonePair'
+      ? { kind: 'lonePair', atom: source.atom }
+      : source.kind === 'bond'
+        ? { kind: 'bond', a: source.a, b: source.b }
+        : null;
+  const to: CurvedArrow['to'] | null =
+    target.kind === 'bond'
+      ? { kind: 'bond', a: target.a, b: target.b }
+      : atomOf(target) !== null && target.kind !== 'mark'
+        ? { kind: 'atom', id: atomOf(target)! }
+        : null;
+  return from && to ? { from, to } : null;
 }
 
 /** The edit for a drag that starts on the drawing and ends on `target`. */
@@ -120,6 +148,11 @@ export function dragAction(
   target: Target,
   point: { x: number; y: number },
 ): EditorAction | null {
+  if (tool === 'curvedArrow') {
+    const arrow = arrowBetween(source, target);
+    return arrow ? { type: 'addArrow', arrow } : null;
+  }
+
   const order = BOND_ORDER[tool];
   if (order) {
     // draw a bond from one atom to another, as in ChemDraw

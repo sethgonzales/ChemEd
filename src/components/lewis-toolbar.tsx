@@ -62,6 +62,21 @@ export const DRAWING_TOOLS: ToolItem[] = [
     draggable: true,
   },
   {
+    tool: 'curvedArrow',
+    label: 'Curved arrow',
+    icon: (
+      <svg viewBox="0 0 20 20" className="w-5 h-5" aria-hidden="true">
+        <path
+          d="M4 15 Q4 4 15 5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.6}
+        />
+        <polygon points="17,5 12,2.5 12.5,7.5" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
     tool: 'eraser',
     label: 'Eraser',
     icon: <IconEraser size={20} aria-hidden="true" />,
@@ -119,14 +134,15 @@ export default function LewisToolbar({
     <div
       role="toolbar"
       aria-label="Drawing tools"
-      className="flex sm:flex-col flex-wrap gap-1 bg-primary-700 rounded-lg p-1 h-fit"
+      className="flex flex-col gap-1 bg-primary-700 rounded-lg p-1 h-fit"
     >
       {groups.map((group, g) => (
         <div
           key={g}
           className={cn(
-            'flex sm:flex-col flex-wrap gap-1',
-            g > 0 && 'w-full sm:w-auto border-t border-primary-500 pt-1',
+            // 8 columns fill a phone's width; 2 keep the desktop column short
+            'grid grid-cols-8 sm:grid-cols-2 gap-1',
+            g > 0 && 'border-t border-primary-500 pt-1',
           )}
         >
           {group.map(({ tool, label, icon, disabled, draggable }) => (
@@ -140,7 +156,7 @@ export default function LewisToolbar({
               onClick={() => onSelect(tool)}
               onPointerDown={(e) => draggable && !disabled && onPress(tool, e)}
               className={cn(
-                'relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-md text-white cursor-pointer',
+                'relative w-full h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-md text-white cursor-pointer',
                 'disabled:opacity-40 disabled:cursor-not-allowed',
                 draggable && 'touch-none',
                 active === tool

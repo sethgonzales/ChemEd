@@ -1,6 +1,11 @@
 import { MOLECULES } from '~/constants/molecules';
 import { skeletonEditor } from './lewis-editor';
-import { dragAction, snapAction, toolAction } from './lewis-tools';
+import {
+  arrowBetween,
+  dragAction,
+  snapAction,
+  toolAction,
+} from './lewis-tools';
 
 const water = skeletonEditor(
   MOLECULES.find((m) => m.id === 'water')!,
@@ -90,6 +95,13 @@ describe('toolAction (tap, or drop from the toolbar)', () => {
     });
   });
 
+  it('erases a curved arrow', () => {
+    expect(toolAction('eraser', { kind: 'arrow', index: 2 }, water)).toEqual({
+      type: 'removeArrow',
+      index: 2,
+    });
+  });
+
   it('erases an atom’s marks', () => {
     expect(toolAction('eraser', markOnO, water)).toEqual({
       type: 'clearMarks',
@@ -167,6 +179,39 @@ describe('dragAction (drag that starts on the drawing)', () => {
     });
   });
 
+  it('draws a curved arrow from a lone pair or bond to an atom or bond', () => {
+    expect(dragAction('curvedArrow', pairOnO, OH, { x: 0, y: 0 })).toEqual({
+      type: 'addArrow',
+      arrow: {
+        from: { kind: 'lonePair', atom: 0 },
+        to: { kind: 'bond', a: 0, b: 1 },
+      },
+    });
+    expect(dragAction('curvedArrow', OH, H, { x: 0, y: 0 })).toEqual({
+      type: 'addArrow',
+      arrow: {
+        from: { kind: 'bond', a: 0, b: 1 },
+        to: { kind: 'atom', id: 1 },
+      },
+    });
+    // a lone pair dropped on counts as its atom
+    expect(
+      dragAction(
+        'curvedArrow',
+        OH,
+        { kind: 'lonePair', atom: 1 },
+        { x: 0, y: 0 },
+      ),
+    ).toMatchObject({ arrow: { to: { kind: 'atom', id: 1 } } });
+  });
+
+  it('only starts curved arrows from lone pairs and bonds', () => {
+    expect(dragAction('curvedArrow', O, OH, { x: 0, y: 0 })).toBeNull();
+    expect(
+      dragAction('curvedArrow', pairOnO, empty, { x: 0, y: 0 }),
+    ).toBeNull();
+  });
+
   it('leaves a lone pair dropped back on its own atom', () => {
     expect(dragAction('select', pairOnO, O, { x: 0, y: 0 })).toBeNull();
   });
@@ -200,5 +245,15 @@ describe('snapAction', () => {
     expect(snapAction(attach, water)).toBe(attach);
     const pair = { type: 'addLonePair', atom: 0 } as const;
     expect(snapAction(pair, water)).toBe(pair);
+  });
+});
+
+describe('arrowBetween', () => {
+  it('builds the arrow for a two-tap curved arrow', () => {
+    expect(arrowBetween(pairOnO, OH)).toEqual({
+      from: { kind: 'lonePair', atom: 0 },
+      to: { kind: 'bond', a: 0, b: 1 },
+    });
+    expect(arrowBetween(O, OH)).toBeNull();
   });
 });

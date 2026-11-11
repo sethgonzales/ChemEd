@@ -1,5 +1,10 @@
 import { MOLECULES } from '~/constants/molecules';
-import { editorReducer, emptyEditor, skeletonEditor } from './lewis-editor';
+import {
+  editorReducer,
+  emptyEditor,
+  formsReducer,
+  skeletonEditor,
+} from './lewis-editor';
 import { electronsUsed } from './lewis';
 
 const water = MOLECULES.find((m) => m.id === 'water')!;
@@ -194,6 +199,43 @@ describe('editorReducer', () => {
     expect(s.structure.atoms[1]).toMatchObject({ x: 0.1, y: 0.1 });
   });
 
+  it('adds and removes curved arrows', () => {
+    const arrow = {
+      from: { kind: 'lonePair', atom: 0 },
+      to: { kind: 'bond', a: 0, b: 1 },
+    } as const;
+    let s = editorReducer(start, { type: 'addArrow', arrow });
+    expect(s.structure.arrows).toEqual([arrow]);
+    s = editorReducer(s, { type: 'removeArrow', index: 0 });
+    expect(s.structure.arrows).toEqual([]);
+  });
+
+  it('drops arrows that touch an erased atom or bond', () => {
+    let s = editorReducer(start, {
+      type: 'addArrow',
+      arrow: {
+        from: { kind: 'lonePair', atom: 0 },
+        to: { kind: 'bond', a: 0, b: 1 },
+      },
+    });
+    s = editorReducer(s, {
+      type: 'addArrow',
+      arrow: {
+        from: { kind: 'lonePair', atom: 0 },
+        to: { kind: 'atom', id: 2 },
+      },
+    });
+    expect(
+      editorReducer(s, { type: 'removeBond', a: 0, b: 1 }).structure.arrows,
+    ).toHaveLength(1);
+    expect(
+      editorReducer(s, { type: 'removeAtom', atom: 2 }).structure.arrows,
+    ).toHaveLength(1);
+    expect(
+      editorReducer(s, { type: 'removeAtom', atom: 0 }).structure.arrows,
+    ).toEqual([]);
+  });
+
   it('undoes one change at a time', () => {
     let s = editorReducer(start, { type: 'addLonePair', atom: 0 });
     s = editorReducer(s, { type: 'setBondOrder', a: 0, b: 1, order: 2 });
@@ -218,5 +260,67 @@ describe('editorReducer', () => {
     });
     expect(loaded.structure).toEqual(start.structure);
     expect(loaded.history).toEqual([]);
+  });
+});
+
+describe('formsReducer', () => {
+  const one = { forms: [skeletonEditor(water)], active: 0 };
+
+  it('edits only the active form', () => {
+    let s = formsReducer(one, { type: 'addForm' });
+    s = formsReducer(s, {
+      type: 'edit',
+      action: { type: 'addLonePair', atom: 0 },
+    });
+    expect(s.forms[1].structure.atoms[0].lonePairs).toBe(1);
+    expect(s.forms[0].structure.atoms[0].lonePairs).toBe(0);
+  });
+
+  it('adds a form as a copy of the active one, without its arrows or history', () => {
+    let s = formsReducer(one, {
+      type: 'edit',
+      action: { type: 'addLonePair', atom: 0 },
+    });
+    s = formsReducer(s, {
+      type: 'edit',
+      action: {
+        type: 'addArrow',
+        arrow: {
+          from: { kind: 'lonePair', atom: 0 },
+          to: { kind: 'bond', a: 0, b: 1 },
+        },
+      },
+    });
+    s = formsReducer(s, { type: 'addForm' });
+    expect(s.forms).toHaveLength(2);
+    expect(s.active).toBe(1);
+    expect(s.forms[1].structure.atoms[0].lonePairs).toBe(1);
+    expect(s.forms[1].structure.arrows ?? []).toEqual([]);
+    expect(s.forms[1].history).toEqual([]);
+  });
+
+  it('switches between forms', () => {
+    let s = formsReducer(one, { type: 'addForm' });
+    s = formsReducer(s, { type: 'selectForm', index: 0 });
+    expect(s.active).toBe(0);
+  });
+
+  it('removes a form but always keeps one', () => {
+    let s = formsReducer(one, { type: 'addForm' });
+    s = formsReducer(s, { type: 'addForm' });
+    s = formsReducer(s, { type: 'removeForm', index: 2 });
+    expect(s.forms).toHaveLength(2);
+    expect(s.active).toBe(1);
+    s = formsReducer(s, { type: 'removeForm', index: 0 });
+    expect(s.active).toBe(0);
+    expect(formsReducer(s, { type: 'removeForm', index: 0 })).toBe(s);
+  });
+
+  it('starts over with a single form on load', () => {
+    let s = formsReducer(one, { type: 'addForm' });
+    s = formsReducer(s, { type: 'load', editor: emptyEditor() });
+    expect(s.forms).toHaveLength(1);
+    expect(s.active).toBe(0);
+    expect(s.forms[0].structure.atoms).toEqual([]);
   });
 });

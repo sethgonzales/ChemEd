@@ -1,4 +1,4 @@
-import type { BondOrder, LewisStructure, Molecule } from './lewis';
+import type { BondOrder, CurvedArrow, LewisStructure, Molecule } from './lewis';
 import { cleanUp, layoutSkeleton } from './lewis-layout';
 
 export type EditorState = {
@@ -21,6 +21,8 @@ export type EditorAction =
   | { type: 'toggleBracket' }
   | { type: 'adjustBracketCharge'; delta: 1 | -1 }
   | { type: 'cleanUp' }
+  | { type: 'addArrow'; arrow: CurvedArrow }
+  | { type: 'removeArrow'; index: number }
   | { type: 'addAtom'; symbol: string; x: number; y: number; bondTo?: number }
   | { type: 'removeAtom'; atom: number }
   | { type: 'undo' }
@@ -62,6 +64,17 @@ export function skeletonEditor(molecule: Molecule): EditorState {
 export function emptyEditor(): EditorState {
   return { structure: { atoms: [], bonds: [] }, history: [], nextId: 0 };
 }
+
+// Whether an arrow starts or ends on an atom (or a bond to it)
+const arrowTouchesAtom = ({ from, to }: CurvedArrow, id: number) =>
+  [from, to].some((end) =>
+    end.kind === 'bond'
+      ? end.a === id || end.b === id
+      : (end.kind === 'lonePair' ? end.atom : end.id) === id,
+  );
+
+const arrowTouchesBond = ({ from, to }: CurvedArrow, a: number, b: number) =>
+  [from, to].some((end) => end.kind === 'bond' && joins(a, b)(end));
 
 const joins = (a: number, b: number) => (bond: { a: number; b: number }) =>
   (bond.a === a && bond.b === b) || (bond.a === b && bond.b === a);
@@ -107,6 +120,18 @@ function change(
       return {
         ...s,
         bonds: s.bonds.filter((b) => !joins(action.a, action.b)(b)),
+        ...(s.arrows && {
+          arrows: s.arrows.filter(
+            (arrow) => !arrowTouchesBond(arrow, action.a, action.b),
+          ),
+        }),
+      };
+    case 'addArrow':
+      return { ...s, arrows: [...(s.arrows ?? []), action.arrow] };
+    case 'removeArrow':
+      return {
+        ...s,
+        arrows: (s.arrows ?? []).filter((_, i) => i !== action.index),
       };
     case 'adjustCharge':
       return updateAtom(action.atom, (a) => ({
@@ -181,6 +206,12 @@ function change(
       };
     case 'removeAtom':
       return {
+        ...s,
+        ...(s.arrows && {
+          arrows: s.arrows.filter(
+            (arrow) => !arrowTouchesAtom(arrow, action.atom),
+          ),
+        }),
         atoms: s.atoms.filter((a) => a.id !== action.atom),
         bonds: s.bonds.filter(
           (b) => b.a !== action.atom && b.b !== action.atom,
@@ -213,4 +244,56 @@ export function editorReducer(
     history: [...state.history, state.structure],
     nextId: action.type === 'addAtom' ? state.nextId + 1 : state.nextId,
   };
+}
+
+/** Several resonance forms, each with its own undo history */
+export type FormsState = { forms: EditorState[]; active: number };
+
+export type FormsAction =
+  | { type: 'edit'; action: EditorAction }
+  | { type: 'addForm' }
+  | { type: 'removeForm'; index: number }
+  | { type: 'selectForm'; index: number }
+  | { type: 'load'; editor: EditorState };
+
+export function formsReducer(
+  state: FormsState,
+  action: FormsAction,
+): FormsState {
+  const { forms, active } = state;
+  switch (action.type) {
+    case 'edit': {
+      const next = editorReducer(forms[active], action.action);
+      if (next === forms[active]) return state;
+      return {
+        ...state,
+        forms: forms.map((f, i) => (i === active ? next : f)),
+      };
+    }
+    case 'addForm': {
+      // a new form starts as a copy, ready for the student to move electrons
+      const current = forms[active];
+      const copy = { ...current.structure };
+      delete copy.arrows;
+      return {
+        forms: [...forms, { ...current, structure: copy, history: [] }],
+        active: forms.length,
+      };
+    }
+    case 'removeForm': {
+      if (forms.length === 1) return state;
+      const remaining = forms.filter((_, i) => i !== action.index);
+      return {
+        forms: remaining,
+        active: Math.min(
+          action.index < active ? active - 1 : active,
+          remaining.length - 1,
+        ),
+      };
+    }
+    case 'selectForm':
+      return { ...state, active: action.index };
+    case 'load':
+      return { forms: [action.editor], active: 0 };
+  }
 }

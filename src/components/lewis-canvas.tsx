@@ -5,6 +5,7 @@ import {
   type PointerEvent,
 } from 'react';
 import {
+  type CurvedArrow,
   electronCount,
   formalCharge,
   ionCharge,
@@ -41,6 +42,7 @@ interface Props {
   hints?: boolean; // electron counts and formal charges on each atom
   showCharges?: boolean; // formal charges only mean something once every electron is placed
   preview?: { from: number; to: { x: number; y: number } } | null; // bond being drawn
+  pending?: Target | null; // first tap of a two-tap curved arrow
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -60,14 +62,16 @@ function atomLabel(s: LewisStructure, atom: LewisAtom, hints: boolean) {
 /** The atom, bond, lone pair or empty canvas an element belongs to. */
 export function targetOf(el: Element | null): Target | null {
   const hit = el?.closest(
-    '[data-pair],[data-mark],[data-atom],[data-bond],[data-bracket],[data-canvas]',
+    '[data-pair],[data-mark],[data-arrow],[data-atom],[data-bond],[data-bracket],[data-canvas]',
   );
   if (!hit) return null;
-  const { pair, mark, atom, bond, bracket } = (hit as HTMLElement | SVGElement)
-    .dataset;
+  const { pair, mark, arrow, atom, bond, bracket } = (
+    hit as HTMLElement | SVGElement
+  ).dataset;
   if (pair !== undefined) return { kind: 'lonePair', atom: Number(pair) };
   if (mark !== undefined) return { kind: 'mark', atom: Number(mark) };
   if (bracket !== undefined) return { kind: 'bracket' };
+  if (arrow !== undefined) return { kind: 'arrow', index: Number(arrow) };
   if (atom !== undefined) return { kind: 'atom', id: Number(atom) };
   if (bond !== undefined) {
     const [a, b] = bond.split('-').map(Number);
@@ -170,6 +174,21 @@ function Bond({
 }
 
 /** Lone pairs (each its own target) and unpaired electrons around an atom */
+/** Where each lone pair (then unpaired electron) sits around an atom, in px */
+function electronSpots(structure: LewisStructure, atom: LewisAtom) {
+  return lonePairSlots(
+    bondAngles(structure, atom.id),
+    atom.lonePairs + atom.radicals,
+  ).map((angle) => {
+    const dir = toPoint(angle);
+    return {
+      dir,
+      x: atom.x * SCALE + dir.x * PAIR_DISTANCE,
+      y: atom.y * SCALE + dir.y * PAIR_DISTANCE,
+    };
+  });
+}
+
 function Electrons({
   structure,
   atom,
@@ -183,19 +202,9 @@ function Electrons({
   onTap: Props['onTap'];
   onPress: Props['onPress'];
 }) {
-  const slots = lonePairSlots(
-    bondAngles(structure, atom.id),
-    atom.lonePairs + atom.radicals,
-  );
-  const cx = atom.x * SCALE;
-  const cy = atom.y * SCALE;
-
   return (
     <>
-      {slots.map((angle, i) => {
-        const dir = toPoint(angle);
-        const x = cx + dir.x * PAIR_DISTANCE;
-        const y = cy + dir.y * PAIR_DISTANCE;
+      {electronSpots(structure, atom).map(({ dir, x, y }, i) => {
         // a pair's dots (or bar) run across the direction it points
         const [px, py] = [-dir.y, dir.x];
 
@@ -361,6 +370,164 @@ function Brackets({
   );
 }
 
+type Point = { x: number; y: number };
+
+const ARROW_BULGE = 0.6; // how far a curved arrow bows out, as a share of its length
+const ARROW_MIN_BULGE = 22;
+const ARROW_HEAD = 7;
+
+/** Where an arrow end sits on the drawing, in px */
+function endPoint(
+  structure: LewisStructure,
+  end: CurvedArrow['from'] | CurvedArrow['to'],
+  toward: Point | null,
+): Point {
+  const atom = (id: number) => structure.atoms.find((a) => a.id === id)!;
+  if (end.kind === 'bond') {
+    const [a, b] = [atom(end.a), atom(end.b)];
+    return { x: ((a.x + b.x) / 2) * SCALE, y: ((a.y + b.y) / 2) * SCALE };
+  }
+  if (end.kind === 'lonePair') {
+    // start from the atom's lone pair nearest where the electrons go
+    const a = atom(end.atom);
+    const spots = electronSpots(structure, a).slice(0, a.lonePairs);
+    if (!spots.length) return { x: a.x * SCALE, y: a.y * SCALE };
+    if (!toward) return spots[0];
+    return spots.reduce((best, p) =>
+      Math.hypot(p.x - toward.x, p.y - toward.y) <
+      Math.hypot(best.x - toward.x, best.y - toward.y)
+        ? p
+        : best,
+    );
+  }
+  // arrows to an atom stop just short of its symbol
+  const a = atom(end.id);
+  const centre = { x: a.x * SCALE, y: a.y * SCALE };
+  if (!toward) return centre;
+  const d = Math.hypot(toward.x - centre.x, toward.y - centre.y) || 1;
+  return {
+    x: centre.x + ((toward.x - centre.x) / d) * PAIR_DISTANCE,
+    y: centre.y + ((toward.y - centre.y) / d) * PAIR_DISTANCE,
+  };
+}
+
+function describeEnd(
+  structure: LewisStructure,
+  end: CurvedArrow['from'] | CurvedArrow['to'],
+) {
+  const symbol = (id: number) =>
+    structure.atoms.find((a) => a.id === id)?.symbol ?? '?';
+  if (end.kind === 'bond') return `${symbol(end.a)}–${symbol(end.b)} bond`;
+  if (end.kind === 'lonePair') return `lone pair on ${symbol(end.atom)}`;
+  return symbol(end.id);
+}
+
+/** A curved electron-pushing arrow, bowing away from the molecule's centre */
+function Arrow({
+  structure,
+  arrow,
+  index,
+  onTap,
+  onPress,
+}: {
+  structure: LewisStructure;
+  arrow: CurvedArrow;
+  index: number;
+  onTap: Props['onTap'];
+  onPress: Props['onPress'];
+}) {
+  const centre = {
+    x:
+      (structure.atoms.reduce((s, a) => s + a.x, 0) / structure.atoms.length) *
+      SCALE,
+    y:
+      (structure.atoms.reduce((s, a) => s + a.y, 0) / structure.atoms.length) *
+      SCALE,
+  };
+  let start: Point;
+  let end: Point;
+  const { from, to } = arrow;
+  if (
+    from.kind === 'bond' &&
+    to.kind === 'atom' &&
+    (to.id === from.a || to.id === from.b)
+  ) {
+    // a bond breaking onto one of its atoms: arc from the bond to the outer
+    // side of that atom, where the new lone pair will sit
+    const atom = structure.atoms.find((a) => a.id === to.id)!;
+    const other = structure.atoms.find(
+      (a) => a.id === (to.id === from.a ? from.b : from.a),
+    )!;
+    const bondMid = endPoint(structure, from, null);
+    const ux = other.x - atom.x;
+    const uy = other.y - atom.y;
+    const u = Math.hypot(ux, uy) || 1;
+    let side = { x: -uy / u, y: ux / u };
+    if (side.x * (bondMid.x - centre.x) + side.y * (bondMid.y - centre.y) < 0) {
+      side = { x: -side.x, y: -side.y };
+    }
+    start = { x: bondMid.x + side.x * 6, y: bondMid.y + side.y * 6 };
+    end = {
+      x: atom.x * SCALE + side.x * PAIR_DISTANCE - (ux / u) * 4,
+      y: atom.y * SCALE + side.y * PAIR_DISTANCE - (uy / u) * 4,
+    };
+  } else {
+    const roughEnd = endPoint(structure, to, null);
+    start = endPoint(structure, from, roughEnd);
+    end = endPoint(structure, to, start);
+  }
+  const mid = { x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 };
+  const length = Math.hypot(end.x - start.x, end.y - start.y) || 1;
+  let normal = {
+    x: -(end.y - start.y) / length,
+    y: (end.x - start.x) / length,
+  };
+  if (normal.x * (mid.x - centre.x) + normal.y * (mid.y - centre.y) < 0) {
+    normal = { x: -normal.x, y: -normal.y };
+  }
+  const bulge = Math.max(ARROW_MIN_BULGE, length * ARROW_BULGE);
+  const control = { x: mid.x + normal.x * bulge, y: mid.y + normal.y * bulge };
+  // the head points along the curve's final direction
+  const tx = end.x - control.x;
+  const ty = end.y - control.y;
+  const t = Math.hypot(tx, ty) || 1;
+  const [ux, uy] = [tx / t, ty / t];
+  const head = [
+    end,
+    {
+      x: end.x - ux * ARROW_HEAD - uy * ARROW_HEAD * 0.5,
+      y: end.y - uy * ARROW_HEAD + ux * ARROW_HEAD * 0.5,
+    },
+    {
+      x: end.x - ux * ARROW_HEAD + uy * ARROW_HEAD * 0.5,
+      y: end.y - uy * ARROW_HEAD - ux * ARROW_HEAD * 0.5,
+    },
+  ];
+  const d = `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`;
+
+  return (
+    <g
+      data-arrow={index}
+      aria-label={`Curved arrow from ${describeEnd(structure, arrow.from)} to ${describeEnd(structure, arrow.to)}`}
+      className="cursor-pointer outline-none text-rose-600 focus-visible:[&>.hit]:stroke-sky-200"
+      {...interactive({ kind: 'arrow', index }, onTap, onPress)}
+    >
+      <path
+        className="hit"
+        d={d}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={12}
+      />
+      <path d={d} fill="none" stroke="currentColor" strokeWidth={1.6} />
+      <polygon
+        points={head.map((p) => `${p.x},${p.y}`).join(' ')}
+        fill="currentColor"
+      />
+    </g>
+  );
+}
+
 const LewisCanvas = forwardRef<SVGSVGElement, Props>(function LewisCanvas(
   {
     structure,
@@ -371,6 +538,7 @@ const LewisCanvas = forwardRef<SVGSVGElement, Props>(function LewisCanvas(
     hints = true,
     showCharges = true,
     preview,
+    pending,
   },
   ref,
 ) {
@@ -396,6 +564,12 @@ const LewisCanvas = forwardRef<SVGSVGElement, Props>(function LewisCanvas(
       ]
     : [-120, -60, 240, 120];
   const from = preview && atoms.get(preview.from);
+  const pendingSpot =
+    pending?.kind === 'bond'
+      ? endPoint(structure, { kind: 'bond', a: pending.a, b: pending.b }, null)
+      : pending?.kind === 'lonePair'
+        ? endPoint(structure, { kind: 'lonePair', atom: pending.atom }, null)
+        : null;
 
   return (
     <svg
@@ -442,6 +616,15 @@ const LewisCanvas = forwardRef<SVGSVGElement, Props>(function LewisCanvas(
           onPress={onPress}
         />
       ))}
+
+      {pendingSpot && (
+        <circle
+          cx={pendingSpot.x}
+          cy={pendingSpot.y}
+          r={9}
+          className="fill-sky-200/70 stroke-sky-500 pointer-events-none"
+        />
+      )}
 
       {from && preview && (
         <line
@@ -501,6 +684,17 @@ const LewisCanvas = forwardRef<SVGSVGElement, Props>(function LewisCanvas(
             />
           )}
         </g>
+      ))}
+
+      {structure.arrows?.map((arrow, i) => (
+        <Arrow
+          key={i}
+          structure={structure}
+          arrow={arrow}
+          index={i}
+          onTap={onTap}
+          onPress={onPress}
+        />
       ))}
     </svg>
   );

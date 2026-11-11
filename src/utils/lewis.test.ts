@@ -3,11 +3,13 @@ import {
   bestStructures,
   checkBrackets,
   checkMarks,
+  checkDrawing,
   checkStructure,
   electronCount,
   electronsUsed,
   formalCharge,
   formatFormula,
+  formulaOf,
   netCharge,
   octetStatus,
   parseFormula,
@@ -914,5 +916,92 @@ describe('checkBrackets', () => {
   it('flags brackets around a neutral molecule', () => {
     const [f] = checkBrackets({ ...water, bracket: { charge: 0 } }, 0);
     expect(f.message).toBe('Only ions are drawn in brackets.');
+  });
+});
+
+describe('formulaOf', () => {
+  it('writes the drawn formula in Hill order', () => {
+    expect(formulaOf(water)).toBe('H2O');
+    expect(formulaOf(carbonDioxide)).toBe('CO2');
+    expect(formulaOf(ammonium)).toBe('H4N');
+    expect(formulaOf(sulfurHexafluoride)).toBe('F6S');
+    expect(formulaOf({ atoms: [], bonds: [] })).toBe('');
+  });
+
+  it('puts carbon first, then hydrogen', () => {
+    const methanol = lewis(
+      [
+        ['O', 2],
+        ['C', 0],
+        ['H', 0],
+        ['H', 0],
+        ['H', 0],
+        ['H', 0],
+      ],
+      [
+        [0, 1, 1],
+        [1, 2, 1],
+        [1, 3, 1],
+        [1, 4, 1],
+        [0, 5, 1],
+      ],
+    );
+    expect(formulaOf(methanol)).toBe('CH4O');
+  });
+});
+
+describe('checkDrawing', () => {
+  it('finds nothing wrong with a complete, marked structure', () => {
+    expect(checkDrawing(water)).toEqual([]);
+    expect(
+      checkDrawing({
+        ...withMarks(nitrate, {
+          0: { charge: 1 },
+          2: { charge: -1 },
+          3: { charge: -1 },
+        }),
+        bracket: { charge: -1 },
+      }),
+    ).toEqual([]);
+  });
+
+  it('asks for atoms on an empty drawing', () => {
+    expect(checkDrawing({ atoms: [], bonds: [] })).toEqual([
+      { kind: 'atoms', message: 'Add some atoms first.' },
+    ]);
+  });
+
+  it('reports octets, connectivity, marks and brackets', () => {
+    const loose = lewis(
+      [
+        ['O', 1],
+        ['H', 0],
+        ['H', 0],
+      ],
+      [[0, 1, 1]],
+    );
+    const kinds = checkDrawing(loose).map((f) => f.kind);
+    expect(kinds).toContain('disconnected');
+    expect(kinds).toContain('octet');
+
+    // an ion drawn without charges or brackets
+    const unmarked = checkDrawing(nitrate).map((f) => f.kind);
+    expect(unmarked).toContain('charge-mark');
+    expect(unmarked).toContain('bracket');
+  });
+
+  it('only checks marks once every atom’s octet is right', () => {
+    const short = lewis(
+      [
+        ['O', 1],
+        ['H', 0],
+        ['H', 0],
+      ],
+      [
+        [0, 1, 1],
+        [0, 2, 1],
+      ],
+    );
+    expect(checkDrawing(short).map((f) => f.kind)).toEqual(['octet']);
   });
 });
