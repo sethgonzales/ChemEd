@@ -1,5 +1,9 @@
 import {
   forwardRef,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent,
@@ -7,6 +11,7 @@ import {
 import {
   type CurvedArrow,
   electronCount,
+  isOpenEnd,
   formalCharge,
   ionCharge,
   octetStatus,
@@ -24,12 +29,14 @@ const PADDING = 44;
 const BRACKET_MARGIN = 34; // brackets sit this far outside the outermost atoms
 const BRACKET_SERIF = 8; // length of a bracket's top and bottom strokes
 const ATOM_RADIUS = 13; // bonds stop this far from an atom's centre
-const HIT_RADIUS = 22; // big enough to tap on a phone
+const MAX_TRIM_SHARE = 0.3; // ...but never trim more than this share of a short bond
+const OPEN_END_RADIUS = 4;
+const HIT_RADIUS = 18; // big enough to tap on a phone, small enough not to swallow neighbours
+const LABEL_RADIUS = 11; // white disc behind a symbol, so bonds don't run through it
 const PAIR_DISTANCE = 20; // lone pair from the atom's centre
 const PAIR_GAP = 3.5; // half the space between a pair's two dots
 const DOT_RADIUS = 2;
 const BOND_GAP = 4; // between the lines of a double or triple bond
-const MAX_ZOOM = 1.6; // small molecules stop growing past this on wide screens
 
 const ORDER_NAME = { 1: 'single', 2: 'double', 3: 'triple' } as const;
 
@@ -37,26 +44,103 @@ interface Props {
   structure: LewisStructure;
   onTap: (target: Target) => void;
   onPress: (target: Target, e: PointerEvent) => void; // may start a drag
-  problems?: Set<number>; // atoms the last check flagged
+  problems?: Map<number, string[]>; // atoms the last check flagged, with what's wrong
   bars?: boolean; // draw lone pairs as bars instead of dots
   hints?: boolean; // electron counts and formal charges on each atom
   showCharges?: boolean; // formal charges only mean something once every electron is placed
   preview?: { from: number; to: { x: number; y: number } } | null; // bond being drawn
   pending?: Target | null; // first tap of a two-tap curved arrow
+  cursor?: string; // CSS cursor showing the active tool
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
-function atomLabel(s: LewisStructure, atom: LewisAtom, hints: boolean) {
+function atomLabel(
+  s: LewisStructure,
+  atom: LewisAtom,
+  hints: boolean,
+  problems: string[] = [],
+) {
   const parts = [plural(atom.lonePairs, 'lone pair')];
   if (atom.radicals) parts.push(plural(atom.radicals, 'unpaired electron'));
   if (hints) {
     parts.push(plural(electronCount(s, atom.id), 'electron'));
     parts.push(`formal charge ${signed(formalCharge(s, atom.id))}`);
   }
-  return `${atom.symbol} atom: ${parts.join(', ')}`;
+  const problem = problems.length ? `. Problem: ${problems.join(' ')}` : '';
+  return `${atom.symbol} atom: ${parts.join(', ')}${problem}`;
+}
+
+const TOOLTIP_WIDTH = 200; // px
+const TOOLTIP_LINE = 13; // px between lines
+const TOOLTIP_CHARS = 36; // characters per line at the tooltip's font size
+
+// Splits messages into lines short enough for the tooltip
+function wrap(messages: string[]) {
+  return messages.flatMap((message) => {
+    const lines: string[] = [];
+    let line = '';
+    for (const word of message.split(' ')) {
+      if (line && (line + ' ' + word).length > TOOLTIP_CHARS) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = line ? `${line} ${word}` : word;
+      }
+    }
+    return line ? [...lines, line] : lines;
+  });
+}
+
+/** What's wrong with an atom, in a box above it */
+function ProblemTooltip({
+  atom,
+  messages,
+}: {
+  atom: LewisAtom;
+  messages: string[];
+}) {
+  const lines = wrap(messages);
+  const height = lines.length * TOOLTIP_LINE + 12;
+  const x = atom.x * SCALE - TOOLTIP_WIDTH / 2;
+  const y = atom.y * SCALE - HIT_RADIUS - 8 - height;
+  return (
+    <g role="tooltip" className="pointer-events-none">
+      <rect
+        x={x}
+        y={y}
+        width={TOOLTIP_WIDTH}
+        height={height}
+        rx={6}
+        fill="#111827"
+      />
+      <text x={x + 8} y={y + 6} className="text-[11px]" fill="white">
+        {lines.map((line, i) => (
+          <tspan key={i} x={x + 8} dy={TOOLTIP_LINE}>
+            {/* keep the space at each break, so the text still reads as one */}
+            {i < lines.length - 1 ? `${line} ` : line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+}
+
+const PROBLEM_RING = 3; // px outside the symbol's disc
+
+/**
+ * Radius of the white disc behind an atom's symbol: no wider than where its
+ * shortest bond's line begins, so close atoms still look connected.
+ */
+function labelRadius(s: LewisStructure, atom: LewisAtom) {
+  const lengths = s.bonds.flatMap((b) => {
+    const other = b.a === atom.id ? b.b : b.b === atom.id ? b.a : null;
+    const o = s.atoms.find((a) => a.id === other);
+    return o ? [Math.hypot(o.x - atom.x, o.y - atom.y) * SCALE] : [];
+  });
+  return Math.min(LABEL_RADIUS, ...lengths.map((d) => d * MAX_TRIM_SHARE));
 }
 
 /** The atom, bond, lone pair or empty canvas an element belongs to. */
@@ -83,13 +167,12 @@ export function targetOf(el: Element | null): Target | null {
 /** A screen point in the drawing's units (bond lengths); null if not laid out. */
 export function pointIn(svg: SVGSVGElement, clientX: number, clientY: number) {
   const rect = svg.getBoundingClientRect();
-  const [vx, vy, vw, vh] = (svg.getAttribute('viewBox') ?? '')
-    .split(' ')
-    .map(Number);
-  if (!rect.width || !rect.height || !vw || !vh) return null;
+  if (!rect.width || !rect.height) return null;
+  // the drawing's origin is the panel's centre, scaled by the current zoom
+  const zoom = Number(svg.dataset.zoom ?? 1);
   return {
-    x: (vx + ((clientX - rect.left) / rect.width) * vw) / SCALE,
-    y: (vy + ((clientY - rect.top) / rect.height) * vh) / SCALE,
+    x: (clientX - rect.left - rect.width / 2) / zoom / SCALE,
+    y: (clientY - rect.top - rect.height / 2) / zoom / SCALE,
   };
 }
 
@@ -138,14 +221,19 @@ function Bond({
   // perpendicular, for the parallel lines of multiple bonds
   const [px, py] = [-uy, ux];
   const offsets = { 1: [0], 2: [-1, 1], 3: [-2, 0, 2] }[bond.order];
-  const start = { x: ax + ux * ATOM_RADIUS, y: ay + uy * ATOM_RADIUS };
-  const end = { x: bx - ux * ATOM_RADIUS, y: by - uy * ATOM_RADIUS };
+  // stop short of an atom's symbol, but run right up to an open end; short
+  // bonds trim less, so atoms that sit close together still look connected
+  const trim = (atom: LewisAtom) =>
+    isOpenEnd(atom) ? 0 : Math.min(ATOM_RADIUS, length * MAX_TRIM_SHARE);
+  const start = { x: ax + ux * trim(a), y: ay + uy * trim(a) };
+  const end = { x: bx - ux * trim(b), y: by - uy * trim(b) };
+  const name = (atom: LewisAtom) => atom.symbol || 'open end';
 
   return (
     <g
       data-bond={`${bond.a}-${bond.b}`}
-      aria-label={`${a.symbol}–${b.symbol} ${ORDER_NAME[bond.order]} bond`}
-      className="cursor-pointer outline-none focus-visible:[&>.hit]:stroke-sky-300"
+      aria-label={`${name(a)}–${name(b)} ${ORDER_NAME[bond.order]} bond`}
+      className="outline-none focus-visible:[&>.hit]:stroke-sky-300"
       {...interactive({ kind: 'bond', a: bond.a, b: bond.b }, onTap, onPress)}
     >
       <line
@@ -218,7 +306,7 @@ function Electrons({
             key={i}
             data-pair={atom.id}
             aria-label={`Lone pair on ${atom.symbol}`}
-            className="cursor-grab outline-none focus-visible:[&>.hit]:fill-sky-200"
+            className="outline-none focus-visible:[&>.hit]:fill-sky-200"
             {...interactive(
               { kind: 'lonePair', atom: atom.id },
               onTap,
@@ -311,7 +399,7 @@ function Marks({
     <g
       data-mark={atom.id}
       aria-label={`Marks on ${atom.symbol}: ${parts.join(', ')}`}
-      className="cursor-pointer outline-none text-[11px] font-semibold focus-visible:[&_text]:fill-sky-600"
+      className="outline-none text-[11px] font-semibold focus-visible:[&_text]:fill-sky-600"
       {...interactive({ kind: 'mark', atom: atom.id }, onTap, onPress)}
     >
       {charge ? (
@@ -348,7 +436,7 @@ function Brackets({
     <g
       data-bracket=""
       aria-label={`Ion brackets, charge ${charge ? ionCharge(charge) : 'none'}`}
-      className="cursor-pointer outline-none focus-visible:[&>path]:stroke-sky-500"
+      className="outline-none focus-visible:[&>path]:stroke-sky-500"
       {...interactive({ kind: 'bracket' }, onTap, onPress)}
     >
       {[side(left, 1), side(right, -1)].map((d) => (
@@ -509,7 +597,7 @@ function Arrow({
     <g
       data-arrow={index}
       aria-label={`Curved arrow from ${describeEnd(structure, arrow.from)} to ${describeEnd(structure, arrow.to)}`}
-      className="cursor-pointer outline-none text-rose-600 focus-visible:[&>.hit]:stroke-sky-200"
+      className="outline-none text-rose-600 focus-visible:[&>.hit]:stroke-sky-200"
       {...interactive({ kind: 'arrow', index }, onTap, onPress)}
     >
       <path
@@ -539,9 +627,46 @@ const LewisCanvas = forwardRef<SVGSVGElement, Props>(function LewisCanvas(
     showCharges = true,
     preview,
     pending,
+    cursor,
   },
   ref,
 ) {
+  // the problem atom under the pointer or keyboard focus
+  const [inspected, setInspected] = useState<number | null>(null);
+  const inspect = (id: number) => ({
+    onPointerEnter: () => setInspected(id),
+    onPointerLeave: () => setInspected(null),
+    onFocus: () => setInspected(id),
+    onBlur: () => setInspected(null),
+  });
+  const inspectedAtom = structure.atoms.find((a) => a.id === inspected);
+  const inspectedProblems =
+    inspected === null ? undefined : problems?.get(inspected);
+
+  // the drawing panel's size, so one bond length is always the same on screen
+  const [size, setSize] = useState<{ width: number; height: number } | null>(
+    null,
+  );
+  const svg = useRef<SVGSVGElement | null>(null);
+  const setRefs = useCallback(
+    (el: SVGSVGElement | null) => {
+      svg.current = el;
+      if (typeof ref === 'function') ref(el);
+      else if (ref) ref.current = el;
+    },
+    [ref],
+  );
+  useEffect(() => {
+    const el = svg.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      if (width && height) setSize({ width, height });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const atoms = new Map(structure.atoms.map((a) => [a.id, a]));
   const xs = structure.atoms.map((a) => a.x * SCALE);
   const ys = structure.atoms.map((a) => a.y * SCALE);
@@ -553,16 +678,15 @@ const LewisCanvas = forwardRef<SVGSVGElement, Props>(function LewisCanvas(
         bottom: Math.max(...ys) + BRACKET_MARGIN,
       }
     : { left: -60, top: -30, right: 60, bottom: 30 };
-  // leave room for the brackets and their charge when they're drawn
+  // The drawing's origin sits at the panel's centre at a fixed scale, so
+  // adding atoms never shifts the picture. It only zooms out when the drawing
+  // outgrows the panel. Leave room for brackets and their charge.
   const pad = structure.bracket ? BRACKET_MARGIN + 24 : PADDING;
-  const box = structure.atoms.length
-    ? [
-        Math.min(...xs) - pad,
-        Math.min(...ys) - pad,
-        Math.max(...xs) - Math.min(...xs) + 2 * pad,
-        Math.max(...ys) - Math.min(...ys) + 2 * pad,
-      ]
-    : [-120, -60, 240, 120];
+  const reachX = Math.max(0, ...xs.map(Math.abs)) + pad;
+  const reachY = Math.max(0, ...ys.map(Math.abs)) + pad;
+  const zoom = size
+    ? Math.min(1, size.width / 2 / reachX, size.height / 2 / reachY)
+    : 1;
   const from = preview && atoms.get(preview.from);
   const pendingSpot =
     pending?.kind === 'bond'
@@ -573,129 +697,215 @@ const LewisCanvas = forwardRef<SVGSVGElement, Props>(function LewisCanvas(
 
   return (
     <svg
-      ref={ref}
+      ref={setRefs}
       role="group"
       aria-label="Lewis structure"
       data-canvas=""
-      viewBox={box.join(' ')}
-      width={box[2] * MAX_ZOOM}
-      height={box[3] * MAX_ZOOM}
-      className="max-w-full max-h-full h-auto text-gray-900 select-none touch-none"
+      data-zoom={zoom}
+      width="100%"
+      height="100%"
+      style={{ cursor }}
+      className="block text-gray-900 select-none touch-none"
       onClick={(e) => {
         const point = pointIn(e.currentTarget, e.clientX, e.clientY);
         // NaN tells the page the point is unknown, so it picks a free spot
         onTap({ kind: 'canvas', x: point?.x ?? NaN, y: point?.y ?? NaN });
       }}
     >
-      {!structure.atoms.length && (
-        <text
-          x={0}
-          y={0}
-          textAnchor="middle"
-          className="fill-gray-400 text-[10px] pointer-events-none"
-        >
-          Drag atoms here from the toolbar
-        </text>
-      )}
-
-      {structure.bracket && (
-        <Brackets
-          charge={structure.bracket.charge}
-          box={bracketBox}
-          onTap={onTap}
-          onPress={onPress}
-        />
-      )}
-
-      {structure.bonds.map((bond) => (
-        <Bond
-          key={`${bond.a}-${bond.b}`}
-          bond={bond}
-          atoms={atoms}
-          onTap={onTap}
-          onPress={onPress}
-        />
-      ))}
-
-      {pendingSpot && (
-        <circle
-          cx={pendingSpot.x}
-          cy={pendingSpot.y}
-          r={9}
-          className="fill-sky-200/70 stroke-sky-500 pointer-events-none"
-        />
-      )}
-
-      {from && preview && (
-        <line
-          x1={from.x * SCALE}
-          y1={from.y * SCALE}
-          x2={preview.to.x * SCALE}
-          y2={preview.to.y * SCALE}
-          stroke="#0284c7"
-          strokeWidth={2}
-          strokeDasharray="4 3"
-          className="pointer-events-none"
-        />
-      )}
-
-      {structure.atoms.map((atom) => (
-        <g key={atom.id}>
-          <g
-            data-atom={atom.id}
-            aria-label={atomLabel(structure, atom, hints)}
-            className="cursor-pointer outline-none focus-visible:[&>.hit]:stroke-sky-400"
-            {...interactive({ kind: 'atom', id: atom.id }, onTap, onPress)}
-          >
-            <circle
-              className={cn(
-                'hit',
-                problems?.has(atom.id) ? 'fill-red-100' : 'fill-white',
-              )}
-              cx={atom.x * SCALE}
-              cy={atom.y * SCALE}
-              r={HIT_RADIUS}
-              stroke="transparent"
-              strokeWidth={2}
-            />
+      {/* origin at the panel's centre; plain pixels inside */}
+      <svg x="50%" y="50%" overflow="visible">
+        <g transform={`scale(${zoom})`}>
+          {!structure.atoms.length && (
             <text
-              x={atom.x * SCALE}
-              y={atom.y * SCALE}
+              x={0}
+              y={0}
               textAnchor="middle"
-              dominantBaseline="central"
-              className="fill-current text-base font-semibold pointer-events-none"
+              className="fill-gray-400 text-sm pointer-events-none"
             >
-              {atom.symbol}
+              Click anywhere to place the selected atom
             </text>
-          </g>
-          <Electrons
-            structure={structure}
-            atom={atom}
-            bars={bars}
-            onTap={onTap}
-            onPress={onPress}
-          />
-          <Marks atom={atom} onTap={onTap} onPress={onPress} />
-          {hints && (
-            <Badges
-              structure={structure}
-              atom={atom}
-              showCharge={showCharges}
+          )}
+
+          {structure.bracket && (
+            <Brackets
+              charge={structure.bracket.charge}
+              box={bracketBox}
+              onTap={onTap}
+              onPress={onPress}
             />
           )}
-        </g>
-      ))}
 
-      {structure.arrows?.map((arrow, i) => (
-        <Arrow
-          key={i}
-          structure={structure}
-          arrow={arrow}
-          index={i}
-          onTap={onTap}
-          onPress={onPress}
-        />
-      ))}
+          {structure.bonds.map((bond) => (
+            <Bond
+              key={`${bond.a}-${bond.b}`}
+              bond={bond}
+              atoms={atoms}
+              onTap={onTap}
+              onPress={onPress}
+            />
+          ))}
+
+          {pendingSpot && (
+            <circle
+              cx={pendingSpot.x}
+              cy={pendingSpot.y}
+              r={9}
+              className="fill-sky-200/70 stroke-sky-500 pointer-events-none"
+            />
+          )}
+
+          {from && preview && (
+            <line
+              x1={from.x * SCALE}
+              y1={from.y * SCALE}
+              x2={preview.to.x * SCALE}
+              y2={preview.to.y * SCALE}
+              stroke="#0284c7"
+              strokeWidth={2}
+              strokeDasharray="4 3"
+              className="pointer-events-none"
+            />
+          )}
+
+          {structure.atoms.map((atom) =>
+            isOpenEnd(atom) ? (
+              <g
+                key={atom.id}
+                data-atom={atom.id}
+                aria-label={
+                  problems?.has(atom.id)
+                    ? `Open bond end. Problem: ${problems.get(atom.id)!.join(' ')}`
+                    : 'Open bond end'
+                }
+                className="outline-none focus-visible:[&>.mark]:stroke-sky-500"
+                {...interactive({ kind: 'atom', id: atom.id }, onTap, onPress)}
+                {...inspect(atom.id)}
+              >
+                <circle
+                  className="hit"
+                  cx={atom.x * SCALE}
+                  cy={atom.y * SCALE}
+                  r={HIT_RADIUS}
+                  fill="transparent"
+                />
+                <circle
+                  className={cn(
+                    'mark',
+                    problems?.has(atom.id)
+                      ? 'stroke-red-500'
+                      : 'stroke-gray-400',
+                  )}
+                  cx={atom.x * SCALE}
+                  cy={atom.y * SCALE}
+                  r={OPEN_END_RADIUS}
+                  fill="white"
+                  strokeWidth={1.5}
+                />
+                {problems?.has(atom.id) && (
+                  <circle
+                    className="problem-ring pointer-events-none"
+                    cx={atom.x * SCALE}
+                    cy={atom.y * SCALE}
+                    r={OPEN_END_RADIUS + PROBLEM_RING}
+                    fill="none"
+                    stroke="#ef4444"
+                    strokeWidth={2}
+                  />
+                )}
+              </g>
+            ) : (
+              <g key={atom.id}>
+                <g
+                  data-atom={atom.id}
+                  aria-label={atomLabel(
+                    structure,
+                    atom,
+                    hints,
+                    problems?.get(atom.id),
+                  )}
+                  className="outline-none focus-visible:[&>.hit]:stroke-sky-400"
+                  {...interactive(
+                    { kind: 'atom', id: atom.id },
+                    onTap,
+                    onPress,
+                  )}
+                  {...inspect(atom.id)}
+                >
+                  {problems?.has(atom.id) && (
+                    <circle
+                      className="problem-ring pointer-events-none"
+                      cx={atom.x * SCALE}
+                      cy={atom.y * SCALE}
+                      r={labelRadius(structure, atom) + PROBLEM_RING}
+                      fill="none"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                    />
+                  )}
+                  <circle
+                    className="hit"
+                    cx={atom.x * SCALE}
+                    cy={atom.y * SCALE}
+                    r={HIT_RADIUS}
+                    fill="transparent"
+                    stroke="transparent"
+                    strokeWidth={2}
+                  />
+                  <circle
+                    className={cn(
+                      'pointer-events-none',
+                      problems?.has(atom.id) ? 'fill-red-100' : 'fill-white',
+                    )}
+                    cx={atom.x * SCALE}
+                    cy={atom.y * SCALE}
+                    r={labelRadius(structure, atom)}
+                  />
+                  <text
+                    x={atom.x * SCALE}
+                    y={atom.y * SCALE}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    className="fill-current text-base font-semibold pointer-events-none"
+                  >
+                    {atom.symbol}
+                  </text>
+                </g>
+                <Electrons
+                  structure={structure}
+                  atom={atom}
+                  bars={bars}
+                  onTap={onTap}
+                  onPress={onPress}
+                />
+                <Marks atom={atom} onTap={onTap} onPress={onPress} />
+                {hints && (
+                  <Badges
+                    structure={structure}
+                    atom={atom}
+                    showCharge={showCharges}
+                  />
+                )}
+              </g>
+            ),
+          )}
+
+          {structure.arrows?.map((arrow, i) => (
+            <Arrow
+              key={i}
+              structure={structure}
+              arrow={arrow}
+              index={i}
+              onTap={onTap}
+              onPress={onPress}
+            />
+          ))}
+
+          {/* on top of everything, so nothing covers it */}
+          {inspectedAtom && inspectedProblems && (
+            <ProblemTooltip atom={inspectedAtom} messages={inspectedProblems} />
+          )}
+        </g>
+      </svg>
     </svg>
   );
 });

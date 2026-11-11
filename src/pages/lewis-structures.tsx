@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import Button from '~/components/button';
 import Container from '~/components/container';
+import Dropdown, { DropdownItem } from '~/components/dropdown';
 import ElementPicker from '~/components/element-picker';
-import LewisBuilder from '~/components/lewis-builder';
+import LewisBuilder, { type Settings } from '~/components/lewis-builder';
 import type { ToolItem } from '~/components/lewis-toolbar';
 import { COMMON_ELEMENTS, DRAWABLE_ELEMENTS } from '~/constants/lewis-elements';
 import { LEVELS, MOLECULES } from '~/constants/molecules';
@@ -31,19 +32,20 @@ const MODES: { mode: Mode; label: string }[] = [
 ];
 
 const HELP =
-  'Pick a tool and tap the drawing, or drag a tool straight onto an atom or bond. With Select, drag atoms to move them and lone pairs between atoms. Curved arrows go from a lone pair or bond to an atom or bond.';
+  'Pick a tool and your cursor becomes it: click the drawing to place atoms or apply the tool, as many times as you like. You can also drag a tool onto an atom or bond. With Select, drag atoms and lone pairs around. Curved arrows go from a lone pair or bond to an atom or bond.';
 
-const elementIcon = (symbol: string, count?: number) => (
-  <span className="text-sm font-bold">
-    {symbol}
-    {count !== undefined && (
-      <sub className="text-[9px] font-normal ml-px">{count}</sub>
-    )}
-  </span>
+const elementIcon = (symbol: string) => (
+  <span className="text-sm font-bold">{symbol}</span>
 );
 
+type ModeProps = {
+  active: boolean;
+  settings: Settings;
+  onSettings: (change: Partial<Settings>) => void;
+};
+
 /** Draw anything, with any of the drawable elements */
-function DrawMode() {
+function DrawMode({ active, settings, onSettings }: ModeProps) {
   const [palette, setPalette] = useState(COMMON_ELEMENTS);
   const [picking, setPicking] = useState(false);
 
@@ -55,23 +57,23 @@ function DrawMode() {
       draggable: true,
     }));
 
+  // formal charges only mean something once every atom has a full shell
+  const chargesReady = (s: LewisStructure) =>
+    s.atoms.length > 0 && s.atoms.every((a) => octetStatus(s, a.id).ok);
+
+  // the net charge only means something once the structure is complete
   const counter = (s: LewisStructure) => {
     const used = electronsUsed(s);
-    // net charge needs every atom's formal charge, which needs atoms
     const formula = s.atoms.length
-      ? formatFormula(formulaOf(s), netCharge(s))
+      ? formatFormula(formulaOf(s), chargesReady(s) ? netCharge(s) : 0)
       : '';
     return (
       <>
-        {used} valence electron{used === 1 ? '' : 's'}
+        {used} valence electron{used === 1 ? '' : 's'} placed
         {formula && <> · {formula}</>}
       </>
     );
   };
-
-  // formal charges only mean something once every atom has a full shell
-  const chargesReady = (s: LewisStructure) =>
-    s.atoms.length > 0 && s.atoms.every((a) => octetStatus(s, a.id).ok);
 
   return (
     <div className="flex flex-col gap-4">
@@ -79,13 +81,24 @@ function DrawMode() {
       <LewisBuilder
         initial={emptyEditor()}
         initialTool="element:C"
+        active={active}
         elementTools={elementTools}
         assess={assessDrawing}
         counter={counter}
         chargesReady={chargesReady}
+        settings={settings}
+        onSettings={onSettings}
         paletteExtra={(selectTool: (tool: Tool) => void) => (
           <>
-            <Button onClick={() => setPicking(true)}>More elements</Button>
+            <button
+              type="button"
+              aria-label="More elements"
+              title="More elements"
+              onClick={() => setPicking(true)}
+              className="w-full h-9 sm:h-10 rounded-md text-sm font-semibold text-white hover:bg-primary-800 cursor-pointer"
+            >
+              More…
+            </button>
             {picking && (
               <ElementPicker
                 elements={DRAWABLE_ELEMENTS}
@@ -109,26 +122,23 @@ function DrawMode() {
 const DEFAULT_MOLECULE = MOLECULES.find((m) => m.id === 'water')!;
 
 /** Draw a given molecule and get it graded */
-function QuizMode() {
+function QuizMode({ active, settings, onSettings }: ModeProps) {
   const [molecule, setMolecule] = useState(DEFAULT_MOLECULE);
   const [start, setStart] = useState<Start>('given');
 
   const total = totalValenceElectrons(molecule.formula, molecule.charge);
   const needed = parseFormula(molecule.formula);
 
-  // only the formula's atoms are available, so element tools run out
-  const elementTools = (s: LewisStructure): ToolItem[] =>
-    Object.keys(needed).map((symbol) => {
-      const left =
-        needed[symbol] - s.atoms.filter((a) => a.symbol === symbol).length;
-      return {
-        tool: `element:${symbol}`,
-        label: `Add ${symbol} (${left} left)`,
-        icon: elementIcon(symbol, left),
-        disabled: left <= 0,
-        draggable: true,
-      };
-    });
+  // the formula's atoms, with how many it has as a guide (not a limit;
+  // checking points out extras)
+  const shown = formatFormula(molecule.formula, molecule.charge);
+  const elementTools = (): ToolItem[] =>
+    Object.keys(needed).map((symbol) => ({
+      tool: `element:${symbol}`,
+      label: `Add ${symbol} (${needed[symbol]} in ${shown})`,
+      icon: elementIcon(symbol),
+      draggable: true,
+    }));
 
   const counter = (s: LewisStructure) => {
     const used = electronsUsed(s);
@@ -154,39 +164,46 @@ function QuizMode() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:items-end">
-        <label className="flex flex-col gap-1 text-sm">
-          Level
-          <select
-            value={molecule.level}
-            onChange={(e) => {
-              const level = Number(e.target.value);
-              choose(MOLECULES.find((m) => m.level === level)!);
-            }}
-            className="rounded-lg bg-primary-700 text-white px-3 py-2"
+        <div className="flex flex-col gap-1 text-sm">
+          <span aria-hidden="true">Level</span>
+          <Dropdown
+            label={`Level ${molecule.level}: ${LEVELS[molecule.level]}`}
+            ariaLabel={`Choose a level (now Level ${molecule.level}: ${LEVELS[molecule.level]})`}
+            className="w-full sm:w-60"
+            menuClassName="w-60"
           >
             {Object.entries(LEVELS).map(([level, name]) => (
-              <option key={level} value={level}>
+              <DropdownItem
+                key={level}
+                selected={Number(level) === molecule.level}
+                onSelect={() =>
+                  choose(MOLECULES.find((m) => m.level === Number(level))!)
+                }
+              >
                 Level {level}: {name}
-              </option>
+              </DropdownItem>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Molecule
-          <select
-            value={molecule.id}
-            onChange={(e) =>
-              choose(MOLECULES.find((m) => m.id === e.target.value)!)
-            }
-            className="rounded-lg bg-primary-700 text-white px-3 py-2"
+          </Dropdown>
+        </div>
+        <div className="flex flex-col gap-1 text-sm">
+          <span aria-hidden="true">Molecule</span>
+          <Dropdown
+            label={`${molecule.name} (${shown})`}
+            ariaLabel={`Choose a molecule (now ${molecule.name}, ${shown})`}
+            className="w-full sm:w-64"
+            menuClassName="w-64"
           >
             {levelMolecules.map((m) => (
-              <option key={m.id} value={m.id}>
+              <DropdownItem
+                key={m.id}
+                selected={m.id === molecule.id}
+                onSelect={() => choose(m)}
+              >
                 {m.name} ({formatFormula(m.formula, m.charge)})
-              </option>
+              </DropdownItem>
             ))}
-          </select>
-        </label>
+          </Dropdown>
+        </div>
         <div className="flex gap-2">
           <Button pressed={start === 'given'} onClick={() => setStart('given')}>
             Given skeleton
@@ -209,10 +226,13 @@ function QuizMode() {
         initialTool={
           start === 'given' ? 'lonePair' : `element:${Object.keys(needed)[0]}`
         }
+        active={active}
         elementTools={elementTools}
         assess={(forms) => assessResonance(forms, molecule)}
         counter={counter}
         chargesReady={(s) => electronsUsed(s) === total}
+        settings={settings}
+        onSettings={onSettings}
       />
     </div>
   );
@@ -220,6 +240,13 @@ function QuizMode() {
 
 export default function LewisStructures() {
   const [mode, setMode] = useState<Mode>('draw');
+  const [settings, setSettings] = useState<Settings>({
+    snap: true,
+    bars: false,
+    hints: false,
+  });
+  const onSettings = (change: Partial<Settings>) =>
+    setSettings((current) => ({ ...current, ...change }));
 
   return (
     <Container header="Lewis Structures" className="gap-4">
@@ -254,7 +281,19 @@ export default function LewisStructures() {
           aria-labelledby={`lewis-tab-${m}`}
           hidden={mode !== m}
         >
-          {m === 'draw' ? <DrawMode /> : <QuizMode />}
+          {m === 'draw' ? (
+            <DrawMode
+              active={mode === 'draw'}
+              settings={settings}
+              onSettings={onSettings}
+            />
+          ) : (
+            <QuizMode
+              active={mode === 'quiz'}
+              settings={settings}
+              onSettings={onSettings}
+            />
+          )}
         </div>
       ))}
     </Container>

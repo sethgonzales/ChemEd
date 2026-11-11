@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { IconChevronDown } from '@tabler/icons-react';
 import { cn } from '~/utils/cn';
 
@@ -7,6 +14,45 @@ interface Props {
   children: ReactNode;
   className?: string;
   closeOnClickAway?: boolean;
+  ariaLabel?: string; // when the button's text alone doesn't say what it picks
+  menuClassName?: string;
+}
+
+// lets items close the menu once one is chosen
+const CloseMenu = createContext<() => void>(() => {});
+
+/** A menu option; closes the menu when chosen */
+export function DropdownItem({
+  selected,
+  onSelect,
+  children,
+}: {
+  selected?: boolean;
+  onSelect: () => void;
+  children: ReactNode;
+}) {
+  const close = useContext(CloseMenu);
+  return (
+    <li>
+      <button
+        type="button"
+        aria-current={selected || undefined}
+        onClick={(e) => {
+          // menus can sit inside links (the header), so don't follow them
+          e.preventDefault();
+          onSelect();
+          close();
+        }}
+        className={cn(
+          'block w-full text-left px-4 py-2 hover:bg-primary-600 cursor-pointer',
+          'focus:ring-2 focus:outline-none',
+          selected && 'bg-primary-600',
+        )}
+      >
+        {children}
+      </button>
+    </li>
+  );
 }
 
 export default function Dropdown({
@@ -14,6 +60,8 @@ export default function Dropdown({
   closeOnClickAway = true,
   children,
   className,
+  ariaLabel,
+  menuClassName,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -40,6 +88,10 @@ export default function Dropdown({
       className="relative inline-block text-left w-full sm:w-auto"
     >
       <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="true"
+        aria-expanded={isOpen}
         onClick={(e) => {
           e.preventDefault();
           setIsOpen((prev) => !prev);
@@ -62,10 +114,17 @@ export default function Dropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 mt-2 bg-primary-300 divide-y divide-primary-400 rounded-lg shadow w-44">
-          <ul className="py-2 text-sm text-text-primary space-y-0.5">
-            {children}
-          </ul>
+        <div
+          className={cn(
+            'absolute z-10 mt-2 bg-primary-300 divide-y divide-primary-400 rounded-lg shadow w-44 max-h-72 overflow-y-auto',
+            menuClassName,
+          )}
+        >
+          <CloseMenu.Provider value={() => setIsOpen(false)}>
+            <ul className="py-2 text-sm text-text-primary space-y-0.5">
+              {children}
+            </ul>
+          </CloseMenu.Provider>
         </div>
       )}
     </div>

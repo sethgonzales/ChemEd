@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { LEVELS, MOLECULES } from '~/constants/molecules';
 import LewisStructures from '~/pages/lewis-structures';
+import { formatFormula, type Molecule } from '~/utils/lewis';
 
 const atom = (symbol: string, index = 0) =>
   screen.getAllByRole('button', { name: new RegExp(`^${symbol} atom:`) })[
@@ -44,14 +46,21 @@ function renderQuiz() {
   return result;
 }
 
-async function pick(level: string, molecule: string) {
-  await userEvent.selectOptions(
-    screen.getByRole('combobox', { name: 'Level' }),
-    level,
+/** Opens a picker menu and chooses one of its options */
+async function choose(picker: RegExp, option: string) {
+  await userEvent.click(within(panel()).getByRole('button', { name: picker }));
+  await userEvent.click(within(panel()).getByRole('button', { name: option }));
+}
+
+async function pick(level: string, moleculeId: string) {
+  const m = MOLECULES.find((x) => x.id === moleculeId)!;
+  await choose(
+    /^Choose a level/,
+    `Level ${level}: ${LEVELS[Number(level) as Molecule['level']]}`,
   );
-  await userEvent.selectOptions(
-    screen.getByRole('combobox', { name: 'Molecule' }),
-    molecule,
+  await choose(
+    /^Choose a molecule/,
+    `${m.name} (${formatFormula(m.formula, m.charge)})`,
   );
 }
 
@@ -223,8 +232,8 @@ describe('Lewis Structures page: quiz', () => {
     it('has no atoms and an element for each atom in the formula', async () => {
       await emptyCanvas();
       expect(screen.queryByRole('button', { name: / atom:/ })).toBeNull();
-      expect(tool('Add O (1 left)')).toBeInTheDocument();
-      expect(tool('Add H (2 left)')).toBeInTheDocument();
+      expect(tool('Add O (1 in H₂O)')).toBeInTheDocument();
+      expect(tool('Add H (2 in H₂O)')).toBeInTheDocument();
     });
 
     it('places atoms dropped on the canvas and bonds those dropped on an atom', async () => {
@@ -237,16 +246,16 @@ describe('Lewis Structures page: quiz', () => {
       ).toBeInTheDocument();
     });
 
-    it('attaches an element tapped onto an atom, and runs out', async () => {
+    it('keeps placing an element as often as you like', async () => {
       await emptyCanvas();
       drag(tool(/^Add O/), drawing());
       await userEvent.click(tool(/^Add H/));
-      await userEvent.click(atom('O'));
-      await userEvent.click(atom('O'));
+      for (let i = 0; i < 3; i++) await userEvent.click(atom('O'));
       expect(
         screen.getAllByRole('button', { name: 'O–H single bond' }),
-      ).toHaveLength(2);
-      expect(tool('Add H (0 left)')).toBeDisabled();
+      ).toHaveLength(3);
+      // the formula's count is guidance, not a limit
+      expect(tool('Add H (2 in H₂O)')).toBeEnabled();
     });
 
     it('draws a bond by dragging from one atom to another', async () => {
@@ -290,6 +299,15 @@ describe('Lewis Structures page: quiz', () => {
         "You've placed 4 of 8 valence electrons.",
       );
       expect(feedback).toHaveTextContent('O has 4 electrons around it.');
+    });
+
+    it('explains a flagged atom when it is hovered', async () => {
+      renderQuiz();
+      await checkWork();
+      fireEvent.pointerEnter(atom('O'));
+      expect(screen.getByRole('tooltip')).toHaveTextContent(
+        'O has 4 electrons around it. It needs 8.',
+      );
     });
 
     it('says correct for a finished structure', async () => {
@@ -356,6 +374,7 @@ describe('Lewis Structures page: quiz', () => {
 
   it('shows formal charges only once every electron is placed', async () => {
     renderQuiz();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Show hints' }));
     // bare skeleton: O would read +4, which means nothing yet
     expect(drawing().textContent).not.toContain('+4');
     await pick('3', 'ammonium');
@@ -463,18 +482,20 @@ describe('Lewis Structures page: quiz', () => {
   });
 
   describe('hints', () => {
-    it('are on by default at every level and can be hidden', async () => {
+    it('are off by default, last in the settings, and can be shown', async () => {
       renderQuiz();
       await pick('5', 'sulfate');
-      const hints = screen.getByRole('checkbox', { name: 'Show hints' });
-      expect(hints).toBeChecked();
-      expect(drawing().textContent).toContain('✓');
-      expect(atom('S')).toHaveAccessibleName(/electrons, formal charge/);
-
-      await userEvent.click(hints);
+      const settings = within(panel()).getAllByRole('checkbox');
+      const hints = settings[settings.length - 1];
+      expect(hints).toHaveAccessibleName('Show hints');
+      expect(hints).not.toBeChecked();
       expect(drawing().textContent).not.toContain('✓');
       expect(drawing().textContent).not.toContain('!');
       expect(atom('S')).toHaveAccessibleName('S atom: 0 lone pairs');
+
+      await userEvent.click(hints);
+      expect(drawing().textContent).toContain('✓');
+      expect(atom('S')).toHaveAccessibleName(/electrons, formal charge/);
     });
   });
 
@@ -682,9 +703,13 @@ describe('Lewis Structures page: modes', () => {
       'aria-selected',
       'true',
     );
-    expect(screen.queryByRole('combobox', { name: 'Level' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /^Choose a level/ }),
+    ).toBeNull();
     fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }));
-    expect(screen.getByRole('combobox', { name: 'Level' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^Choose a level/ }),
+    ).toBeInTheDocument();
   });
 
   it('keeps each mode’s drawing when switching between them', () => {
@@ -707,9 +732,7 @@ describe('Lewis Structures page: draw', () => {
 
   it('adds other elements from the element picker', async () => {
     render(<LewisStructures />);
-    await userEvent.click(
-      screen.getByRole('button', { name: 'More elements' }),
-    );
+    await userEvent.click(tool('More elements'));
     const dialog = screen.getByRole('dialog', { name: 'Choose an element' });
     // only elements the builder can check are offered
     expect(within(dialog).queryByRole('button', { name: /Iron/ })).toBeNull();
@@ -749,5 +772,167 @@ describe('Lewis Structures page: draw', () => {
       within(panel()).getByRole('button', { name: 'Reset' }),
     );
     expect(screen.queryByRole('button', { name: / atom:/ })).toBeNull();
+  });
+});
+
+describe('Lewis Structures page: drawing area', () => {
+  it('fills the whole drawing panel', () => {
+    render(<LewisStructures />);
+    expect(drawing()).toHaveAttribute('width', '100%');
+    expect(drawing()).toHaveAttribute('height', '100%');
+  });
+
+  it('turns the selected tool into the cursor', async () => {
+    render(<LewisStructures />);
+    // Draw starts with carbon
+    expect(drawing().style.cursor).toMatch(/^url\("data:image\/svg\+xml/);
+    expect(decodeURIComponent(drawing().style.cursor)).toContain('>C<');
+
+    await userEvent.click(tool('Lone pair'));
+    expect(drawing().style.cursor).toMatch(/^url\(/);
+
+    await userEvent.click(tool('Select'));
+    expect(drawing().style.cursor).toBe('default');
+  });
+
+  it('places an atom wherever the drawing is clicked, again and again', async () => {
+    render(<LewisStructures />);
+    for (let i = 0; i < 3; i++) await userEvent.click(drawing());
+    expect(screen.getAllByRole('button', { name: /^C atom:/ })).toHaveLength(3);
+  });
+});
+
+describe('Lewis Structures page: bonds as connectors', () => {
+  const openEnds = () =>
+    screen.queryAllByRole('button', { name: 'Open bond end' });
+
+  it('places a bond with two open ends on empty canvas, and no atoms', async () => {
+    render(<LewisStructures />);
+    await userEvent.click(tool('Double bond'));
+    await userEvent.click(drawing());
+    expect(screen.queryAllByRole('button', { name: / atom:/ })).toHaveLength(0);
+    expect(openEnds()).toHaveLength(2);
+    expect(
+      screen.getByRole('button', { name: 'open end–open end double bond' }),
+    ).toBeInTheDocument();
+  });
+
+  it('builds methane: C, four bonds out of it, then H on each open end', async () => {
+    render(<LewisStructures />);
+    await userEvent.click(drawing()); // C
+    await userEvent.click(tool('Single bond'));
+    for (let i = 0; i < 4; i++) await userEvent.click(atom('C'));
+    expect(openEnds()).toHaveLength(4);
+
+    await userEvent.click(tool('Add H'));
+    while (openEnds().length) await userEvent.click(openEnds()[0]);
+    expect(
+      screen.getAllByRole('button', { name: 'C–H single bond' }),
+    ).toHaveLength(4);
+    expect(await checkWork()).toHaveTextContent('Looks good!');
+  });
+
+  it('fills an open end with an element dragged onto it', () => {
+    render(<LewisStructures />);
+    fireEvent.click(tool('Single bond'));
+    fireEvent.click(drawing());
+    drag(tool('Add O'), openEnds()[0]);
+    expect(atom('O')).toBeInTheDocument();
+    expect(openEnds()).toHaveLength(1);
+  });
+
+  it('asks for every open end to be filled when checking', async () => {
+    render(<LewisStructures />);
+    await userEvent.click(tool('Single bond'));
+    await userEvent.click(drawing());
+    expect(await checkWork()).toHaveTextContent(
+      'Every bond end needs an atom. Drop an element onto each open end.',
+    );
+  });
+});
+
+describe('Lewis Structures page: draw counter', () => {
+  it('shows the formula, and the charge only once every shell is full', async () => {
+    render(<LewisStructures />);
+    await userEvent.click(drawing()); // C
+    await userEvent.click(tool('Single bond'));
+    await userEvent.click(atom('C'));
+    expect(counter()).toHaveTextContent('2 valence electrons placed · C');
+    expect(counter()).not.toHaveTextContent('+');
+  });
+
+  it('shows the net charge of a complete ion', async () => {
+    render(<LewisStructures />);
+    // OH⁻: O with three lone pairs bonded to H
+    await userEvent.click(tool('Add O'));
+    await userEvent.click(drawing());
+    await userEvent.click(tool('Add H'));
+    await userEvent.click(atom('O'));
+    await userEvent.click(tool('Lone pair'));
+    for (let i = 0; i < 3; i++) await userEvent.click(atom('O'));
+    expect(counter()).toHaveTextContent('8 valence electrons placed · HO⁻');
+  });
+});
+
+describe('Lewis Structures page: quiz pickers', () => {
+  it('uses the app’s own dropdown menus, not native selects', async () => {
+    renderQuiz();
+    expect(screen.queryByRole('combobox')).toBeNull();
+    const level = within(panel()).getByRole('button', {
+      name: 'Choose a level (now Level 1: Single bonds)',
+    });
+    expect(level).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(level);
+    const current = within(panel()).getByRole('button', {
+      name: 'Level 1: Single bonds',
+    });
+    expect(current).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('shows the molecules of the chosen level', async () => {
+    renderQuiz();
+    await pick('5', 'xenon-tetrafluoride');
+    expect(
+      within(panel()).getByRole('button', {
+        name: 'Choose a molecule (now Xenon tetrafluoride, XeF₄)',
+      }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('Lewis Structures page: undo and redo', () => {
+  it('redoes what was undone with the Redo button', async () => {
+    render(<LewisStructures />);
+    await userEvent.click(drawing());
+    const undo = within(panel()).getByRole('button', { name: 'Undo' });
+    const redo = within(panel()).getByRole('button', { name: 'Redo' });
+    expect(redo).toBeDisabled();
+    await userEvent.click(undo);
+    expect(screen.queryByRole('button', { name: /^C atom:/ })).toBeNull();
+    await userEvent.click(redo);
+    expect(atom('C')).toBeInTheDocument();
+  });
+
+  it('undoes and redoes with the keyboard', async () => {
+    render(<LewisStructures />);
+    await userEvent.click(drawing());
+    await userEvent.keyboard('{Control>}z{/Control}');
+    expect(screen.queryByRole('button', { name: /^C atom:/ })).toBeNull();
+    await userEvent.keyboard('{Control>}{Shift>}z{/Shift}{/Control}');
+    expect(atom('C')).toBeInTheDocument();
+    await userEvent.keyboard('{Meta>}z{/Meta}');
+    expect(screen.queryByRole('button', { name: /^C atom:/ })).toBeNull();
+    await userEvent.keyboard('{Control>}y{/Control}');
+    expect(atom('C')).toBeInTheDocument();
+  });
+
+  it('only the visible mode responds to shortcuts', async () => {
+    render(<LewisStructures />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }));
+    await userEvent.click(atom('O')); // lone pair in the quiz
+    fireEvent.click(screen.getByRole('tab', { name: 'Draw' }));
+    await userEvent.keyboard('{Control>}z{/Control}');
+    fireEvent.click(screen.getByRole('tab', { name: 'Quiz' }));
+    expect(counter()).toHaveTextContent('6 of 8');
   });
 });

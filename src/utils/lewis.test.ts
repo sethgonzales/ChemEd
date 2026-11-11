@@ -1005,3 +1005,37 @@ describe('checkDrawing', () => {
     expect(checkDrawing(short).map((f) => f.kind)).toEqual(['octet']);
   });
 });
+
+describe('open bond ends', () => {
+  // water with a stray bond from one H out to an open end
+  const withOpenEnd: LewisStructure = {
+    atoms: [
+      ...water.atoms,
+      { id: 3, symbol: '', x: 2, y: 0, lonePairs: 0, radicals: 0 },
+    ],
+    bonds: [...water.bonds, { a: 1, b: 3, order: 1 }],
+  };
+  const message =
+    'Every bond end needs an atom. Drop an element onto each open end.';
+
+  it('are reported first, on their own, when checking against a molecule', () => {
+    expect(checkStructure(withOpenEnd, { formula: 'H2O', charge: 0 })).toEqual([
+      { kind: 'open-bond', atom: 3, message },
+    ]);
+  });
+
+  it('are reported first, on their own, when checking a drawing', () => {
+    expect(checkDrawing(withOpenEnd)).toEqual([
+      { kind: 'open-bond', atom: 3, message },
+    ]);
+  });
+
+  it('have no formal charge and no octet to fill', () => {
+    expect(formalCharge(withOpenEnd, 3)).toBe(0);
+    expect(octetStatus(withOpenEnd, 3).ok).toBe(true);
+  });
+
+  it('are left out of the formula', () => {
+    expect(formulaOf(withOpenEnd)).toBe('H2O');
+  });
+});

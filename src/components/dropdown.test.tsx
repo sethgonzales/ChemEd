@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Dropdown from './dropdown';
+import Dropdown, { DropdownItem } from './dropdown';
 
 function renderDropdown(closeOnClickAway?: boolean) {
   render(
@@ -42,5 +42,52 @@ describe('Dropdown', () => {
     expect(
       screen.getByRole('button', { name: 'Dropdown' }),
     ).toBeInTheDocument();
+  });
+
+  it('closes once an item is chosen', async () => {
+    const onSelect = jest.fn();
+    render(
+      <Dropdown label="Level 1">
+        <DropdownItem selected onSelect={onSelect}>
+          Level 1
+        </DropdownItem>
+        <DropdownItem onSelect={onSelect}>Level 2</DropdownItem>
+      </Dropdown>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Level 1' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Level 2' }));
+    expect(onSelect).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Level 2' })).toBeNull();
+  });
+
+  it('marks the selected item', async () => {
+    render(
+      <Dropdown label="Pick">
+        <DropdownItem selected onSelect={() => {}}>
+          Chosen
+        </DropdownItem>
+        <DropdownItem onSelect={() => {}}>Other</DropdownItem>
+      </Dropdown>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Pick' }));
+    expect(screen.getByRole('button', { name: 'Chosen' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Other' })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+
+  it('can be named separately from what it shows, and says when it is open', async () => {
+    render(
+      <Dropdown label="Water" ariaLabel="Molecule: Water">
+        <li>Option</li>
+      </Dropdown>,
+    );
+    const button = screen.getByRole('button', { name: 'Molecule: Water' });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
   });
 });

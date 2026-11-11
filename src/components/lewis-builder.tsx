@@ -1,9 +1,10 @@
-import { useReducer, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import Button from '~/components/button';
 import LewisCanvas, { pointIn, targetOf } from '~/components/lewis-canvas';
 import LewisToolbar, {
   DRAWING_TOOLS,
   MARK_TOOLS,
+  toolCursor,
   type ToolItem,
 } from '~/components/lewis-toolbar';
 import { cn } from '~/utils/cn';
@@ -37,9 +38,12 @@ const VERDICT_LABEL = {
   invalid: 'Not yet',
 } as const;
 
+export type Settings = { snap: boolean; bars: boolean; hints: boolean };
+
 interface Props {
   initial: EditorState; // what Reset goes back to
   initialTool: Tool;
+  active?: boolean; // the visible builder, which answers keyboard shortcuts
   elementTools: (structure: LewisStructure) => ToolItem[];
   assess: (forms: LewisStructure[]) => {
     verdict: Verdict;
@@ -49,6 +53,8 @@ interface Props {
   chargesReady: (structure: LewisStructure) => boolean; // when formal-charge hints mean something
   // extra toolbar controls, given a way to switch tools (e.g. More elements)
   paletteExtra?: (selectTool: (tool: Tool) => void) => ReactNode;
+  settings: Settings; // kept by the page, so they survive a new molecule
+  onSettings: (change: Partial<Settings>) => void;
 }
 
 function Setting({
@@ -81,11 +87,12 @@ export default function LewisBuilder({
   counter,
   chargesReady,
   paletteExtra,
+  settings,
+  onSettings,
+  active = true,
 }: Props) {
+  const { snap, bars, hints } = settings;
   const [tool, setTool] = useState<Tool>(initialTool);
-  const [bars, setBars] = useState(false);
-  const [hints, setHints] = useState(true);
-  const [snap, setSnap] = useState(true);
   const [checked, setChecked] = useState<FormsState['forms'] | null>(null);
   // first tap of a two-tap curved arrow
   const [arrowSource, setArrowSource] = useState<Target | null>(null);
@@ -104,6 +111,29 @@ export default function LewisBuilder({
     setArrowSource(null);
   };
 
+  // Undo: Ctrl/⌘+Z. Redo: Ctrl/⌘+Shift+Z or Ctrl+Y.
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const typing = (e.target as HTMLElement | null)?.closest?.(
+        'input, textarea, select, [contenteditable]',
+      );
+      if (typing) return;
+      const key = e.key.toLowerCase();
+      if (key === 'z' || key === 'y') {
+        e.preventDefault();
+        const redo = key === 'y' || e.shiftKey;
+        dispatchForms({
+          type: 'edit',
+          action: { type: redo ? 'redo' : 'undo' },
+        });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active]);
+
   const reset = () => {
     selectTool(initialTool);
     setChecked(null);
@@ -115,9 +145,13 @@ export default function LewisBuilder({
     checked === state.forms
       ? assess(state.forms.map((f) => f.structure))
       : null;
-  const problems = new Set(
-    result?.feedback.flatMap((f) => (f.atom === undefined ? [] : [f.atom])),
-  );
+  // each flagged atom with what's wrong, for its ring and hover tooltip
+  const problems = new Map<number, string[]>();
+  for (const f of result?.feedback ?? []) {
+    if (f.atom !== undefined) {
+      problems.set(f.atom, [...(problems.get(f.atom) ?? []), f.message]);
+    }
+  }
 
   const elements = elementTools(structure);
   const labelOf = (t: Tool) =>
@@ -161,7 +195,15 @@ export default function LewisBuilder({
     }
     // moving an atom needs to know where it was dropped
     if (!point && payload.source.kind === 'atom' && tool === 'select') return;
-    apply(dragAction(tool, payload.source, target, point ?? { x: 0, y: 0 }));
+    apply(
+      dragAction(
+        tool,
+        payload.source,
+        target,
+        point ?? { x: 0, y: 0 },
+        structure,
+      ),
+    );
   };
   const { drag, start: startDrag, consumeClick } = usePointerDrag(onDrop);
 
@@ -217,17 +259,15 @@ export default function LewisBuilder({
 
   return (
     <div className="flex flex-col sm:flex-row gap-3">
-      <div className="flex flex-col gap-2">
-        <LewisToolbar
-          groups={[DRAWING_TOOLS, MARK_TOOLS, elements]}
-          active={tool}
-          onSelect={selectTool}
-          onPress={(t, e) =>
-            startDrag({ from: 'toolbar', tool: t, label: labelOf(t) }, e)
-          }
-        />
-        {paletteExtra?.(selectTool)}
-      </div>
+      <LewisToolbar
+        groups={[DRAWING_TOOLS, MARK_TOOLS, elements]}
+        active={tool}
+        onSelect={selectTool}
+        onPress={(t, e) =>
+          startDrag({ from: 'toolbar', tool: t, label: labelOf(t) }, e)
+        }
+        extra={paletteExtra?.(selectTool)}
+      />
 
       <div className="flex-1 min-w-0 flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -281,7 +321,7 @@ export default function LewisBuilder({
             Now tap where the electrons go.
           </p>
         )}
-        <div className="bg-white rounded-lg min-h-64 flex items-center justify-center p-2">
+        <div className="bg-white rounded-lg h-80 sm:h-[28rem] overflow-hidden">
           <LewisCanvas
             ref={svgRef}
             structure={structure}
@@ -293,6 +333,7 @@ export default function LewisBuilder({
             showCharges={chargesReady(structure)}
             preview={preview}
             pending={arrowSource}
+            cursor={toolCursor(tool)}
           />
         </div>
 
@@ -311,6 +352,12 @@ export default function LewisBuilder({
           >
             Undo
           </Button>
+          <Button
+            onClick={() => dispatch({ type: 'redo' })}
+            disabled={!editor.future.length}
+          >
+            Redo
+          </Button>
           <Button onClick={reset}>Reset</Button>
           <Button
             onClick={() => dispatch({ type: 'cleanUp' })}
@@ -324,14 +371,14 @@ export default function LewisBuilder({
         </div>
 
         <div className="flex flex-wrap gap-x-4 gap-y-1">
-          <Setting checked={hints} onChange={setHints}>
-            Show hints
-          </Setting>
-          <Setting checked={snap} onChange={setSnap}>
+          <Setting checked={snap} onChange={(on) => onSettings({ snap: on })}>
             Snap to bond angles
           </Setting>
-          <Setting checked={bars} onChange={setBars}>
+          <Setting checked={bars} onChange={(on) => onSettings({ bars: on })}>
             Lone pairs as bars
+          </Setting>
+          <Setting checked={hints} onChange={(on) => onSettings({ hints: on })}>
+            Show hints
           </Setting>
         </div>
 

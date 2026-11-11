@@ -13,6 +13,20 @@ export type LewisAtom = {
 
 export type BondOrder = 1 | 2 | 3;
 
+/** A bond end with no element yet: bonds are drawn first, atoms dropped on */
+export const isOpenEnd = (atom: LewisAtom) => atom.symbol === '';
+
+const OPEN_BOND_MESSAGE =
+  'Every bond end needs an atom. Drop an element onto each open end.';
+
+// Open ends make every other check meaningless, so they're reported alone
+function openBondFeedback(s: LewisStructure): Feedback[] {
+  const open = s.atoms.find(isOpenEnd);
+  return open
+    ? [{ kind: 'open-bond', atom: open.id, message: OPEN_BOND_MESSAGE }]
+    : [];
+}
+
 export type LewisBond = { a: number; b: number; order: BondOrder };
 
 /** A curved arrow moving an electron pair from a lone pair or bond */
@@ -44,6 +58,7 @@ export type Feedback = {
     | 'charge-mark'
     | 'partial-mark'
     | 'bracket'
+    | 'open-bond'
     | 'electronegativity'
     | 'correct'
     | 'resonance'
@@ -166,6 +181,7 @@ export function electronCount(s: LewisStructure, id: number) {
 /** Valence electrons − unshared electrons − bonds */
 export function formalCharge(s: LewisStructure, id: number) {
   const atom = atomById(s, id);
+  if (isOpenEnd(atom)) return 0;
   const v = valenceElectrons(atom.symbol);
   if (v === null) throw new Error(`${atom.symbol} is not a main-group element`);
   return v - (2 * atom.lonePairs + atom.radicals) - bondOrderSum(s, id);
@@ -177,6 +193,14 @@ export function netCharge(s: LewisStructure) {
 
 export function octetStatus(s: LewisStructure, id: number) {
   const atom = atomById(s, id);
+  if (isOpenEnd(atom)) {
+    return {
+      electrons: electronCount(s, id),
+      target: 0,
+      status: 'complete' as const,
+      ok: true,
+    };
+  }
   return octetFor(atom.symbol, electronCount(s, id), atom.radicals);
 }
 
@@ -242,7 +266,9 @@ function octetMessage(
 /** The drawn formula in Hill order: C, then H, then the rest alphabetically */
 export function formulaOf(s: LewisStructure) {
   const counts: Record<string, number> = {};
-  for (const a of s.atoms) counts[a.symbol] = (counts[a.symbol] ?? 0) + 1;
+  for (const a of s.atoms) {
+    if (!isOpenEnd(a)) counts[a.symbol] = (counts[a.symbol] ?? 0) + 1;
+  }
   const symbols = Object.keys(counts).sort((a, b) => a.localeCompare(b));
   const order = counts.C
     ? [
@@ -263,6 +289,8 @@ export function checkDrawing(s: LewisStructure): Feedback[] {
   if (!s.atoms.length) {
     return [{ kind: 'atoms', message: 'Add some atoms first.' }];
   }
+  const open = openBondFeedback(s);
+  if (open.length) return open;
   const feedback: Feedback[] = [];
   if (!connected(s)) {
     feedback.push({
@@ -286,6 +314,8 @@ export function checkDrawing(s: LewisStructure): Feedback[] {
 
 /** Everything wrong with a student's structure, as short messages. */
 export function checkStructure(s: LewisStructure, target: Target): Feedback[] {
+  const open = openBondFeedback(s);
+  if (open.length) return open;
   const feedback: Feedback[] = [];
   const shown = subscript(target.formula);
 
@@ -632,7 +662,8 @@ export function assessStructure(
   const answers = molecule.answers.map((a) => fromAnswer(molecule.skeleton, a));
 
   const skeletonUsable = !problems.some(
-    (p) => p.kind === 'atoms' || p.kind === 'disconnected',
+    (p) =>
+      p.kind === 'atoms' || p.kind === 'disconnected' || p.kind === 'open-bond',
   );
   if (skeletonUsable && !answers.some((a) => sameSkeleton(s, a))) {
     return {

@@ -108,6 +108,45 @@ describe('editorReducer', () => {
     );
   });
 
+  it('places a bond between two open ends in one undoable step', () => {
+    let s = emptyEditor();
+    s = editorReducer(s, { type: 'addBond', x: 1, y: 2, order: 2 });
+    const [first, second] = s.structure.atoms;
+    // open ends have no element yet
+    expect(first).toMatchObject({ id: 0, symbol: '', x: 1, y: 2 });
+    expect(second).toMatchObject({ id: 1, symbol: '' });
+    // one bond length away, angled up at 30°
+    expect(second.x - first.x).toBeCloseTo(Math.cos(Math.PI / 6));
+    expect(second.y - first.y).toBeCloseTo(-Math.sin(Math.PI / 6));
+    expect(s.structure.bonds).toEqual([{ a: 0, b: 1, order: 2 }]);
+    s = editorReducer(s, { type: 'addAtom', symbol: 'H', x: 5, y: 5 });
+    expect(s.structure.atoms.at(-1)!.id).toBe(2);
+    expect(editorReducer(s, { type: 'undo' }).structure.atoms).toHaveLength(2);
+  });
+
+  it('fills an open end with an element', () => {
+    let s = editorReducer(emptyEditor(), {
+      type: 'addBond',
+      x: 0,
+      y: 0,
+      order: 1,
+    });
+    s = editorReducer(s, { type: 'setSymbol', atom: 1, symbol: 'H' });
+    expect(s.structure.atoms[1].symbol).toBe('H');
+  });
+
+  it('bonds a new atom with any bond order', () => {
+    const s = editorReducer(start, {
+      type: 'addAtom',
+      symbol: 'C',
+      x: 2,
+      y: 0,
+      bondTo: 0,
+      order: 3,
+    });
+    expect(s.structure.bonds.at(-1)).toEqual({ a: 0, b: 3, order: 3 });
+  });
+
   it('places atoms with new ids', () => {
     let s = emptyEditor();
     s = editorReducer(s, { type: 'addAtom', symbol: 'O', x: 0, y: 0 });
@@ -245,6 +284,34 @@ describe('editorReducer', () => {
     s = editorReducer(s, { type: 'undo' });
     expect(s.structure).toEqual(start.structure);
     expect(editorReducer(s, { type: 'undo' })).toBe(s);
+  });
+
+  it('redoes what was undone, one step at a time', () => {
+    let s = editorReducer(start, { type: 'addLonePair', atom: 0 });
+    s = editorReducer(s, { type: 'addLonePair', atom: 0 });
+    s = editorReducer(s, { type: 'undo' });
+    s = editorReducer(s, { type: 'undo' });
+    expect(s.structure.atoms[0].lonePairs).toBe(0);
+    s = editorReducer(s, { type: 'redo' });
+    expect(s.structure.atoms[0].lonePairs).toBe(1);
+    s = editorReducer(s, { type: 'redo' });
+    expect(s.structure.atoms[0].lonePairs).toBe(2);
+    // and undo still works after redoing
+    expect(
+      editorReducer(s, { type: 'undo' }).structure.atoms[0].lonePairs,
+    ).toBe(1);
+  });
+
+  it('forgets redo once something new is drawn', () => {
+    let s = editorReducer(start, { type: 'addLonePair', atom: 0 });
+    s = editorReducer(s, { type: 'undo' });
+    s = editorReducer(s, { type: 'toggleRadical', atom: 0 });
+    expect(s.future).toEqual([]);
+    expect(editorReducer(s, { type: 'redo' })).toBe(s);
+  });
+
+  it('does nothing when there is nothing to redo', () => {
+    expect(editorReducer(start, { type: 'redo' })).toBe(start);
   });
 
   it('records no history for changes that change nothing', () => {

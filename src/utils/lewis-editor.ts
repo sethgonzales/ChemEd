@@ -4,6 +4,7 @@ import { cleanUp, layoutSkeleton } from './lewis-layout';
 export type EditorState = {
   structure: LewisStructure;
   history: LewisStructure[]; // earlier structures, for undo
+  future: LewisStructure[]; // undone structures, for redo (next first)
   nextId: number;
 };
 
@@ -23,9 +24,19 @@ export type EditorAction =
   | { type: 'cleanUp' }
   | { type: 'addArrow'; arrow: CurvedArrow }
   | { type: 'removeArrow'; index: number }
-  | { type: 'addAtom'; symbol: string; x: number; y: number; bondTo?: number }
+  | {
+      type: 'addAtom';
+      symbol: string;
+      x: number;
+      y: number;
+      bondTo?: number;
+      order?: BondOrder; // of the bond to bondTo; single unless set
+    }
+  | { type: 'addBond'; x: number; y: number; order: BondOrder } // between two new open ends
+  | { type: 'setSymbol'; atom: number; symbol: string } // fill an open end
   | { type: 'removeAtom'; atom: number }
   | { type: 'undo' }
+  | { type: 'redo' }
   | { type: 'load'; editor: EditorState };
 
 const MAX_LONE_PAIRS = 4;
@@ -57,12 +68,18 @@ export function skeletonEditor(molecule: Molecule): EditorState {
       bonds: bonds.map(([a, b]) => ({ a, b, order: 1 })),
     },
     history: [],
+    future: [],
     nextId: atoms.length,
   };
 }
 
 export function emptyEditor(): EditorState {
-  return { structure: { atoms: [], bonds: [] }, history: [], nextId: 0 };
+  return {
+    structure: { atoms: [], bonds: [] },
+    history: [],
+    future: [],
+    nextId: 0,
+  };
 }
 
 // Whether an arrow starts or ends on an atom (or a bond to it)
@@ -81,7 +98,10 @@ const joins = (a: number, b: number) => (bond: { a: number; b: number }) =>
 
 function change(
   s: LewisStructure,
-  action: Exclude<EditorAction, { type: 'undo' } | { type: 'load' }>,
+  action: Exclude<
+    EditorAction,
+    { type: 'undo' } | { type: 'redo' } | { type: 'load' }
+  >,
   nextId: number,
 ): LewisStructure {
   const updateAtom = (
@@ -191,7 +211,10 @@ function change(
         bonds:
           action.bondTo === undefined
             ? s.bonds
-            : [...s.bonds, { a: action.bondTo, b: nextId, order: 1 }],
+            : [
+                ...s.bonds,
+                { a: action.bondTo, b: nextId, order: action.order ?? 1 },
+              ],
         atoms: [
           ...s.atoms,
           {
@@ -204,6 +227,32 @@ function change(
           },
         ],
       };
+    case 'setSymbol':
+      return updateAtom(action.atom, () => ({ symbol: action.symbol }));
+    case 'addBond': {
+      // the far end sits one bond length away, angled up at 30°, as in ChemDraw
+      const make = (id: number, x: number, y: number) => ({
+        id,
+        symbol: '',
+        x,
+        y,
+        lonePairs: 0,
+        radicals: 0,
+      });
+      return {
+        ...s,
+        atoms: [
+          ...s.atoms,
+          make(nextId, action.x, action.y),
+          make(
+            nextId + 1,
+            action.x + Math.cos(Math.PI / 6),
+            action.y - Math.sin(Math.PI / 6),
+          ),
+        ],
+        bonds: [...s.bonds, { a: nextId, b: nextId + 1, order: action.order }],
+      };
+    }
     case 'removeAtom':
       return {
         ...s,
@@ -234,6 +283,16 @@ export function editorReducer(
       ...state,
       structure: state.history[state.history.length - 1],
       history: state.history.slice(0, -1),
+      future: [state.structure, ...state.future],
+    };
+  }
+  if (action.type === 'redo') {
+    if (!state.future.length) return state;
+    return {
+      ...state,
+      structure: state.future[0],
+      history: [...state.history, state.structure],
+      future: state.future.slice(1),
     };
   }
 
@@ -242,7 +301,10 @@ export function editorReducer(
   return {
     structure,
     history: [...state.history, state.structure],
-    nextId: action.type === 'addAtom' ? state.nextId + 1 : state.nextId,
+    future: [], // a new change replaces whatever was undone
+    nextId:
+      state.nextId +
+      (action.type === 'addAtom' ? 1 : action.type === 'addBond' ? 2 : 0),
   };
 }
 
@@ -276,7 +338,10 @@ export function formsReducer(
       const copy = { ...current.structure };
       delete copy.arrows;
       return {
-        forms: [...forms, { ...current, structure: copy, history: [] }],
+        forms: [
+          ...forms,
+          { ...current, structure: copy, history: [], future: [] },
+        ],
         active: forms.length,
       };
     }
