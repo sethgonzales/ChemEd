@@ -11,8 +11,7 @@
 
 ## Simulations
 
-- [ ] Lewis Structures — phases 1–3, charge/δ marks with ion brackets, and snapping/Clean Up done ([plan](docs/plans/lewis-structures-next.md))
-  - [ ] Resonance forms (several forms, ↔, "found 2 of 3" grading) and curved arrows with an arrow-pushing check — plan section D
+- [x] Lewis Structures — Draw and Quiz modes; toolbar builder with drag and drop; charge/δ marks and ion brackets; snapping and Clean Up; resonance forms with curved arrows ([plan](docs/plans/lewis-structures-next.md))
 - [ ] Electron Configurations
 - [ ] Chemical Reactions
 - [ ] Titrations

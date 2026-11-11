@@ -1,6 +1,6 @@
 # Lewis Structures — next features
 
-Status: **A and B done; D next; C dropped** (11 Nov 2026). Follows [lewis-structures.md](lewis-structures.md) (phases 1–3 done).
+Status: **A, B and D done; C dropped** (11 Nov 2026). The page also has Draw and Quiz modes. Follows [lewis-structures.md](lewis-structures.md) (phases 1–3 done).
 
 Four features inspired by [Octet Draw](https://github.com/SamChemMan/Octet-Draw). Every one is built test-first (failing test → implementation → green), with chemistry and geometry in pure functions under `src/utils/` and thin UI on top. We write our own code; if we ever port Octet code (Apache-2.0), we keep its notices and add a `NOTICE` entry.
 
@@ -139,4 +139,4 @@ Split into two steps:
 2. **Hints:** a Show hints switch on every level, on by default.
 3. **δ+/δ−:** graded: δ− must go on the more electronegative atom of a polar bond.
 4. **Ion brackets:** required: polyatomic ions are drawn in brackets with their overall charge, and neutral molecules are not bracketed.
-5. Resonance on phones: decide when D is planned in detail.
+5. **Resonance forms:** tabs (Form 1 ↔ Form 2 …) on every screen size, one form shown at a time.
