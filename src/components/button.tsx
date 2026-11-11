@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { cn } from '~/utils/cn';
 
 interface Props {
-  onClick: () => void;
+  onClick?: () => void;
+  type?: 'button' | 'submit'; // submit for buttons that send a form
   children: ReactNode;
   pressed?: boolean; // highlighted, and announced as a toggle when set
   disabled?: boolean;
@@ -13,10 +14,11 @@ export default function Button({
   children,
   pressed,
   disabled,
+  type = 'button',
 }: Props) {
   return (
     <button
-      type="button"
+      type={type}
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
