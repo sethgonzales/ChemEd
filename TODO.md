@@ -13,11 +13,7 @@
   - [ ] **8-bit avatar builder** for logged-in students: body/gender, skin tone, eyes, hair, facial features, clothing.
     - Accessories unlock through **achievements** earned in the simulations (balancing reactions, Lewis quizzes, and any future simulation).
     - Signed-out visitors can try the builder first (saved only in their browser); signing in keeps it and starts earning unlocks.
-  - [ ] **8-bit Seth guide**: an 8-bit version of Seth in a bottom corner of every page, **desktop only** (hidden on phones).
-    - Wanders around the corner now and then, with speech bubbles giving tips, encouragement and how-to help for the page's simulation.
-    - Can take over the in-simulation hints, e.g. the balancing feedback when something's wrong.
-    - Needs: a photo or description of Seth to design the likeness; respect reduced motion; easy to hide or mute.
-    - Doesn't need Firebase, so it could be built before logins.
+  - [ ] **Mr. G, the in-app guide**: an 8-bit Seth (light blue lab coat, goggles) in the bottom corner on desktop, giving tips, hints and encouragement. Doesn't need Firebase. ([plan](docs/plans/mr-g-guide.md))
 
 ## Simulations
 
