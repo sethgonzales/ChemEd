@@ -15,19 +15,22 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+const DEFAULT_THEME: ThemeName = 'purple';
+
+function applyTheme(name: ThemeName) {
+  const { primary, secondary, primaryText, secondaryText } = THEME[name];
+  applyColorScale('primary', primary);
+  applyColorScale('secondary', secondary);
+
+  const root = document.documentElement;
+  root.style.setProperty('--text-primary-base', primaryText);
+  root.style.setProperty('--text-secondary-base', secondaryText);
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeName, setThemeName] = useState<ThemeName>('purple');
+  const [themeName, setThemeName] = useState<ThemeName>(DEFAULT_THEME);
 
-  const applyTheme = (name: ThemeName) => {
-    const { primary, secondary, primaryText, secondaryText } = THEME[name];
-    applyColorScale('primary', primary);
-    applyColorScale('secondary', secondary);
-
-    const root = document.documentElement;
-    root.style.setProperty('--text-primary-base', primaryText);
-    root.style.setProperty('--text-secondary-base', secondaryText);
-  };
-
+  // restore the saved theme once, after hydration (localStorage is client-only)
   useEffect(() => {
     const saved = localStorage.getItem('chem.theme') as ThemeName | null;
 
@@ -35,7 +38,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setThemeName(saved);
       applyTheme(saved);
     } else {
-      applyTheme(themeName);
+      applyTheme(DEFAULT_THEME);
     }
   }, []);
 

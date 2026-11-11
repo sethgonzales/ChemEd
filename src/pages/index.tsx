@@ -13,7 +13,7 @@ export default function Home() {
           key={index}
           title={simulation.title}
           img={simulation.img}
-          onClick={() => router.push(`/${simulation.path}`)}
+          onClick={() => router.push(simulation.path)}
         />
       ))}
     </div>

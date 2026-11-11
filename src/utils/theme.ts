@@ -1,18 +1,29 @@
 import { colord } from 'colord';
 
+// Each step moves a share of the way to white or black, rather than a fixed
+// amount, so light and dark bases don't clip into duplicate shades. At 50%
+// lightness the shares match fixed steps of 5–45%.
+const LIGHTER = { '50': 0.9, '100': 0.7, '200': 0.5, '300': 0.3, '400': 0.1 };
+const DARKER = { '600': 0.1, '700': 0.3, '800': 0.5, '900': 0.7 };
+
 export const generateColorScale = (base: string): Record<string, string> => {
-  const c = colord(base);
+  const hsl = colord(base).toHsl();
+  const withLightness = (l: number) => colord({ ...hsl, l }).toHex();
+
   return {
-    '50': c.lighten(0.45).toHex(),
-    '100': c.lighten(0.35).toHex(),
-    '200': c.lighten(0.25).toHex(),
-    '300': c.lighten(0.15).toHex(),
-    '400': c.lighten(0.05).toHex(),
+    ...Object.fromEntries(
+      Object.entries(LIGHTER).map(([level, share]) => [
+        level,
+        withLightness(hsl.l + (100 - hsl.l) * share),
+      ]),
+    ),
     '500': base,
-    '600': c.darken(0.05).toHex(),
-    '700': c.darken(0.15).toHex(),
-    '800': c.darken(0.25).toHex(),
-    '900': c.darken(0.35).toHex(),
+    ...Object.fromEntries(
+      Object.entries(DARKER).map(([level, share]) => [
+        level,
+        withLightness(hsl.l * (1 - share)),
+      ]),
+    ),
   };
 };
 
