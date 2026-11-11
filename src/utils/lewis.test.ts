@@ -1,4 +1,6 @@
 import {
+  assessStructure,
+  bestStructures,
   checkStructure,
   electronCount,
   electronsUsed,
@@ -6,9 +8,13 @@ import {
   netCharge,
   octetStatus,
   parseFormula,
+  sameSkeleton,
+  sameStructure,
   totalValenceElectrons,
+  validStructures,
   valenceElectrons,
   type LewisStructure,
+  type Molecule,
 } from './lewis';
 
 /**
@@ -395,5 +401,365 @@ describe('checkStructure', () => {
       expect(f.message.length).toBeGreaterThan(0);
       expect(f.message.length).toBeLessThan(140);
     }
+  });
+});
+
+describe('sameStructure', () => {
+  it('ignores where atoms are drawn and how they are numbered', () => {
+    const reordered = lewis(
+      [
+        ['H', 0],
+        ['O', 2],
+        ['H', 0],
+      ],
+      [
+        [1, 0, 1],
+        [2, 1, 1],
+      ],
+    );
+    reordered.atoms[0].x = 300;
+    expect(sameStructure(water, reordered)).toBe(true);
+  });
+
+  it('treats equivalent resonance forms as the same structure', () => {
+    const otherForm = lewis(
+      [
+        ['N', 0],
+        ['O', 3],
+        ['O', 2],
+        ['O', 3],
+      ],
+      [
+        [0, 1, 1],
+        [0, 2, 2],
+        [0, 3, 1],
+      ],
+    );
+    // same shape, double bond on a different (but equivalent) oxygen
+    expect(sameStructure(nitrate, otherForm)).toBe(true);
+  });
+
+  it('notices different lone pairs, bond orders or atoms', () => {
+    const fewerPairs = lewis(
+      [
+        ['O', 1],
+        ['H', 0],
+        ['H', 0],
+      ],
+      [
+        [0, 1, 1],
+        [0, 2, 1],
+      ],
+    );
+    expect(sameStructure(water, fewerPairs)).toBe(false);
+    expect(sameStructure(water, carbonDioxide)).toBe(false);
+  });
+});
+
+describe('sameSkeleton', () => {
+  it('compares only which atoms are bonded', () => {
+    const hcn = lewis(
+      [
+        ['C', 0],
+        ['H', 0],
+        ['N', 1],
+      ],
+      [
+        [0, 1, 1],
+        [0, 2, 3],
+      ],
+    );
+    const hcnWrongElectrons = lewis(
+      [
+        ['C', 1],
+        ['H', 0],
+        ['N', 2],
+      ],
+      [
+        [0, 1, 1],
+        [0, 2, 1],
+      ],
+    );
+    const hnc = lewis(
+      [
+        ['N', 0],
+        ['H', 0],
+        ['C', 1],
+      ],
+      [
+        [0, 1, 1],
+        [0, 2, 3],
+      ],
+    );
+    expect(sameSkeleton(hcn, hcnWrongElectrons)).toBe(true);
+    expect(sameSkeleton(hcn, hnc)).toBe(false);
+  });
+});
+
+const skeletonOf = (
+  formula: string,
+  atoms: string[],
+  bonds: [number, number][],
+) => ({
+  formula,
+  skeleton: { atoms: atoms.map((symbol) => ({ symbol })), bonds },
+});
+
+describe('validStructures', () => {
+  it('finds every structure that obeys the electron total and octet rules', () => {
+    const { skeleton } = skeletonOf(
+      'CO2',
+      ['C', 'O', 'O'],
+      [
+        [0, 1],
+        [0, 2],
+      ],
+    );
+    const found = validStructures(skeleton, { formula: 'CO2', charge: 0 });
+    // O=C=O plus the two O≡C–O forms
+    expect(found).toHaveLength(3);
+    for (const s of found) {
+      expect(checkStructure(s, { formula: 'CO2', charge: 0 })).toEqual([]);
+    }
+    expect(found.some((s) => sameStructure(s, carbonDioxide))).toBe(true);
+  });
+
+  it('places one unpaired electron for odd-electron molecules', () => {
+    const { skeleton } = skeletonOf('NO', ['N', 'O'], [[0, 1]]);
+    const found = validStructures(skeleton, { formula: 'NO', charge: 0 });
+    expect(found.some((s) => sameStructure(s, nitricOxide))).toBe(true);
+    for (const s of found) {
+      expect(s.atoms.reduce((n, a) => n + a.radicals, 0)).toBe(1);
+    }
+  });
+});
+
+describe('bestStructures', () => {
+  it('prefers the smallest formal charges', () => {
+    const { skeleton } = skeletonOf(
+      'CO2',
+      ['C', 'O', 'O'],
+      [
+        [0, 1],
+        [0, 2],
+      ],
+    );
+    const best = bestStructures(
+      validStructures(skeleton, { formula: 'CO2', charge: 0 }),
+    );
+    expect(best).toHaveLength(1);
+    expect(sameStructure(best[0], carbonDioxide)).toBe(true);
+  });
+
+  it('keeps every resonance form', () => {
+    const { skeleton } = skeletonOf(
+      'NO3',
+      ['N', 'O', 'O', 'O'],
+      [
+        [0, 1],
+        [0, 2],
+        [0, 3],
+      ],
+    );
+    const best = bestStructures(
+      validStructures(skeleton, { formula: 'NO3', charge: -1 }),
+    );
+    expect(best).toHaveLength(3);
+  });
+
+  it('does not expand an octet when that doesn’t lower formal charges', () => {
+    // Cl≡Cl with two lone pairs each also has zero formal charges, but
+    // nothing justifies giving chlorine 10 electrons
+    const { skeleton } = skeletonOf('Cl2', ['Cl', 'Cl'], [[0, 1]]);
+    const best = bestStructures(
+      validStructures(skeleton, { formula: 'Cl2', charge: 0 }),
+    );
+    expect(best).toHaveLength(1);
+    expect(best[0].bonds[0].order).toBe(1);
+  });
+
+  it('breaks ties by putting negative charge on the more electronegative atom', () => {
+    // sulfate: two S=O (O⁻ ×2), three S=O (S⁻, O⁻) and four S=O (S²⁻) all
+    // have total |formal charge| 2; oxygen is more electronegative than sulfur
+    const { skeleton } = skeletonOf(
+      'SO4',
+      ['S', 'O', 'O', 'O', 'O'],
+      [
+        [0, 1],
+        [0, 2],
+        [0, 3],
+        [0, 4],
+      ],
+    );
+    const best = bestStructures(
+      validStructures(skeleton, { formula: 'SO4', charge: -2 }),
+    );
+    expect(best).toHaveLength(6);
+    for (const s of best) expect(formalCharge(s, 0)).toBe(0);
+  });
+});
+
+describe('assessStructure', () => {
+  const nitrateMolecule: Molecule = {
+    id: 'nitrate',
+    name: 'Nitrate ion',
+    formula: 'NO3',
+    charge: -1,
+    level: 4,
+    skeleton: {
+      atoms: [
+        { symbol: 'N' },
+        { symbol: 'O' },
+        { symbol: 'O' },
+        { symbol: 'O' },
+      ],
+      bonds: [
+        [0, 1],
+        [0, 2],
+        [0, 3],
+      ],
+    },
+    answers: [
+      { lonePairs: [0, 2, 3, 3], orders: [2, 1, 1] },
+      { lonePairs: [0, 3, 2, 3], orders: [1, 2, 1] },
+      { lonePairs: [0, 3, 3, 2], orders: [1, 1, 2] },
+    ],
+  };
+
+  const sulfurDioxide: Molecule = {
+    id: 'sulfur-dioxide',
+    name: 'Sulfur dioxide',
+    formula: 'SO2',
+    charge: 0,
+    level: 4,
+    skeleton: {
+      atoms: [{ symbol: 'S' }, { symbol: 'O' }, { symbol: 'O' }],
+      bonds: [
+        [0, 1],
+        [0, 2],
+      ],
+    },
+    answers: [{ lonePairs: [1, 2, 2], orders: [2, 2] }],
+    alsoAccepted: [
+      { lonePairs: [1, 2, 3], orders: [2, 1] },
+      { lonePairs: [1, 3, 2], orders: [1, 2] },
+    ],
+    note: 'Expanding sulfur’s octet gives smaller formal charges.',
+  };
+
+  it('marks a best answer correct and mentions resonance', () => {
+    const result = assessStructure(nitrate, nitrateMolecule);
+    expect(result.verdict).toBe('best');
+    expect(result.feedback.map((f) => f.message).join(' ')).toMatch(
+      /one of 3 resonance structures/,
+    );
+  });
+
+  it('accepts octet-rule answers with the molecule’s note', () => {
+    const octetForm = lewis(
+      [
+        ['S', 1],
+        ['O', 2],
+        ['O', 3],
+      ],
+      [
+        [0, 1, 2],
+        [0, 2, 1],
+      ],
+    );
+    const result = assessStructure(octetForm, sulfurDioxide);
+    expect(result.verdict).toBe('accepted');
+    expect(result.feedback[0].message).toBe(sulfurDioxide.note);
+  });
+
+  it('passes on checkStructure problems as invalid', () => {
+    const result = assessStructure(water, nitrateMolecule);
+    expect(result.verdict).toBe('invalid');
+    expect(result.feedback.map((f) => f.kind)).toContain('atoms');
+  });
+
+  it('flags a valid structure on the wrong skeleton', () => {
+    // N–O–O–O chain: right atoms, wrong connections
+    const chain = lewis(
+      [
+        ['N', 2],
+        ['O', 2],
+        ['O', 2],
+        ['O', 3],
+      ],
+      [
+        [0, 1, 1],
+        [1, 2, 1],
+        [2, 3, 1],
+      ],
+    );
+    const result = assessStructure(chain, nitrateMolecule);
+    expect(result.feedback.map((f) => f.kind)).toContain('skeleton');
+    expect(result.verdict).not.toBe('best');
+  });
+
+  it('says when an octet was expanded for no reason', () => {
+    const chlorine: Molecule = {
+      id: 'chlorine',
+      name: 'Chlorine',
+      formula: 'Cl2',
+      charge: 0,
+      level: 1,
+      skeleton: {
+        atoms: [{ symbol: 'Cl' }, { symbol: 'Cl' }],
+        bonds: [[0, 1]],
+      },
+      answers: [{ lonePairs: [3, 3], orders: [1] }],
+    };
+    const triple = lewis(
+      [
+        ['Cl', 2],
+        ['Cl', 2],
+      ],
+      [[0, 1, 3]],
+    );
+    const result = assessStructure(triple, chlorine);
+    expect(result.verdict).toBe('valid');
+    expect(result.feedback).toEqual([
+      {
+        kind: 'unneeded-expansion',
+        message:
+          'This works, but an atom has more electrons than it needs. Expand an octet only when it lowers formal charges.',
+      },
+    ]);
+  });
+
+  it('says when formal charges could be smaller', () => {
+    // nitrate with every N–O single and N carrying a lone pair is invalid
+    // (too many electrons), so use CO2's O≡C–O form against a CO2 molecule
+    const co2: Molecule = {
+      id: 'carbon-dioxide',
+      name: 'Carbon dioxide',
+      formula: 'CO2',
+      charge: 0,
+      level: 2,
+      skeleton: {
+        atoms: [{ symbol: 'C' }, { symbol: 'O' }, { symbol: 'O' }],
+        bonds: [
+          [0, 1],
+          [0, 2],
+        ],
+      },
+      answers: [{ lonePairs: [0, 2, 2], orders: [2, 2] }],
+    };
+    const tripleForm = lewis(
+      [
+        ['C', 0],
+        ['O', 1],
+        ['O', 3],
+      ],
+      [
+        [0, 1, 3],
+        [0, 2, 1],
+      ],
+    );
+    const result = assessStructure(tripleForm, co2);
+    expect(result.verdict).toBe('valid');
+    expect(result.feedback.map((f) => f.kind)).toContain('formal-charge');
   });
 });
