@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import Container from '~/components/container';
 import Slider from '~/components/slider';
+import Stage from '~/components/stage';
 import { useTheme } from '~/styles/theme-provider';
 import {
+  BOIL_BAND_C,
   BOIL_POINT_C,
+  MELT_BAND_C,
   DT_MAX,
   MELT_POINT_C,
   TEMP_MAX_C,
@@ -17,14 +20,23 @@ import {
 
 const RANGE_STEPS = 7; // number of discrete labels on slider
 
-// Rendering
-const PHASE_LABEL_FONT = '12px Arial';
-const PHASE_LABEL_POS = { x: 10, y: 18 };
+const KELVIN_OFFSET = 273.15;
 
 function phaseLabel(tempC: number) {
   if (tempC < MELT_POINT_C) return 'Solid';
   if (tempC < BOIL_POINT_C) return 'Liquid';
   return 'Gas';
+}
+
+// inside a transition band the particles are partway between phases
+function phaseHint(tempC: number) {
+  if (Math.abs(tempC - MELT_POINT_C) <= MELT_BAND_C) {
+    return 'Near the melting point';
+  }
+  if (Math.abs(tempC - BOIL_POINT_C) <= BOIL_BAND_C) {
+    return 'Near the boiling point';
+  }
+  return null;
 }
 
 export default function StatesOfMatter() {
@@ -104,9 +116,6 @@ export default function StatesOfMatter() {
           ctx.arc(p.pos.x, p.pos.y, p.r, 0, Math.PI * 2);
           ctx.fill();
         }
-
-        ctx.font = PHASE_LABEL_FONT;
-        ctx.fillText(phaseLabel(tempC), PHASE_LABEL_POS.x, PHASE_LABEL_POS.y);
       }
 
       raf = requestAnimationFrame(frame);
@@ -117,25 +126,54 @@ export default function StatesOfMatter() {
   }, []);
 
   return (
-    <Container header="States of Matter">
-      <div className="flex flex-col sm:flex-row justify-center items-center gap-12">
+    <Container
+      header="States of Matter"
+      description="Heat or cool the substance and watch how its particles move."
+    >
+      <Stage
+        label="Particle model"
+        className="w-full max-w-2xl mx-auto"
+        header={
+          <div className="flex items-start justify-between gap-4">
+            <div
+              data-testid="phase"
+              className="flex flex-col items-start gap-1"
+            >
+              <span className="px-3 py-1 rounded-full bg-secondary-500 text-text-secondary font-semibold">
+                {phaseLabel(temperature)}
+              </span>
+              {phaseHint(temperature) && (
+                <span className="text-xs">{phaseHint(temperature)}</span>
+              )}
+            </div>
+            <div data-testid="temperature" className="text-right leading-tight">
+              <span className="block text-3xl font-bold">{temperature} °C</span>
+              <span className="block text-sm text-white/70">
+                {Math.round(temperature + KELVIN_OFFSET)} K
+              </span>
+            </div>
+          </div>
+        }
+        footer={
+          <Slider
+            label="Temperature"
+            value={temperature}
+            onChange={setTemperature}
+            min={TEMP_MIN_C}
+            max={TEMP_MAX_C}
+            rangeSteps={RANGE_STEPS}
+            // cold to hot
+            sliderThumb="bg-linear-to-r from-sky-400 via-amber-300 to-rose-500"
+          />
+        }
+      >
         <div
           ref={wrapRef}
-          className="bg-white h-50 w-full sm:h-100 sm:w-100 rounded-lg overflow-hidden"
+          className="h-64 sm:h-80 w-full rounded-md bg-primary-800 overflow-hidden"
         >
           <canvas ref={canvasRef} className="block" />
         </div>
-
-        <Slider
-          label={`Temperature: ${temperature}°C`}
-          value={temperature}
-          onChange={setTemperature}
-          min={TEMP_MIN_C}
-          max={TEMP_MAX_C}
-          rangeSteps={RANGE_STEPS}
-          className="w-full sm:w-64"
-        />
-      </div>
+      </Stage>
     </Container>
   );
 }

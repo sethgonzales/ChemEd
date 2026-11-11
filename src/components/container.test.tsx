@@ -14,4 +14,14 @@ describe('Container', () => {
     render(<Container>content</Container>);
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
   });
+
+  it('shows a one-line description under the header', () => {
+    render(
+      <Container header="States of Matter" description="Heat it up.">
+        content
+      </Container>,
+    );
+    const heading = screen.getByRole('heading', { name: 'States of Matter' });
+    expect(heading.nextElementSibling).toHaveTextContent('Heat it up.');
+  });
 });

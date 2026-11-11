@@ -4,11 +4,12 @@ import { cn } from '~/utils/cn';
 interface Props {
   children: ReactNode;
   header?: string;
+  description?: string; // one line under the header saying what to do
   className?: string;
 }
 
 export default function Container(props: Props) {
-  const { children, header, className } = props;
+  const { children, header, description, className } = props;
   return (
     <div
       className={cn(
@@ -16,7 +17,13 @@ export default function Container(props: Props) {
         className,
       )}
     >
-      {header && <h2 className="text-xl font-bold mb-2">{header}</h2>}
+      {/* together, so a parent's gap doesn't split the title from its line */}
+      {(header || description) && (
+        <div className="mb-2">
+          {header && <h2 className="text-xl font-bold">{header}</h2>}
+          {description && <p className="text-sm mt-1">{description}</p>}
+        </div>
+      )}
       {children}
     </div>
   );

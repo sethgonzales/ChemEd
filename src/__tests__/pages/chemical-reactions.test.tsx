@@ -29,6 +29,11 @@ describe('Chemical Reactions page: balancing practice', () => {
     expect(
       screen.getByRole('heading', { name: 'Chemical Reactions' }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Balance equations: change the coefficients until every element has the same number of atoms on both sides.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Practice' })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -51,7 +56,7 @@ describe('Chemical Reactions page: balancing practice', () => {
   it('lists the atom count under the seesaw, mirroring its sides', () => {
     render(<ChemicalReactions />);
     // seesaw and counts share one card
-    const card = within(panel()).getByTestId('balance-card');
+    const card = within(panel()).getByRole('region', { name: 'Balance' });
     expect(
       within(card).getByRole('img', { name: /^Seesaw/ }),
     ).toBeInTheDocument();

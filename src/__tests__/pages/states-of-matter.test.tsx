@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { ThemeProvider } from '~/styles/theme-provider';
 import StatesOfMatter from '~/pages/states-of-matter';
 
@@ -42,18 +48,46 @@ function renderPage() {
   );
 }
 
+const stage = () => screen.getByRole('region', { name: 'Particle model' });
+const phase = () => within(stage()).getByTestId('phase');
+const setTemperature = (value: number) =>
+  fireEvent.change(screen.getByRole('slider', { name: 'Temperature' }), {
+    target: { value: String(value) },
+  });
+
 describe('States of Matter page', () => {
-  it('starts at 0°C with a −25 to 125°C slider', () => {
+  it('says what to do in one line', () => {
     renderPage();
-    const slider = screen.getByLabelText('Temperature: 0°C');
+    expect(
+      screen.getByText(
+        'Heat or cool the substance and watch how its particles move.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('starts at 0°C with a −25 to 125°C slider inside the stage', () => {
+    renderPage();
+    const slider = within(stage()).getByRole('slider', { name: 'Temperature' });
+    expect(slider).toHaveValue('0');
     expect(slider).toHaveAttribute('min', '-25');
     expect(slider).toHaveAttribute('max', '125');
   });
 
-  it('updates the temperature label when the slider moves', () => {
+  it('shows the temperature in °C and kelvin', () => {
     renderPage();
-    fireEvent.change(screen.getByRole('slider'), { target: { value: '50' } });
-    expect(screen.getByLabelText('Temperature: 50°C')).toBeInTheDocument();
+    expect(within(stage()).getByTestId('temperature')).toHaveTextContent(
+      '0 °C',
+    );
+    expect(within(stage()).getByTestId('temperature')).toHaveTextContent(
+      '273 K',
+    );
+    setTemperature(50);
+    expect(within(stage()).getByTestId('temperature')).toHaveTextContent(
+      '50 °C',
+    );
+    expect(within(stage()).getByTestId('temperature')).toHaveTextContent(
+      '323 K',
+    );
   });
 
   it('draws 150 particles each frame', async () => {
@@ -64,22 +98,23 @@ describe('States of Matter page', () => {
   });
 
   it.each([
-    [-10, 'Solid'],
-    [0, 'Liquid'],
-    [50, 'Liquid'],
-    [100, 'Gas'],
-  ])('labels %i°C as %s', async (temp, phase) => {
+    [-20, 'Solid', null],
+    [-3, 'Solid', 'Near the melting point'],
+    [0, 'Liquid', 'Near the melting point'],
+    [50, 'Liquid', null],
+    [98, 'Liquid', 'Near the boiling point'],
+    [110, 'Gas', null],
+  ])('labels %i°C as %s', (temp, name, hint) => {
     renderPage();
-    fireEvent.change(screen.getByRole('slider'), {
-      target: { value: String(temp) },
-    });
-    ctx.fillText.mockClear();
-    await waitFor(() =>
-      expect(ctx.fillText).toHaveBeenCalledWith(
-        phase,
-        expect.any(Number),
-        expect.any(Number),
-      ),
-    );
+    setTemperature(temp);
+    expect(phase()).toHaveTextContent(name);
+    if (hint) expect(phase()).toHaveTextContent(hint);
+    else expect(phase()).not.toHaveTextContent('Near');
+  });
+
+  it('leaves the phase off the canvas, where screen readers can’t read it', async () => {
+    renderPage();
+    await waitFor(() => expect(ctx.arc).toHaveBeenCalled());
+    expect(ctx.fillText).not.toHaveBeenCalled();
   });
 });

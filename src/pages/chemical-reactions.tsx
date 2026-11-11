@@ -3,16 +3,9 @@ import Button from '~/components/button';
 import Container from '~/components/container';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
 import ReactionBalancer from '~/components/reaction-balancer';
+import Tabs from '~/components/tabs';
 import { REACTION_LEVELS, REACTIONS } from '~/constants/reactions';
-import { cn } from '~/utils/cn';
 import { parseEquation, solve, type Reaction } from '~/utils/reactions';
-
-type Mode = 'practice' | 'own';
-
-const MODES: { mode: Mode; label: string }[] = [
-  { mode: 'practice', label: 'Practice' },
-  { mode: 'own', label: 'Your own equation' },
-];
 
 /** Balance equations from the library, level by level */
 function Practice() {
@@ -141,56 +134,19 @@ function OwnEquation() {
 }
 
 export default function ChemicalReactions() {
-  const [mode, setMode] = useState<Mode>('practice');
-
   return (
-    <Container header="Chemical Reactions" className="gap-4">
-      <h3 className="text-lg font-semibold">Balancing equations</h3>
-      <p className="text-sm -mt-2">
-        Change the coefficients until every element has the same number of atoms
-        on both sides. The seesaw holds the molecules on each side and tips
-        toward the side with more atoms; when every element matches, it levels
-        out.
-      </p>
-
-      <div
-        role="tablist"
-        aria-label="Activity"
-        className="flex flex-wrap gap-2"
-      >
-        {MODES.map(({ mode: m, label }) => (
-          <button
-            key={m}
-            id={`reactions-tab-${m}`}
-            type="button"
-            role="tab"
-            aria-selected={mode === m}
-            aria-controls={`reactions-panel-${m}`}
-            onClick={() => setMode(m)}
-            className={cn(
-              'px-4 py-2 rounded-lg font-semibold cursor-pointer',
-              mode === m
-                ? 'bg-white text-gray-900'
-                : 'bg-primary-700 text-white hover:bg-primary-800',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* both stay mounted, so switching keeps each one's progress */}
-      {MODES.map(({ mode: m }) => (
-        <div
-          key={m}
-          id={`reactions-panel-${m}`}
-          role="tabpanel"
-          aria-labelledby={`reactions-tab-${m}`}
-          hidden={mode !== m}
-        >
-          {m === 'practice' ? <Practice /> : <OwnEquation />}
-        </div>
-      ))}
+    <Container
+      header="Chemical Reactions"
+      description="Balance equations: change the coefficients until every element has the same number of atoms on both sides."
+      className="gap-4"
+    >
+      <Tabs
+        label="Activity"
+        tabs={[
+          { id: 'practice', label: 'Practice', content: <Practice /> },
+          { id: 'own', label: 'Your own equation', content: <OwnEquation /> },
+        ]}
+      />
     </Container>
   );
 }

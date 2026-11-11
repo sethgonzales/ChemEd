@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { cn } from '~/utils/cn';
 
 interface Props {
@@ -49,15 +50,17 @@ export default function Slider(props: Props) {
     onChange,
   } = props;
 
+  // unique per slider, so a page can have more than one
+  const id = useId();
   const rangeLables =
     min !== undefined && max !== undefined && rangeSteps > 1
       ? generateRangeLabels(min, max, rangeSteps)
       : [];
   return (
     <div className={cn('relative space-y-2', className)}>
-      {label && <label htmlFor="range-input">{label}</label>}
+      {label && <label htmlFor={id}>{label}</label>}
       <input
-        id="range-input"
+        id={id}
         type="range"
         value={value}
         min={min}

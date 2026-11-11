@@ -1,5 +1,7 @@
 import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import Button from '~/components/button';
+import Setting from '~/components/setting';
+import Stage from '~/components/stage';
 import LewisCanvas, { pointIn, targetOf } from '~/components/lewis-canvas';
 import LewisToolbar, {
   DRAWING_TOOLS,
@@ -55,27 +57,6 @@ interface Props {
   paletteExtra?: (selectTool: (tool: Tool) => void) => ReactNode;
   settings: Settings; // kept by the page, so they survive a new molecule
   onSettings: (change: Partial<Settings>) => void;
-}
-
-function Setting({
-  checked,
-  onChange,
-  children,
-}: {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  children: ReactNode;
-}) {
-  return (
-    <label className="flex items-center gap-2 text-sm cursor-pointer">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      {children}
-    </label>
-  );
 }
 
 /** The Lewis structure drawing area: toolbar, drawing, resonance forms and checking */
@@ -257,147 +238,159 @@ export default function LewisBuilder({
       ? { from: drag.payload.source.id, to: dragPoint }
       : null;
 
-  return (
-    <div className="flex flex-col sm:flex-row gap-3">
-      <LewisToolbar
-        groups={[DRAWING_TOOLS, MARK_TOOLS, elements]}
-        active={tool}
-        onSelect={selectTool}
-        onPress={(t, e) =>
-          startDrag({ from: 'toolbar', tool: t, label: labelOf(t) }, e)
-        }
-        extra={paletteExtra?.(selectTool)}
-      />
-
-      <div className="flex-1 min-w-0 flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <div
-            role="tablist"
-            aria-label="Resonance forms"
-            className="flex flex-wrap items-center gap-1"
-          >
-            {state.forms.map((_, i) => (
-              <span key={i} className="flex items-center gap-1">
-                {i > 0 && <span aria-hidden="true">↔</span>}
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={i === state.active}
-                  onClick={() => {
-                    setArrowSource(null);
-                    dispatchForms({ type: 'selectForm', index: i });
-                  }}
-                  className={cn(
-                    'px-3 py-1 rounded-md text-sm font-semibold cursor-pointer',
-                    i === state.active
-                      ? 'bg-white text-gray-900'
-                      : 'bg-primary-700 text-white hover:bg-primary-800',
-                  )}
-                >
-                  Form {i + 1}
-                </button>
-              </span>
-            ))}
-          </div>
-          <Button
-            onClick={() => {
-              setArrowSource(null);
-              dispatchForms({ type: 'addForm' });
-            }}
-          >
-            Add resonance form
-          </Button>
-          <Button
-            onClick={() =>
-              dispatchForms({ type: 'removeForm', index: state.active })
-            }
-            disabled={state.forms.length === 1}
-          >
-            Remove form
-          </Button>
-        </div>
-        {arrowSource && (
-          <p className="text-sm" role="status">
-            Now tap where the electrons go.
-          </p>
-        )}
-        <div className="bg-white rounded-lg h-80 sm:h-[28rem] overflow-hidden">
-          <LewisCanvas
-            ref={svgRef}
-            structure={structure}
-            onTap={onTap}
-            onPress={onPressDrawing}
-            problems={problems}
-            bars={bars}
-            hints={hints}
-            showCharges={chargesReady(structure)}
-            preview={preview}
-            pending={arrowSource}
-            cursor={toolCursor(tool)}
-          />
-        </div>
-
+  const header = (
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div
-          data-testid="electron-counter"
-          aria-live="polite"
-          className="text-sm"
+          role="tablist"
+          aria-label="Resonance forms"
+          className="flex flex-wrap items-center gap-1"
         >
-          {counter(structure)}
+          {state.forms.map((_, i) => (
+            <span key={i} className="flex items-center gap-1">
+              {i > 0 && <span aria-hidden="true">↔</span>}
+              <button
+                type="button"
+                role="tab"
+                aria-selected={i === state.active}
+                onClick={() => {
+                  setArrowSource(null);
+                  dispatchForms({ type: 'selectForm', index: i });
+                }}
+                className={cn(
+                  'px-3 py-1 rounded-md text-sm font-semibold cursor-pointer',
+                  i === state.active
+                    ? 'bg-white text-gray-900'
+                    : 'bg-primary-700 text-white hover:bg-primary-800',
+                )}
+              >
+                Form {i + 1}
+              </button>
+            </span>
+          ))}
         </div>
+        <Button
+          onClick={() => {
+            setArrowSource(null);
+            dispatchForms({ type: 'addForm' });
+          }}
+        >
+          Add resonance form
+        </Button>
+        <Button
+          onClick={() =>
+            dispatchForms({ type: 'removeForm', index: state.active })
+          }
+          disabled={state.forms.length === 1}
+        >
+          Remove form
+        </Button>
+      </div>
+      <div
+        data-testid="electron-counter"
+        aria-live="polite"
+        className="text-sm min-w-48"
+      >
+        {counter(structure)}
+      </div>
+    </div>
+  );
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={() => dispatch({ type: 'undo' })}
-            disabled={!editor.history.length}
-          >
-            Undo
-          </Button>
-          <Button
-            onClick={() => dispatch({ type: 'redo' })}
-            disabled={!editor.future.length}
-          >
-            Redo
-          </Button>
-          <Button onClick={reset}>Reset</Button>
-          <Button
-            onClick={() => dispatch({ type: 'cleanUp' })}
-            disabled={!structure.atoms.length}
-          >
-            Clean Up
-          </Button>
-          <Button pressed onClick={() => setChecked(state.forms)}>
-            Check your work
-          </Button>
-        </div>
+  const actions = (
+    <div className="flex flex-wrap items-center gap-2">
+      <Button
+        onClick={() => dispatch({ type: 'undo' })}
+        disabled={!editor.history.length}
+      >
+        Undo
+      </Button>
+      <Button
+        onClick={() => dispatch({ type: 'redo' })}
+        disabled={!editor.future.length}
+      >
+        Redo
+      </Button>
+      <Button onClick={reset}>Reset</Button>
+      <Button
+        onClick={() => dispatch({ type: 'cleanUp' })}
+        disabled={!structure.atoms.length}
+      >
+        Clean Up
+      </Button>
+      <span className="sm:ml-auto">
+        <Button pressed onClick={() => setChecked(state.forms)}>
+          Check your work
+        </Button>
+      </span>
+    </div>
+  );
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1">
-          <Setting checked={snap} onChange={(on) => onSettings({ snap: on })}>
-            Snap to bond angles
-          </Setting>
-          <Setting checked={bars} onChange={(on) => onSettings({ bars: on })}>
-            Lone pairs as bars
-          </Setting>
-          <Setting checked={hints} onChange={(on) => onSettings({ hints: on })}>
-            Show hints
-          </Setting>
-        </div>
-
-        {result && (
-          <div
-            data-testid="feedback"
-            role="status"
-            className="bg-primary-600 rounded-lg p-3 text-sm space-y-1"
-          >
-            {VERDICT_LABEL[result.verdict] && (
-              <p className="font-bold">{VERDICT_LABEL[result.verdict]}</p>
+  return (
+    <div className="flex flex-col gap-3">
+      <Stage label="Drawing" header={header} footer={actions}>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <LewisToolbar
+            groups={[DRAWING_TOOLS, MARK_TOOLS, elements]}
+            active={tool}
+            onSelect={selectTool}
+            onPress={(t, e) =>
+              startDrag({ from: 'toolbar', tool: t, label: labelOf(t) }, e)
+            }
+            extra={paletteExtra?.(selectTool)}
+          />
+          <div className="relative sm:flex-1 min-w-0 bg-white rounded-md h-80 sm:h-auto sm:min-h-[28rem] overflow-hidden">
+            <LewisCanvas
+              ref={svgRef}
+              structure={structure}
+              onTap={onTap}
+              onPress={onPressDrawing}
+              problems={problems}
+              bars={bars}
+              hints={hints}
+              showCharges={chargesReady(structure)}
+              preview={preview}
+              pending={arrowSource}
+              cursor={toolCursor(tool)}
+            />
+            {arrowSource && (
+              <p
+                role="status"
+                className="absolute top-2 left-2 px-2 py-1 rounded-md bg-gray-900/80 text-white text-sm pointer-events-none"
+              >
+                Now tap where the electrons go.
+              </p>
             )}
-            <ul className="space-y-1">
-              {result.feedback.map((f, i) => (
-                <li key={i}>{f.message}</li>
-              ))}
-            </ul>
           </div>
-        )}
+        </div>
+      </Stage>
+
+      {result && (
+        <div
+          data-testid="feedback"
+          role="status"
+          className="bg-primary-600 rounded-lg p-3 text-sm space-y-1"
+        >
+          {VERDICT_LABEL[result.verdict] && (
+            <p className="font-bold">{VERDICT_LABEL[result.verdict]}</p>
+          )}
+          <ul className="space-y-1">
+            {result.feedback.map((f, i) => (
+              <li key={i}>{f.message}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        <Setting checked={snap} onChange={(on) => onSettings({ snap: on })}>
+          Snap to bond angles
+        </Setting>
+        <Setting checked={bars} onChange={(on) => onSettings({ bars: on })}>
+          Lone pairs as bars
+        </Setting>
+        <Setting checked={hints} onChange={(on) => onSettings({ hints: on })}>
+          Show hints
+        </Setting>
       </div>
 
       {/* what's being dragged follows the pointer */}

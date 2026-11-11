@@ -1,6 +1,7 @@
 import { Fragment, useState } from 'react';
 import { IconCheck, IconMinus, IconPlus, IconX } from '@tabler/icons-react';
 import Seesaw from '~/components/seesaw';
+import Stage from '~/components/stage';
 import Button from '~/components/button';
 import { cn } from '~/utils/cn';
 import { formatFormula } from '~/utils/lewis';
@@ -113,7 +114,7 @@ export default function ReactionBalancer({ reaction, answer }: Props) {
       </div>
 
       {/* one card: the seesaw, with each side's atom counts right under it */}
-      <div data-testid="balance-card" className="bg-primary-600 rounded-lg p-3">
+      <Stage label="Balance">
         <Seesaw reaction={reaction} coefficients={coefficients} />
 
         <table
@@ -178,7 +179,7 @@ export default function ReactionBalancer({ reaction, answer }: Props) {
             })}
           </tbody>
         </table>
-      </div>
+      </Stage>
 
       <p
         data-testid="balance-status"

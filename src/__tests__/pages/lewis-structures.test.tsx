@@ -936,3 +936,41 @@ describe('Lewis Structures page: undo and redo', () => {
     expect(counter()).toHaveTextContent('6 of 8');
   });
 });
+
+describe('Lewis Structures page: layout', () => {
+  it('says what the page is for in one line', () => {
+    render(<LewisStructures />);
+    expect(
+      screen.getByText(
+        'Draw Lewis structures with atoms, bonds and electrons, then check your work.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the full instructions in a How to draw guide', async () => {
+    render(<LewisStructures />);
+    const guide = within(panel()).getByText('How to draw');
+    expect(guide.closest('details')).not.toHaveAttribute('open');
+    await userEvent.click(guide);
+    expect(guide.closest('details')).toHaveAttribute('open');
+    expect(guide.closest('details')).toHaveTextContent(/Curved arrows/);
+  });
+
+  it('groups the drawing, its tools, counter and actions in one stage', () => {
+    render(<LewisStructures />);
+    const stage = within(panel()).getByRole('region', { name: 'Drawing' });
+    expect(
+      within(stage).getByRole('toolbar', { name: 'Drawing tools' }),
+    ).toBeInTheDocument();
+    expect(
+      within(stage).getByRole('group', { name: 'Lewis structure' }),
+    ).toBeInTheDocument();
+    expect(within(stage).getByTestId('electron-counter')).toBeInTheDocument();
+    expect(
+      within(stage).getByRole('tablist', { name: 'Resonance forms' }),
+    ).toBeInTheDocument();
+    expect(
+      within(stage).getByRole('button', { name: 'Check your work' }),
+    ).toBeInTheDocument();
+  });
+});

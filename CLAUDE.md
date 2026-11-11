@@ -43,6 +43,25 @@ Bug fixes start with a test that reproduces the bug.
 - Every simulation must work on a phone: touch input, narrow screens, no horizontal page scroll.
 - Accessibility: interactive elements need accessible names, and controls must work by keyboard.
 
+## Design
+
+Every simulation follows the same structure (see `docs/plans/design-cohesion.md`):
+
+1. `Container` with the title and a one-line `description`.
+2. Controls: `Tabs` for modes, `Dropdown` for pickers.
+3. A `Stage` holding the main visual, with its readouts and status inside it.
+4. One row of `Button`s, with at most one accent ("main") action.
+5. `Setting` checkboxes last.
+
+Colour roles (theme scale only, so every theme works):
+
+- Stage background `primary-600`; controls `primary-700` (hover `primary-800`).
+- Accent `secondary-500` / `text-secondary`: matter (particles, molecule chips) and the selected tab, tool or main action. Not for decoration.
+- Correct: `green-300` text, `green-400` fills. Problems: `red-500/25` background, `red-100` text.
+- White is only for drawing paper (Lewis), inside a Stage.
+
+Reuse `Container`, `Tabs`, `Stage`, `Button`, `Dropdown`/`DropdownItem` and `Setting` rather than restyling raw elements.
+
 ## Git
 
 - Don't add `Co-Authored-By` trailers (or any other AI attribution lines) to commit messages.

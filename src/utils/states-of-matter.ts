@@ -37,8 +37,8 @@ export const TEMP_MAX_C = 125;
 // Phase transition bands
 export const MELT_POINT_C = 0;
 export const BOIL_POINT_C = 100;
-const MELT_BAND_C = 5;
-const BOIL_BAND_C = 5;
+export const MELT_BAND_C = 5;
+export const BOIL_BAND_C = 5;
 
 // Thermal speed: one curve for every phase, so hotter always means faster
 const SPEED_AT_MIN_C = 15; // px/s rms at TEMP_MIN_C

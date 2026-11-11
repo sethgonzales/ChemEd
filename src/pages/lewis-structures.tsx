@@ -4,6 +4,7 @@ import Container from '~/components/container';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
 import ElementPicker from '~/components/element-picker';
 import LewisBuilder, { type Settings } from '~/components/lewis-builder';
+import Tabs from '~/components/tabs';
 import type { ToolItem } from '~/components/lewis-toolbar';
 import { COMMON_ELEMENTS, DRAWABLE_ELEMENTS } from '~/constants/lewis-elements';
 import { LEVELS, MOLECULES } from '~/constants/molecules';
@@ -26,13 +27,30 @@ import type { Tool } from '~/utils/lewis-tools';
 type Mode = 'draw' | 'quiz';
 type Start = 'given' | 'empty';
 
-const MODES: { mode: Mode; label: string }[] = [
-  { mode: 'draw', label: 'Draw' },
-  { mode: 'quiz', label: 'Quiz' },
+const HOW_TO_DRAW = [
+  'Pick a tool and your cursor becomes it. Click the drawing to place atoms or apply the tool, as many times as you like.',
+  'Bonds are connectors: click empty space or an atom to add one, then drop an element onto each open end.',
+  'You can also drag a tool from the toolbar onto an atom or bond.',
+  'With Select, drag atoms to move them, and lone pairs from one atom to another.',
+  'Curved arrows go from a lone pair or bond to an atom or bond. Add resonance forms to show where the electrons move.',
+  'Undo and redo with Ctrl/⌘+Z and Ctrl/⌘+Shift+Z.',
 ];
 
-const HELP =
-  'Pick a tool and your cursor becomes it: click the drawing to place atoms or apply the tool, as many times as you like. You can also drag a tool onto an atom or bond. With Select, drag atoms and lone pairs around. Curved arrows go from a lone pair or bond to an atom or bond.';
+/** The full instructions, folded away until wanted */
+function HowToDraw() {
+  return (
+    <details className="text-sm">
+      <summary className="cursor-pointer font-semibold w-fit">
+        How to draw
+      </summary>
+      <ul className="list-disc pl-5 mt-2 space-y-1">
+        {HOW_TO_DRAW.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 
 const elementIcon = (symbol: string) => (
   <span className="text-sm font-bold">{symbol}</span>
@@ -77,7 +95,7 @@ function DrawMode({ active, settings, onSettings }: ModeProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm">Build any Lewis structure. {HELP}</p>
+      <HowToDraw />
       <LewisBuilder
         initial={emptyEditor()}
         initialTool="element:C"
@@ -217,7 +235,7 @@ function QuizMode({ active, settings, onSettings }: ModeProps) {
       <h3 className="text-lg font-semibold">
         {molecule.name}, {formatFormula(molecule.formula, molecule.charge)}
       </h3>
-      <p className="text-sm -mt-2">{HELP}</p>
+      <HowToDraw />
 
       {/* a new molecule or starting point starts a fresh drawing */}
       <LewisBuilder
@@ -249,53 +267,40 @@ export default function LewisStructures() {
     setSettings((current) => ({ ...current, ...change }));
 
   return (
-    <Container header="Lewis Structures" className="gap-4">
-      <div role="tablist" aria-label="Mode" className="flex gap-2">
-        {MODES.map(({ mode: m, label }) => (
-          <button
-            key={m}
-            id={`lewis-tab-${m}`}
-            type="button"
-            role="tab"
-            aria-selected={mode === m}
-            aria-controls={`lewis-panel-${m}`}
-            onClick={() => setMode(m)}
-            className={cn(
-              'px-4 py-2 rounded-lg font-semibold cursor-pointer',
-              mode === m
-                ? 'bg-white text-gray-900'
-                : 'bg-primary-700 text-white hover:bg-primary-800',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* both stay mounted, so switching modes keeps each drawing */}
-      {MODES.map(({ mode: m }) => (
-        <div
-          key={m}
-          id={`lewis-panel-${m}`}
-          role="tabpanel"
-          aria-labelledby={`lewis-tab-${m}`}
-          hidden={mode !== m}
-        >
-          {m === 'draw' ? (
-            <DrawMode
-              active={mode === 'draw'}
-              settings={settings}
-              onSettings={onSettings}
-            />
-          ) : (
-            <QuizMode
-              active={mode === 'quiz'}
-              settings={settings}
-              onSettings={onSettings}
-            />
-          )}
-        </div>
-      ))}
+    <Container
+      header="Lewis Structures"
+      description="Draw Lewis structures with atoms, bonds and electrons, then check your work."
+      className="gap-4"
+    >
+      <Tabs
+        label="Mode"
+        selected={mode}
+        onSelect={(id) => setMode(id as Mode)}
+        tabs={[
+          {
+            id: 'draw',
+            label: 'Draw',
+            content: (
+              <DrawMode
+                active={mode === 'draw'}
+                settings={settings}
+                onSettings={onSettings}
+              />
+            ),
+          },
+          {
+            id: 'quiz',
+            label: 'Quiz',
+            content: (
+              <QuizMode
+                active={mode === 'quiz'}
+                settings={settings}
+                onSettings={onSettings}
+              />
+            ),
+          },
+        ]}
+      />
     </Container>
   );
 }
