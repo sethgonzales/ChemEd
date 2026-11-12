@@ -6,7 +6,7 @@ import React, {
   ReactNode,
 } from 'react';
 import { THEME, ThemeName } from '~/styles/theme';
-import { applyColorScale } from '~/utils/theme';
+import { DEFAULT_THEME, THEME_STORAGE_KEY, applyTheme } from '~/utils/theme';
 
 interface ThemeContextValue {
   themeName: ThemeName;
@@ -15,24 +15,13 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const DEFAULT_THEME: ThemeName = 'dungeon';
-
-function applyTheme(name: ThemeName) {
-  const { primary, secondary, primaryText, secondaryText } = THEME[name];
-  applyColorScale('primary', primary);
-  applyColorScale('secondary', secondary);
-
-  const root = document.documentElement;
-  root.style.setProperty('--text-primary-base', primaryText);
-  root.style.setProperty('--text-secondary-base', secondaryText);
-}
-
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeName, setThemeName] = useState<ThemeName>(DEFAULT_THEME);
 
-  // restore the saved theme once, after hydration (localStorage is client-only)
+  // the colours are already on the page (themeScript in _document); this
+  // syncs React's state with the saved theme once, after hydration
   useEffect(() => {
-    const saved = localStorage.getItem('chem.theme') as ThemeName | null;
+    const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeName | null;
 
     if (saved && saved in THEME) {
       setThemeName(saved);
@@ -45,7 +34,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   function handleSetTheme(name: ThemeName) {
     setThemeName(name);
     applyTheme(name);
-    localStorage.setItem('chem.theme', name);
+    localStorage.setItem(THEME_STORAGE_KEY, name);
   }
 
   return (

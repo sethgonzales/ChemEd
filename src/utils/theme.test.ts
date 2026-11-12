@@ -1,6 +1,11 @@
 import { colord } from 'colord';
 import { THEME } from '~/styles/theme';
-import { applyColorScale, generateColorScale } from './theme';
+import {
+  applyTheme,
+  generateColorScale,
+  themeScript,
+  themeVariables,
+} from './theme';
 
 const LEVELS = [
   '50',
@@ -45,15 +50,58 @@ describe('generateColorScale', () => {
   });
 });
 
-describe('applyColorScale', () => {
-  it('sets the scale and base colour as CSS variables on the root', () => {
-    applyColorScale('primary', '#14b8a6');
+describe('applyTheme', () => {
+  it('sets the theme’s variables on the root', () => {
+    applyTheme('purple');
     const style = document.documentElement.style;
-    expect(style.getPropertyValue('--primary')).toBe('#14b8a6');
+    expect(style.getPropertyValue('--primary')).toBe(THEME.purple.primary);
     expect(style.getPropertyValue('--color-primary')).toBe('var(--primary)');
-    expect(style.getPropertyValue('--primary-500')).toBe('#14b8a6');
     expect(style.getPropertyValue('--color-primary-700')).toBe(
       'var(--primary-700)',
     );
+    expect(style.getPropertyValue('--text-secondary-base')).toBe(
+      THEME.purple.secondaryText,
+    );
+  });
+});
+
+describe('themeVariables', () => {
+  it('lists every CSS variable a theme sets, scales and text colours included', () => {
+    const vars = themeVariables('dungeon');
+    expect(vars['--primary-500']).toBe(THEME.dungeon.primary);
+    expect(vars['--secondary-500']).toBe(THEME.dungeon.secondary);
+    expect(vars['--primary-400']).toBe(
+      generateColorScale(THEME.dungeon.primary)['400'],
+    );
+    expect(vars['--color-primary-400']).toBe('var(--primary-400)');
+    expect(vars['--text-primary-base']).toBe(THEME.dungeon.primaryText);
+  });
+});
+
+describe('themeScript (runs in <head>, before the first paint)', () => {
+  const run = () => new Function(themeScript())();
+  const primary = () =>
+    document.documentElement.style.getPropertyValue('--primary-500');
+
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.removeAttribute('style');
+  });
+
+  it('paints the default theme straight away', () => {
+    run();
+    expect(primary()).toBe(THEME.dungeon.primary);
+  });
+
+  it('uses the theme the student saved', () => {
+    localStorage.setItem('chem.theme', 'purple');
+    run();
+    expect(primary()).toBe(THEME.purple.primary);
+  });
+
+  it('ignores a saved name that isn’t a theme', () => {
+    localStorage.setItem('chem.theme', 'nope');
+    run();
+    expect(primary()).toBe(THEME.dungeon.primary);
   });
 });
