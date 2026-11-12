@@ -65,4 +65,11 @@ describe('ELEMENTS', () => {
     expect(config('Cr')).toBe('[Ar] 3d5 4s1');
     expect(config('Cu')).toBe('[Ar] 3d10 4s1');
   });
+
+  it('keeps 7s² for Ds and Rg, as relativistic predictions do (unlike Pt and Au)', () => {
+    const config = (s: string) =>
+      ELEMENTS.find((e) => e.symbol === s)?.electronConfiguration;
+    expect(config('Ds')).toBe('[Rn] 5f14 6d8 7s2');
+    expect(config('Rg')).toBe('[Rn] 5f14 6d9 7s2');
+  });
 });

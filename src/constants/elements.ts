@@ -1099,7 +1099,7 @@ export const ELEMENTS: IElementData[] = [
     period: 7,
     group: 10,
     block: 'd',
-    electronConfiguration: '[Rn] 5f14 6d9 7s1',
+    electronConfiguration: '[Rn] 5f14 6d8 7s2',
   },
   {
     atomicNumber: 111,
@@ -1109,7 +1109,7 @@ export const ELEMENTS: IElementData[] = [
     period: 7,
     group: 11,
     block: 'd',
-    electronConfiguration: '[Rn] 5f14 6d10 7s1',
+    electronConfiguration: '[Rn] 5f14 6d9 7s2',
   },
   {
     atomicNumber: 112,
