@@ -4,6 +4,8 @@ Interactive chemistry simulations for students, styled as an 8-bit dungeon crawl
 
 Everything works on phones (touch input, narrow screens) and by keyboard.
 
+**Live:** https://chemed-6a31a.web.app
+
 ## Simulations
 
 | Simulation              | Status      | What students do                                                                                                     |
@@ -26,13 +28,14 @@ Open [http://localhost:3000](http://localhost:3000). To try it on a phone on the
 
 ## Commands
 
-| Command            | What it does                                                       |
-| ------------------ | ------------------------------------------------------------------ |
-| `npm run dev`      | Dev server                                                         |
-| `npm test`         | Run the Jest suite once (`npm run test:watch` to re-run on change) |
-| `npm run lint`     | ESLint                                                             |
-| `npx tsc --noEmit` | Type check                                                         |
-| `npm run build`    | Production build. Stop `npm run dev` first: both use `.next/`.     |
+| Command            | What it does                                                          |
+| ------------------ | --------------------------------------------------------------------- |
+| `npm run dev`      | Dev server                                                            |
+| `npm test`         | Run the Jest suite once (`npm run test:watch` to re-run on change)    |
+| `npm run lint`     | ESLint                                                                |
+| `npx tsc --noEmit` | Type check                                                            |
+| `npm run build`    | Static export to `out/`. Stop `npm run dev` first: both use `.next/`. |
+| `npm run deploy`   | Build and deploy to Firebase Hosting (needs `firebase login`)         |
 
 ## Tech
 

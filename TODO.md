@@ -28,7 +28,8 @@
 
 ## Integrations and accounts
 
-- [ ] **Set up Firebase**. Decide what it's for (Hosting to put the app online, and/or Auth and Firestore to save students' work), then add the config and deploy.
+- [ ] **Set up Firebase**. Hosting is live at https://chemed-6a31a.web.app (`npm run deploy`, a static export); Auth and Firestore are still to come.
+  - [x] **Hosting**: static export (`output: 'export'`) served from `out/`
   - [ ] **Student logins** (Firebase Auth), with each student's progress saved (Firestore).
   - [ ] **8-bit avatar builder** for logged-in students: body/gender, skin tone, eyes, hair, facial features, clothing.
     - Accessories unlock through **achievements** earned in the simulations (balancing reactions, Lewis quizzes, and any future simulation).

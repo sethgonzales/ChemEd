@@ -9,7 +9,8 @@ Interactive chemistry simulations for students. Next.js 15 (pages router), React
 - `npm run test:watch` — re-run tests on change
 - `npm run lint` — ESLint
 - `npx tsc --noEmit` — type check
-- `npm run build` — production build. It shares `.next/` with the dev server and breaks a running one (500s), so stop `npm run dev` first or restart it afterwards with a fresh `.next/`.
+- `npm run build` — production build, exported as static files to `out/`. It shares `.next/` with the dev server and breaks a running one (500s), so stop `npm run dev` first or restart it afterwards with a fresh `.next/`.
+- `npm run deploy` — build and deploy `out/` to Firebase Hosting (project `chemed-6a31a`, https://chemed-6a31a.web.app). Same `.next/` caveat as `build`. The app must stay static: no API routes, `getServerSideProps` or image optimization.
 
 ## Test-driven development (required for every feature and bug fix)
 
