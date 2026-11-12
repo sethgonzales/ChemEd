@@ -102,41 +102,47 @@ export default function ElectronConfigurations() {
       description="See how electrons fill an atom’s orbitals: pick an element, or step through them in order."
       className="gap-4"
     >
-      {/* a picker, not the main visual, so it stays small on wide screens */}
-      <div className="w-full max-w-2xl">
-        <PeriodicGrid
-          selected={element}
-          onSelect={setElement}
-          compact
-          minWidth={PICKER_MIN_WIDTH}
-        />
-      </div>
-
-      <Stage label="Electron configuration">
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="md:w-80 shrink-0">
-            <Readouts element={element} />
+      {/* side by side on desktop: pick on the left, see the result on the right */}
+      <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+        {/* Previous and Next sit with the table, since they pick elements too */}
+        <div className="w-full max-w-2xl lg:flex-1 flex flex-col gap-4">
+          <PeriodicGrid
+            selected={element}
+            onSelect={setElement}
+            compact
+            minWidth={PICKER_MIN_WIDTH}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={() => step(-1)}
+              disabled={element.atomicNumber === 1}
+            >
+              <span className="flex items-center gap-1">
+                <IconChevronLeft size={18} aria-hidden="true" />
+                Previous<span className="sr-only"> element</span>
+              </span>
+            </Button>
+            <Button
+              onClick={() => step(1)}
+              disabled={element.atomicNumber === ELEMENTS.length}
+            >
+              <span className="flex items-center gap-1">
+                Next<span className="sr-only"> element</span>
+                <IconChevronRight size={18} aria-hidden="true" />
+              </span>
+            </Button>
           </div>
-          <OrbitalDiagram occupancy={groundState(element.atomicNumber)} />
         </div>
-      </Stage>
 
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={() => step(-1)} disabled={element.atomicNumber === 1}>
-          <span className="flex items-center gap-1">
-            <IconChevronLeft size={18} aria-hidden="true" />
-            Previous<span className="sr-only"> element</span>
-          </span>
-        </Button>
-        <Button
-          onClick={() => step(1)}
-          disabled={element.atomicNumber === ELEMENTS.length}
-        >
-          <span className="flex items-center gap-1">
-            Next<span className="sr-only"> element</span>
-            <IconChevronRight size={18} aria-hidden="true" />
-          </span>
-        </Button>
+        <Stage label="Electron configuration" className="lg:flex-1 min-w-0">
+          {/* the diagram first, readouts under it (beside it on tablets) */}
+          <div className="flex flex-col md:flex-row lg:flex-col gap-6">
+            <OrbitalDiagram occupancy={groundState(element.atomicNumber)} />
+            <div className="md:w-80 lg:w-auto shrink-0">
+              <Readouts element={element} />
+            </div>
+          </div>
+        </Stage>
       </div>
     </Container>
   );
