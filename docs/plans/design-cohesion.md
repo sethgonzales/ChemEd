@@ -1,6 +1,6 @@
 # Design cohesion — plan
 
-Status: **done** (11 Nov 2026): phases 1–4 built; Periodic Table pass is in the TODO
+Status: **done** (12 Nov 2026): phases 1–4 built, plus the Periodic Table pass
 
 Reaction Balancing looks like one designed piece; States of Matter and the area around the Lewis builder don't. This plan gives every simulation the same structure, colours and shared components.
 
@@ -62,10 +62,10 @@ Reaction Balancing looks like one designed piece; States of Matter and the area 
 
 - Uses `Tabs`, `Stage` and `Container description`, replacing its own versions. No visual change intended beyond matching the others exactly.
 
-## Later (TODO)
+## Later (done)
 
 - Periodic Table: the same Stage and colour rules (smaller pass).
-- Home page cards: check they match the new look.
+- Home page cards: replaced by the dungeon doors ([dungeon-theme.md](dungeon-theme.md)).
 
 ## Testing
 

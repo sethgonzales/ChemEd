@@ -1,40 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# ChemEd
 
-## Getting Started
+Interactive chemistry simulations for students, styled as an 8-bit dungeon crawler: each simulation is a chamber behind a door on the home page, and Mr. G (a pixel-art chemistry teacher) gives tips and cheers from the corner of the screen on desktop.
 
-First, run the development server:
+Everything works on phones (touch input, narrow screens) and by keyboard.
+
+## Simulations
+
+| Simulation              | Status      | What students do                                                                                                     |
+| ----------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| Periodic Table          | Built       | Pick any element to see its details; colours show each block. Works with arrow keys.                                 |
+| States of Matter        | Built       | Heat or cool a substance and watch its particles change phase, with a °C / K readout.                                |
+| Lewis Structures        | Built       | Draw structures (atoms, bonds, lone pairs, charges, resonance forms with curved arrows), check them, or take a quiz. |
+| Chemical Reactions      | Built       | Balance equations on a balance-beam scale: practice levels, or type your own equation.                               |
+| Electron Configurations | Coming soon | Sealed door on the home page.                                                                                        |
+| Titrations              | Coming soon | Sealed door on the home page.                                                                                        |
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). To try it on a phone on the same Wi-Fi, run `npm run dev -- -H 0.0.0.0` and open your computer's local IP address on port 3000.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## Commands
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+| Command            | What it does                                                       |
+| ------------------ | ------------------------------------------------------------------ |
+| `npm run dev`      | Dev server                                                         |
+| `npm test`         | Run the Jest suite once (`npm run test:watch` to re-run on change) |
+| `npm run lint`     | ESLint                                                             |
+| `npx tsc --noEmit` | Type check                                                         |
+| `npm run build`    | Production build. Stop `npm run dev` first: both use `.next/`.     |
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+## Tech
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Next.js 15 (pages router), React 19, TypeScript, Tailwind 4 and Flowbite React. Tests use Jest and React Testing Library. Sounds are made in the browser with the Web Audio API, and the pixel art is drawn as SVG from pixel maps, so there are no image or audio files.
 
-## Learn More
+## Project layout
 
-To learn more about Next.js, take a look at the following resources:
+- `src/pages/` — one page per simulation. Page tests live in `src/__tests__/pages/`.
+- `src/components/` — shared UI (`Container`, `Stage`, `Tabs`, `Button`, `Dropdown`, `Setting`, Mr. G) and simulation components.
+- `src/utils/` — simulation logic as pure, tested functions (physics, chemistry rules, Lewis checking, equation balancing).
+- `src/constants/` — element data, molecules, reactions, Mr. G's tips and the pixel art.
+- `src/styles/` — themes (Dungeon by default, plus school colour themes).
+- `docs/plans/` — the plan behind each feature, with its status and decisions.
+- `TODO.md` — what's done and what's next.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+Contributors: see [CLAUDE.md](CLAUDE.md) for the test-first workflow, design rules and coding guidelines.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Licence
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+[MIT](LICENSE)
