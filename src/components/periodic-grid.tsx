@@ -26,11 +26,13 @@ export const blockColor = (el: IElementData) =>
 function ElementCell({
   element,
   isSelected,
+  tabStop,
   compact,
   onSelect,
 }: {
   element: IElementData;
   isSelected: boolean;
+  tabStop: boolean; // the one cell Tab lands on
   compact: boolean;
   onSelect: (el: IElementData, focus?: boolean) => void;
 }) {
@@ -47,7 +49,7 @@ function ElementCell({
       // symbols alone don't say much to a screen reader
       aria-label={compact ? element.name : undefined}
       // one Tab stop for the whole table; arrows move between elements
-      tabIndex={isSelected ? 0 : -1}
+      tabIndex={tabStop ? 0 : -1}
       data-atomic-number={element.atomicNumber}
       style={{ backgroundColor: blockColor(element) }}
       className={cn(
@@ -84,7 +86,7 @@ function ElementCell({
 }
 
 interface Props {
-  selected: IElementData;
+  selected: IElementData | null; // none yet: Tab lands on hydrogen
   onSelect: (el: IElementData) => void;
   compact?: boolean; // symbols only, for a picker
   minWidth: number; // px; narrower screens scroll the table, not the page
@@ -122,7 +124,8 @@ export default function PeriodicGrid({
               <ElementCell
                 key={el.atomicNumber}
                 element={el}
-                isSelected={selected.atomicNumber === el.atomicNumber}
+                isSelected={selected?.atomicNumber === el.atomicNumber}
+                tabStop={(selected?.atomicNumber ?? 1) === el.atomicNumber}
                 compact={compact}
                 onSelect={select}
               />

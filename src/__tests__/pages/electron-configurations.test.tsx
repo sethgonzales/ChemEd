@@ -109,33 +109,46 @@ describe('Electron Configurations page: Build', () => {
   const box = (name: string) => screen.getByRole('button', { name });
   const tap = (name: string) => userEvent.click(box(name));
   const notation = () => screen.getByRole('textbox', { name: 'Notation' });
+  const status = () => screen.getByRole('status');
 
-  async function startBuild(element = 'Carbon') {
+  async function startBuild() {
     render(<ElectronConfigurations />);
     await userEvent.click(screen.getByRole('tab', { name: 'Build' }));
-    await userEvent.click(button(`Choose an element (now Hydrogen)`));
-    await userEvent.click(button(element));
   }
 
-  // carbon's 1s and 2s, paired: two taps each
-  async function fillCore() {
-    await tap('1s box 1: empty');
-    await tap('1s box 1: up');
-    await tap('2s box 1: empty');
-    await tap('2s box 1: up');
-  }
-
-  it('builds carbon by tapping boxes and typing the notation', async () => {
-    await startBuild();
-    expect(screen.getByText('Draw Carbon: 6 electrons')).toBeInTheDocument();
-    await fillCore();
+  // carbon, drawn by Hund's rule: two taps pair a box
+  async function drawCarbon() {
+    for (const b of ['1s box 1: empty', '1s box 1: up']) await tap(b);
+    for (const b of ['2s box 1: empty', '2s box 1: up']) await tap(b);
     await tap('2p box 1: empty');
     await tap('2p box 2: empty');
     await userEvent.type(notation(), '1s2 2s2 2p2');
+  }
+
+  it('picks the element on the periodic table, then builds it', async () => {
+    await startBuild();
+    await userEvent.click(button('Carbon'));
+    expect(screen.getByText('Draw Carbon: 6 electrons')).toBeInTheDocument();
+    await drawCarbon();
     expect(screen.getByText('1s² 2s² 2p²')).toBeInTheDocument();
 
     await userEvent.click(button('Check'));
-    expect(screen.getByRole('status')).toHaveTextContent(/^Correct!/);
+    expect(status()).toHaveTextContent(/^Correct!/);
+  });
+
+  it('lets students draw first, then pick the element before checking', async () => {
+    await startBuild();
+    await drawCarbon();
+    await userEvent.click(button('Check'));
+    expect(status()).toHaveTextContent(
+      'Pick the element you drew on the periodic table first.',
+    );
+
+    // picking keeps the drawing
+    await userEvent.click(button('Carbon'));
+    expect(box('2p box 2: up')).toBeInTheDocument();
+    await userEvent.click(button('Check'));
+    expect(status()).toHaveTextContent(/^Correct!/);
   });
 
   it('cycles a box: up, then up and down, then empty', async () => {
@@ -146,15 +159,25 @@ describe('Electron Configurations page: Build', () => {
     expect(box('1s box 1: empty')).toBeInTheDocument();
   });
 
+  it('adds rows above as the drawing grows', async () => {
+    await startBuild();
+    expect(screen.queryByRole('button', { name: /^3s box/ })).toBeNull();
+    await tap('2p box 1: empty');
+    expect(box('3s box 1: empty')).toBeInTheDocument();
+    expect(box('3p box 1: empty')).toBeInTheDocument();
+  });
+
   it('explains a mistake and marks its row', async () => {
     await startBuild();
-    await fillCore();
+    await userEvent.click(button('Carbon'));
+    for (const b of ['1s box 1: empty', '1s box 1: up']) await tap(b);
+    for (const b of ['2s box 1: empty', '2s box 1: up']) await tap(b);
     await tap('2p box 1: empty');
     await tap('2p box 1: up');
     await userEvent.type(notation(), '1s2 2s2 2p2');
     await userEvent.click(button('Check'));
 
-    expect(screen.getByRole('status')).toHaveTextContent(
+    expect(status()).toHaveTextContent(
       'In 2p, put one electron in each box before pairing.',
     );
     const row = screen
@@ -165,8 +188,10 @@ describe('Electron Configurations page: Build', () => {
     expect(row).toHaveAttribute('data-problem');
   });
 
-  it('shows the answer, and clears it', async () => {
+  it('shows the answer once an element is picked, and clears it', async () => {
     await startBuild();
+    expect(button('Show answer')).toBeDisabled();
+    await userEvent.click(button('Carbon'));
     await userEvent.click(button('Show answer'));
     expect(box('2p box 2: up')).toBeInTheDocument();
     expect(notation()).toHaveValue('1s2 2s2 2p2');
@@ -176,16 +201,11 @@ describe('Electron Configurations page: Build', () => {
     expect(notation()).toHaveValue('');
   });
 
-  it('gives each level its own elements and enough boxes', async () => {
+  it('accepts an exception drawn the real way', async () => {
     await startBuild();
-    await userEvent.click(button('Choose a level (now Level 1: H to Ne)'));
-    await userEvent.click(button('Level 2: Na to Ar'));
-    expect(screen.getByText('Draw Sodium: 11 electrons')).toBeInTheDocument();
-    expect(box('3p box 3: empty')).toBeInTheDocument();
-  });
-
-  it('has no arrow tools to pick', async () => {
-    await startBuild();
-    expect(screen.queryByRole('button', { name: 'Up arrow' })).toBeNull();
+    await userEvent.click(button('Chromium'));
+    await userEvent.click(button('Show answer'));
+    await userEvent.click(button('Check'));
+    expect(status()).toHaveTextContent(/^Correct!/);
   });
 });

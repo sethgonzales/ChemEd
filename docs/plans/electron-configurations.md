@@ -22,11 +22,7 @@ Two modes, as `Tabs`:
 
 ### Build (practice)
 
-1. Pick a level and an element, like the Reaction Balancing dropdowns:
-   1. **H to Ne:** 1s, 2s, 2p
-   2. **Na to Ar:** adds 3s, 3p
-   3. **K to Kr:** 4s before 3d
-   4. **Exceptions and ions:** Cr, Cu, Na⁺, Cl⁻, Fe²⁺, Cu²⁺, …
+1. Pick any element on the same small periodic table as Explore, either before drawing or after: picking keeps the drawing, and Check asks for an element if none is picked. Exceptions like Cr and Cu are fair game; Check explains them. Rows grow as students draw (two empty subshells above the highest one used).
 2. The diagram starts empty. **Tapping a box** cycles it: empty → ↑ → ↑↓ → empty. Boxes are buttons, so it works by keyboard too. Pairing too early (Hund) is still possible and gets explained; the cycle always pairs ↑ with ↓, so Pauli is taught in a tip instead.
 3. Students also type the notation (e.g. `1s2 2s2 2p4`). It shows with superscripts as they type.
 4. **Check** names the rule that's broken, on the box that breaks it:
@@ -62,14 +58,15 @@ Data: every element already has a ground-state `electronConfiguration` (includin
 2. **Explore** (done): page shell, mini periodic table picker, `OrbitalDiagram` (read-only), readouts, Previous/Next, unseal the door.
 3. **Drop-in animation** (done): on Next only, so picking from the table jumps straight there; reduced motion just shows it.
 4. **Shell view** (done): `ShellDiagram` and Orbitals / Shells tabs above the diagram; the drawing fits its shells (at least four), so heavy atoms fill it too.
-5. **Build** (done): tap-to-cycle boxes, typed notation, `checkDiagram` (count, Aufbau, Hund, subshell, notation), Check / Show answer, levels 1–3.
+5. **Build** (done): pick on the periodic table (before or after drawing), tap-to-cycle boxes, typed notation, `checkDiagram` (count, Aufbau, Hund, subshell, notation), Check / Show answer / Clear.
 6. **Mr. G:** page tips, hints for Build, cheers with the treasure sound.
-7. **Ions and exceptions level** (level 4).
+7. **Ions:** a charge control beside the picked element (e.g. Fe with 2+), checked against `ionConfiguration`.
 
 ## Decisions (12 Nov 2026)
 
-1. **Ions:** yes, as Build level 4 with the exceptions (Na⁺, Cl⁻, Fe²⁺, Cu²⁺, …).
+1. **Ions:** yes (Na⁺, Cl⁻, Fe²⁺, Cu²⁺, …). Levels were dropped (see 6), so ions will come from a charge control in Build.
 2. **Picking elements:** a small periodic table, coloured by block, plus Previous/Next.
 3. **Explore range:** the full table, all 118 elements; diagram rows wrap on phones.
 4. **Bohr shell view:** yes, as a second view in Explore.
 5. **Tap cycle** (changed after building): tools first let students break Pauli on purpose, but tapping a box through empty → ↑ → ↑↓ → empty is simpler. Hund mistakes are still possible and explained.
+6. **No levels in Build** (changed after building): students pick any element on the periodic table, which doubles as their guide, before or after drawing.

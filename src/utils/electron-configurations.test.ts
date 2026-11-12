@@ -17,6 +17,7 @@ import {
   parseConfiguration,
   ringPositions,
   shellCounts,
+  visibleRows,
 } from './electron-configurations';
 
 const z = (symbol: string) =>
@@ -285,6 +286,24 @@ describe('Build mode', () => {
         { subshell: '2s', boxes: [[]] },
         { subshell: '2p', boxes: [[], [], []] },
       ]);
+    });
+  });
+
+  describe('visibleRows', () => {
+    const shown = (d: Diagram) => visibleRows(d).map((r) => r.subshell);
+
+    it('starts with 1s to 2p', () => {
+      expect(shown(emptyDiagram('7p'))).toEqual(['1s', '2s', '2p']);
+    });
+
+    it('shows the next two subshells above the highest one drawn in', () => {
+      const d = cycleBox(emptyDiagram('7p'), '3p', 0);
+      expect(shown(d).slice(-3)).toEqual(['3p', '4s', '3d']);
+    });
+
+    it('stops at 7p', () => {
+      const d = cycleBox(emptyDiagram('7p'), '6d', 0);
+      expect(shown(d).at(-1)).toBe('7p');
     });
   });
 
