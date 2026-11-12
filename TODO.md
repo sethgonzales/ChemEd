@@ -6,7 +6,7 @@
 - [x] **States of Matter**: heat or cool and watch the particles, with a °C / K readout and a described, reduced-motion-friendly canvas
 - [x] **Lewis Structures**: Draw and Quiz modes; toolbar builder with drag and drop; charge/δ marks and ion brackets; snapping and Clean Up; resonance forms with curved arrows ([plan](docs/plans/lewis-structures-next.md))
 - [x] **Chemical Reactions**, currently the Reaction Balancing activity: practice levels, your own equation, Show answer, and a balance-beam scale that only levels when every element matches ([plan](docs/plans/reaction-balancing.md))
-- [ ] **Electron Configurations**: Explore built (mini periodic table, orbital diagram, notation, exceptions); drop-in animation, Bohr view, Build mode and ions to come ([plan](docs/plans/electron-configurations.md))
+- [ ] **Electron Configurations**: Explore built (mini periodic table, orbital diagram with drop-in electrons, Bohr shell view, notation, exceptions); Build mode and ions to come ([plan](docs/plans/electron-configurations.md))
 - [ ] **Titrations** (sealed "Coming soon" door for now)
 - [ ] **Electrochemistry**: interactive animations of different kinds of cells to test, with zoom into particle representations of how atoms and electrons move during the redox reaction inside each cell
 

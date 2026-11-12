@@ -227,3 +227,14 @@ export function newArrows(before: Occupancy, after: Occupancy) {
   const had = new Set(arrowKeys(before));
   return arrowKeys(after).filter((key) => !had.has(key));
 }
+
+/** `count` points spaced evenly around a ring of `radius`, the first at the top */
+export const ringPositions = (count: number, radius: number) =>
+  Array.from({ length: count }, (_, i) => {
+    const angle = (2 * Math.PI * i) / count - Math.PI / 2;
+    return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) };
+  });
+
+/** Electrons each shell gains from `before` to `after`, for the drop-in */
+export const newShellElectrons = (before: number[], after: number[]) =>
+  after.map((n, i) => Math.max(0, n - (before[i] ?? 0)));

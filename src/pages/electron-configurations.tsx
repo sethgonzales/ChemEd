@@ -4,7 +4,9 @@ import Button from '~/components/button';
 import Container from '~/components/container';
 import OrbitalDiagram from '~/components/orbital-diagram';
 import PeriodicGrid, { blockColor } from '~/components/periodic-grid';
+import ShellDiagram from '~/components/shell-diagram';
 import Stage from '~/components/stage';
+import Tabs from '~/components/tabs';
 import { ELEMENTS } from '~/constants/elements';
 import type { IElementData } from '~/types';
 import {
@@ -110,6 +112,10 @@ export default function ElectronConfigurations() {
     setElement(ELEMENTS[element.atomicNumber - 1 + by]);
     setSteppedFrom(by === 1 ? element : null);
   };
+  const occupancy = groundState(element.atomicNumber);
+  const previous = steppedFrom
+    ? groundState(steppedFrom.atomicNumber)
+    : undefined;
 
   return (
     <Container
@@ -154,12 +160,34 @@ export default function ElectronConfigurations() {
           <ElementHeading element={element} />
           {/* the diagram, then the notation under it (beside it on tablets) */}
           <div className="flex flex-col md:flex-row lg:flex-col gap-6">
-            <OrbitalDiagram
-              occupancy={groundState(element.atomicNumber)}
-              previous={
-                steppedFrom ? groundState(steppedFrom.atomicNumber) : undefined
-              }
-            />
+            <div className="min-w-0 flex-1">
+              <Tabs
+                label="View"
+                tabs={[
+                  {
+                    id: 'orbitals',
+                    label: 'Orbitals',
+                    content: (
+                      <OrbitalDiagram
+                        occupancy={occupancy}
+                        previous={previous}
+                      />
+                    ),
+                  },
+                  {
+                    id: 'shells',
+                    label: 'Shells',
+                    content: (
+                      <ShellDiagram
+                        symbol={element.symbol}
+                        occupancy={occupancy}
+                        previous={previous}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            </div>
             <div className="md:w-80 lg:w-auto shrink-0">
               <Readouts element={element} />
             </div>

@@ -8,8 +8,10 @@ import {
   ionConfiguration,
   isException,
   newArrows,
+  newShellElectrons,
   orbitalDiagram,
   parseConfiguration,
+  ringPositions,
   shellCounts,
 } from './electron-configurations';
 
@@ -232,5 +234,30 @@ describe('newArrows (what to animate when stepping to the next element)', () => 
   it('finds every arrow that moves in an exception', () => {
     // V 4s² 3d³ → Cr 4s¹ 3d⁵: two 3d electrons appear, 4s loses one
     expect(step('V', 'Cr')).toEqual(['3d-3-up', '3d-4-up']);
+  });
+});
+
+describe('ringPositions (electrons on a Bohr ring)', () => {
+  it('spaces electrons evenly around the ring, starting at the top', () => {
+    const points = ringPositions(4, 10);
+    expect(points[0].x).toBeCloseTo(0);
+    expect(points[0].y).toBeCloseTo(-10);
+    for (const p of points) expect(Math.hypot(p.x, p.y)).toBeCloseTo(10);
+    const gaps = points.map((p, i) => {
+      const q = points[(i + 1) % points.length];
+      return Math.hypot(q.x - p.x, q.y - p.y);
+    });
+    for (const gap of gaps) expect(gap).toBeCloseTo(gaps[0]);
+  });
+});
+
+describe('newShellElectrons', () => {
+  it('counts the electrons each shell gains', () => {
+    expect(newShellElectrons([2, 8, 1], [2, 8, 2])).toEqual([0, 0, 1]);
+    // V → Cr: 3d gains two while 4s loses one
+    expect(newShellElectrons([2, 8, 11, 2], [2, 8, 13, 1])).toEqual([
+      0, 0, 2, 0,
+    ]);
+    expect(newShellElectrons([2, 8], [2, 8, 1])).toEqual([0, 0, 1]);
   });
 });

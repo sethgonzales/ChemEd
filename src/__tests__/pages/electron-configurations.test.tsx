@@ -47,11 +47,29 @@ describe('Electron Configurations page', () => {
 
   it('drops in the new electron on Next, but not when picking from the table', async () => {
     render(<ElectronConfigurations />);
-    const fresh = () => document.querySelectorAll('[data-new]');
+    const fresh = () =>
+      screen
+        .getByRole('list', { name: 'Orbital diagram' })
+        .querySelectorAll('[data-new]');
     await userEvent.click(button('Next element'));
     expect(fresh()).toHaveLength(1);
     await userEvent.click(button('Iron'));
     expect(fresh()).toHaveLength(0);
+  });
+
+  it('switches between the orbital diagram and the Bohr shells', async () => {
+    render(<ElectronConfigurations />);
+    await userEvent.click(button('Sodium'));
+    await userEvent.click(screen.getByRole('tab', { name: 'Shells' }));
+    expect(
+      screen.getByRole('img', { name: /^Bohr model of Na: 2 electrons/ }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('list', { name: 'Orbital diagram', hidden: true }),
+    ).not.toBeVisible();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Orbitals' }));
+    expect(screen.getByRole('list', { name: 'Orbital diagram' })).toBeVisible();
   });
 
   it('counts valence electrons for main-group elements', async () => {
