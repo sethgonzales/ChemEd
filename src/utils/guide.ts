@@ -2,6 +2,7 @@
 
 import { ELEMENTS } from '~/constants/elements';
 import { GENERAL_TIPS, PAGE_TIPS } from '~/constants/guide-tips';
+import type { Problem } from '~/utils/electron-configurations';
 import type { Feedback, Verdict } from '~/utils/lewis';
 import {
   elementTally,
@@ -99,6 +100,26 @@ export function checkMessage(
   }
 }
 
+/** What he says after Check in Electron Configurations' Build mode */
+export function configurationMessage(
+  result: { correct: boolean; problems: Problem[] } | 'pick',
+  name: string | null,
+): GuideMessage {
+  if (result === 'pick') {
+    return {
+      mood: 'hint',
+      text: 'Which element did you draw? Pick it on the periodic table, then Check again.',
+    };
+  }
+  if (result.correct) {
+    return {
+      mood: 'cheer',
+      text: `That’s ${name}, electron for electron. Great work!`,
+    };
+  }
+  return { mood: 'hint', text: `Not quite yet. ${result.problems[0].message}` };
+}
+
 export type Phase = 'Solid' | 'Liquid' | 'Gas';
 
 const PHASE_CHANGES: Record<string, string> = {
@@ -126,5 +147,7 @@ export const NUDGE_AFTER_MS = 60000; // stuck this long, and he offers a way for
 
 export const BALANCE_NUDGE =
   'Stuck? Balance an element that’s in just one molecule on each side first, and save H and O for last.';
+export const CONFIGURATION_NUDGE =
+  'Stuck? Fill the lowest boxes first, one electron per box before pairing, then type the notation and press Check.';
 export const CHECK_NUDGE =
   'Looking good so far! Press Check your work whenever you want me to take a look.';

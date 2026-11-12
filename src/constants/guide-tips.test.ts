@@ -23,3 +23,10 @@ describe('Mr. G page tips', () => {
     expect(GENERAL_TIPS.length).toBeGreaterThan(0);
   });
 });
+
+describe('Electron Configurations tips', () => {
+  it('explain Build mode as well as Explore', () => {
+    const tips = PAGE_TIPS['/electron-configurations'];
+    expect(tips.some((t) => /Build/.test(t))).toBe(true);
+  });
+});

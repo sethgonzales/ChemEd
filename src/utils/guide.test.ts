@@ -6,6 +6,7 @@ import {
   nextWanderX,
   balanceMessage,
   checkMessage,
+  configurationMessage,
   phaseMessage,
   tipsFor,
   withGreeting,
@@ -136,5 +137,44 @@ describe('phaseMessage', () => {
     ['Gas', 'Solid', /solid/i],
   ] as const)('explains going from %s to %s', (from, to, says) => {
     expect(phaseMessage(from, to)).toMatch(says);
+  });
+});
+
+describe('configurationMessage', () => {
+  it('cheers a correct configuration', () => {
+    expect(
+      configurationMessage({ correct: true, problems: [] }, 'Carbon'),
+    ).toEqual({
+      mood: 'cheer',
+      text: 'That’s Carbon, electron for electron. Great work!',
+    });
+  });
+
+  it('passes on the first problem, kindly', () => {
+    const message = configurationMessage(
+      {
+        correct: false,
+        problems: [
+          {
+            rule: 'hund',
+            subshell: '2p',
+            message: 'In 2p, put one electron in each box before pairing.',
+          },
+          { rule: 'notation', message: 'Type the notation too, like 1s2 2s2.' },
+        ],
+      },
+      'Carbon',
+    );
+    expect(message).toEqual({
+      mood: 'hint',
+      text: 'Not quite yet. In 2p, put one electron in each box before pairing.',
+    });
+  });
+
+  it('asks which element it is when none is picked', () => {
+    expect(configurationMessage('pick', null)).toEqual({
+      mood: 'hint',
+      text: 'Which element did you draw? Pick it on the periodic table, then Check again.',
+    });
   });
 });

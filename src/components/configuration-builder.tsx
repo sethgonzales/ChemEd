@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Button from '~/components/button';
+import { useGuide } from '~/components/guide';
 import OrbitalDiagram from '~/components/orbital-diagram';
 import PeriodicGrid from '~/components/periodic-grid';
 import Stage from '~/components/stage';
@@ -18,6 +19,8 @@ import {
   visibleRows,
   type Problem,
 } from '~/utils/electron-configurations';
+import { CONFIGURATION_NUDGE, configurationMessage } from '~/utils/guide';
+import { useGuideNudge } from '~/utils/use-guide-message';
 
 const PICKER_MIN_WIDTH = 280; // px; fits a phone
 const LAST_SUBSHELL = '7p'; // every row any element needs; only some are shown
@@ -38,10 +41,17 @@ export default function ConfigurationBuilder() {
   const target = element && groundState(element.atomicNumber);
   const preview = parseConfiguration(typed);
 
+  const { say } = useGuide();
+  // Mr. G offers a way forward once if a student draws for a while without checking
+  const [started, setStarted] = useState(false);
+  const [checked, setChecked] = useState(false);
+  useGuideNudge(started && !checked, CONFIGURATION_NUDGE);
+
   // an answer that's been checked goes stale as soon as anything changes
   const edit = (change: () => void) => {
     change();
     setFeedback(null);
+    setStarted(true);
   };
   // picking keeps the drawing, so students can draw first and pick after;
   // clicking the picked element again unpicks it
@@ -49,12 +59,17 @@ export default function ConfigurationBuilder() {
     edit(() =>
       setElement((now) => (now?.atomicNumber === el.atomicNumber ? null : el)),
     );
-  const check = () =>
-    setFeedback(
+  const check = () => {
+    const result =
       element && target
         ? checkDiagram(target, diagram, typed, element.name)
-        : 'pick',
-    );
+        : 'pick';
+    setFeedback(result);
+    setChecked(true);
+    // a cheer also plays the treasure sound
+    const { text, mood } = configurationMessage(result, element?.name ?? null);
+    say(text, mood);
+  };
   const showAnswer = () => {
     if (!target) return;
     const filled = orbitalDiagram(target);

@@ -1,6 +1,15 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ElectronConfigurations from '~/pages/electron-configurations';
+import { CONFIGURATION_NUDGE, NUDGE_AFTER_MS } from '~/utils/guide';
+
+const mockSay = jest.fn();
+jest.mock('~/components/guide', () => ({
+  useGuide: () => ({ say: mockSay, visible: false }),
+}));
+
+beforeEach(() => mockSay.mockClear());
+afterEach(() => jest.useRealTimers());
 
 const button = (name: string) => screen.getByRole('button', { name });
 const readouts = () =>
@@ -214,6 +223,36 @@ describe('Electron Configurations page: Build', () => {
     expect(notation()).toHaveValue('');
   });
 
+  it('has Mr. G cheer a correct answer and hint at a wrong one', async () => {
+    await startBuild();
+    await userEvent.click(button('Carbon'));
+    await drawCarbon();
+    await userEvent.click(button('Check'));
+    expect(mockSay).toHaveBeenLastCalledWith(
+      'That’s Carbon, electron for electron. Great work!',
+      'cheer',
+    );
+
+    await tap('2p box 2: up'); // pairs it: one electron too many
+    await userEvent.click(button('Check'));
+    expect(mockSay).toHaveBeenLastCalledWith(
+      'Not quite yet. Carbon has 6 electrons; you’ve placed 7.',
+      'hint',
+    );
+  });
+
+  it('has Mr. G nudge once after a minute of drawing without checking', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<ElectronConfigurations />);
+    await user.click(screen.getByRole('tab', { name: 'Build' }));
+    await user.click(box('1s box 1: empty'));
+    act(() => jest.advanceTimersByTime(NUDGE_AFTER_MS + 100));
+    expect(mockSay).toHaveBeenCalledWith(CONFIGURATION_NUDGE, 'nudge', {
+      unprompted: true,
+    });
+    jest.useRealTimers();
+  });
   it('accepts an exception drawn the real way', async () => {
     await startBuild();
     await userEvent.click(button('Chromium'));

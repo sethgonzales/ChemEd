@@ -26,7 +26,9 @@ export const PAGE_TIPS: Record<string, string[]> = {
     'Switch to Quiz to practise real molecules and get them graded.',
   ],
   '/electron-configurations': [
-    'Pick any element on the table, or press Next to add electrons one at a time and watch the orbitals fill.',
+    'Explore any element on the table, then switch to Build and draw its orbital diagram yourself.',
+    'In Explore, press Next to add electrons one at a time and watch the orbitals fill.',
+    'In Build, tap a box once for ↑ and twice for ↑↓. Pick the element on the table before or after you draw.',
     'Electrons fill the lowest-energy orbitals first. That’s why 4s fills before 3d.',
     'Hund’s rule: in p, d and f, electrons take an empty box each before they pair up.',
     'Two electrons in one box always spin opposite ways, one ↑ and one ↓. That’s the Pauli principle.',
