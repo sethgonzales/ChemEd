@@ -45,6 +45,15 @@ describe('Electron Configurations page', () => {
     expect(button('Next element')).toBeDisabled();
   });
 
+  it('drops in the new electron on Next, but not when picking from the table', async () => {
+    render(<ElectronConfigurations />);
+    const fresh = () => document.querySelectorAll('[data-new]');
+    await userEvent.click(button('Next element'));
+    expect(fresh()).toHaveLength(1);
+    await userEvent.click(button('Iron'));
+    expect(fresh()).toHaveLength(0);
+  });
+
   it('counts valence electrons for main-group elements', async () => {
     render(<ElectronConfigurations />);
     await userEvent.click(button('Sodium'));

@@ -7,6 +7,7 @@ import {
   groundState,
   ionConfiguration,
   isException,
+  newArrows,
   orbitalDiagram,
   parseConfiguration,
   shellCounts,
@@ -216,5 +217,20 @@ describe('ionConfiguration', () => {
 
   it('refuses to remove more electrons than the atom has', () => {
     expect(ionConfiguration(z('H'), 2)).toBeNull();
+  });
+});
+
+describe('newArrows (what to animate when stepping to the next element)', () => {
+  const step = (from: string, to: string) =>
+    newArrows(groundState(z(from)), groundState(z(to)));
+
+  it('finds the one electron the next element adds', () => {
+    expect(step('C', 'N')).toEqual(['2p-2-up']);
+    expect(step('N', 'O')).toEqual(['2p-0-down']); // the first pairing
+  });
+
+  it('finds every arrow that moves in an exception', () => {
+    // V 4s² 3d³ → Cr 4s¹ 3d⁵: two 3d electrons appear, 4s loses one
+    expect(step('V', 'Cr')).toEqual(['3d-3-up', '3d-4-up']);
   });
 });

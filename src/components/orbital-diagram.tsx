@@ -1,6 +1,8 @@
 import {
   SUBSHELL_ORDER,
+  arrowKey,
   electronsLabel,
+  newArrows,
   orbitalDiagram,
   type Occupancy,
 } from '~/utils/electron-configurations';
@@ -9,13 +11,15 @@ const ARROW = { up: '↑', down: '↓' } as const;
 
 interface Props {
   occupancy: Occupancy;
+  previous?: Occupancy; // the element stepped from: its new electrons drop in
 }
 
 /**
  * Boxes for orbitals and arrows for electrons, stacked by energy with the
  * lowest at the bottom, so the filling order reads upwards.
  */
-export default function OrbitalDiagram({ occupancy }: Props) {
+export default function OrbitalDiagram({ occupancy, previous }: Props) {
+  const arriving = new Set(previous ? newArrows(previous, occupancy) : []);
   const highest = Math.max(
     0,
     ...occupancy
@@ -54,9 +58,18 @@ export default function OrbitalDiagram({ occupancy }: Props) {
                 data-box
                 className="pixel-control flex size-7 sm:size-8 items-center justify-center bg-primary-700 text-lg font-bold leading-none text-secondary-500 shadow-[inset_0_0_0_2px_var(--color-primary-300)]"
               >
-                {spins.map((spin, j) => (
-                  <span key={j}>{ARROW[spin]}</span>
-                ))}
+                {spins.map((spin) => {
+                  const isNew = arriving.has(arrowKey(subshell, i, spin));
+                  return (
+                    <span
+                      key={spin}
+                      data-new={isNew || undefined}
+                      className={isNew ? 'electron-drop' : undefined}
+                    >
+                      {ARROW[spin]}
+                    </span>
+                  );
+                })}
               </span>
             ))}
           </span>

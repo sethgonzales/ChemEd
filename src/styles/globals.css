@@ -185,3 +185,15 @@ body {
     @apply w-4 h-4 rounded-full bg-primary-100 border-0 cursor-pointer;
   }
 }
+/* An electron falling into its orbital box; with reduced motion it just appears */
+@keyframes electron-drop {
+  from { transform: translateY(-2rem); opacity: 0; }
+  60% { transform: translateY(0.15rem); opacity: 1; }
+  to { transform: translateY(0); }
+}
+@utility electron-drop {
+  @media (prefers-reduced-motion: no-preference) {
+    display: inline-block;
+    animation: electron-drop 0.45s ease-out;
+  }
+}

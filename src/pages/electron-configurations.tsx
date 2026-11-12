@@ -100,8 +100,16 @@ function Readouts({ element }: { element: IElementData }) {
 
 export default function ElectronConfigurations() {
   const [element, setElement] = useState<IElementData>(ELEMENTS[0]);
-  const step = (by: number) =>
+  // set only by Next, so its new electron drops in; picking jumps straight there
+  const [steppedFrom, setSteppedFrom] = useState<IElementData | null>(null);
+  const pick = (el: IElementData) => {
+    setElement(el);
+    setSteppedFrom(null);
+  };
+  const step = (by: number) => {
     setElement(ELEMENTS[element.atomicNumber - 1 + by]);
+    setSteppedFrom(by === 1 ? element : null);
+  };
 
   return (
     <Container
@@ -116,7 +124,7 @@ export default function ElectronConfigurations() {
         <div className="w-full max-w-2xl lg:flex-1 flex flex-col gap-4">
           <PeriodicGrid
             selected={element}
-            onSelect={setElement}
+            onSelect={pick}
             compact
             minWidth={PICKER_MIN_WIDTH}
           />
@@ -146,7 +154,12 @@ export default function ElectronConfigurations() {
           <ElementHeading element={element} />
           {/* the diagram, then the notation under it (beside it on tablets) */}
           <div className="flex flex-col md:flex-row lg:flex-col gap-6">
-            <OrbitalDiagram occupancy={groundState(element.atomicNumber)} />
+            <OrbitalDiagram
+              occupancy={groundState(element.atomicNumber)}
+              previous={
+                steppedFrom ? groundState(steppedFrom.atomicNumber) : undefined
+              }
+            />
             <div className="md:w-80 lg:w-auto shrink-0">
               <Readouts element={element} />
             </div>

@@ -39,3 +39,21 @@ describe('OrbitalDiagram', () => {
     expect(screen.getByText('5s: 0 electrons')).toBeInTheDocument();
   });
 });
+
+describe('OrbitalDiagram stepping from the previous element', () => {
+  const fresh = () => document.querySelectorAll('[data-new]');
+
+  it('marks the arriving electron so it can drop in', () => {
+    render(<OrbitalDiagram occupancy={of('N')} previous={of('C')} />);
+    expect(fresh()).toHaveLength(1);
+    const p = rows().find((r) => r.dataset.subshell === '2p')!;
+    expect(p.querySelectorAll('[data-box]')[2]).toContainElement(
+      fresh()[0] as HTMLElement,
+    );
+  });
+
+  it('marks nothing without a previous element', () => {
+    render(<OrbitalDiagram occupancy={of('N')} />);
+    expect(fresh()).toHaveLength(0);
+  });
+});

@@ -210,3 +210,20 @@ export function ionConfiguration(z: number, charge: number): Occupancy | null {
 /** "1 electron", "2 electrons" */
 export const electronsLabel = (n: number) =>
   `${n} electron${n === 1 ? '' : 's'}`;
+
+/** Names one arrow in the diagram: subshell, box and spin, like "2p-0-down" */
+export const arrowKey = (subshell: string, box: number, spin: Spin) =>
+  `${subshell}-${box}-${spin}`;
+
+const arrowKeys = (occ: Occupancy) =>
+  orbitalDiagram(occ).flatMap(({ subshell, boxes }) =>
+    boxes.flatMap((spins, box) =>
+      spins.map((spin) => arrowKey(subshell, box, spin)),
+    ),
+  );
+
+/** Arrows in `after` that weren't in `before`: the electrons that arrive */
+export function newArrows(before: Occupancy, after: Occupancy) {
+  const had = new Set(arrowKeys(before));
+  return arrowKeys(after).filter((key) => !had.has(key));
+}
