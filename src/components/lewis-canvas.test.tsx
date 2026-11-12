@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { LewisStructure } from '~/utils/lewis';
-import LewisCanvas from './lewis-canvas';
+import LewisCanvas, { DRAWING_ZOOM, fitZoom } from './lewis-canvas';
 
 const atom = (id: number, symbol: string, x: number) => ({
   id,
@@ -135,5 +135,24 @@ describe('LewisCanvas problems', () => {
     expect(o).toHaveAccessibleName(
       /Problem: O has 4 electrons around it\. It needs 8\.$/,
     );
+  });
+});
+
+describe('fitZoom', () => {
+  it('draws larger than 1:1 so symbols are easy to read', () => {
+    expect(DRAWING_ZOOM).toBeGreaterThanOrEqual(1.5);
+    expect(fitZoom({ width: 800, height: 500 }, { x: 100, y: 60 })).toBe(
+      DRAWING_ZOOM,
+    );
+  });
+
+  it('zooms out to fit a drawing that outgrows the panel', () => {
+    // 400px of reach either side of the centre in an 800px-wide panel
+    expect(fitZoom({ width: 800, height: 500 }, { x: 400, y: 60 })).toBe(1);
+    expect(fitZoom({ width: 800, height: 500 }, { x: 800, y: 60 })).toBe(0.5);
+  });
+
+  it('uses the full size before the panel has been measured', () => {
+    expect(fitZoom(null, { x: 1000, y: 1000 })).toBe(DRAWING_ZOOM);
   });
 });

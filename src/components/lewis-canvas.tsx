@@ -25,6 +25,7 @@ import { cn } from '~/utils/cn';
 
 // Drawing sizes, in px at a bond length of SCALE
 const SCALE = 64;
+export const DRAWING_ZOOM = 1.5; // drawn larger than the sizes here, so symbols are easy to read
 const PADDING = 44;
 const BRACKET_MARGIN = 34; // brackets sit this far outside the outermost atoms
 const BRACKET_SERIF = 8; // length of a bracket's top and bottom strokes
@@ -39,6 +40,19 @@ const DOT_RADIUS = 2;
 const BOND_GAP = 4; // between the lines of a double or triple bond
 
 const ORDER_NAME = { 1: 'single', 2: 'double', 3: 'triple' } as const;
+
+/** Full size, unless the drawing reaches past the panel's edges from its centre */
+export function fitZoom(
+  size: { width: number; height: number } | null,
+  reach: { x: number; y: number },
+) {
+  if (!size) return DRAWING_ZOOM;
+  return Math.min(
+    DRAWING_ZOOM,
+    size.width / 2 / reach.x,
+    size.height / 2 / reach.y,
+  );
+}
 
 interface Props {
   structure: LewisStructure;
@@ -684,9 +698,7 @@ const LewisCanvas = forwardRef<SVGSVGElement, Props>(function LewisCanvas(
   const pad = structure.bracket ? BRACKET_MARGIN + 24 : PADDING;
   const reachX = Math.max(0, ...xs.map(Math.abs)) + pad;
   const reachY = Math.max(0, ...ys.map(Math.abs)) + pad;
-  const zoom = size
-    ? Math.min(1, size.width / 2 / reachX, size.height / 2 / reachY)
-    : 1;
+  const zoom = fitZoom(size, { x: reachX, y: reachY });
   const from = preview && atoms.get(preview.from);
   const pendingSpot =
     pending?.kind === 'bond'
