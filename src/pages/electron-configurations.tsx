@@ -160,7 +160,8 @@ export default function ElectronConfigurations() {
           <ElementHeading element={element} />
           {/* the diagram, then the notation under it (beside it on tablets) */}
           <div className="flex flex-col md:flex-row lg:flex-col gap-6">
-            <div className="min-w-0 flex-1">
+            {/* the gap keeps the view tabs off the picture below them */}
+            <div className="min-w-0 flex-1 flex flex-col gap-4">
               <Tabs
                 label="View"
                 tabs={[

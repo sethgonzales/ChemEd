@@ -8,6 +8,7 @@
 - [x] **Chemical Reactions**, currently the Reaction Balancing activity: practice levels, your own equation, Show answer, and a balance-beam scale that only levels when every element matches ([plan](docs/plans/reaction-balancing.md))
 - [ ] **Electron Configurations**: Explore built (mini periodic table, orbital diagram with drop-in electrons, Bohr shell view, notation, exceptions); Build mode and ions to come ([plan](docs/plans/electron-configurations.md))
 - [ ] **Titrations** (sealed "Coming soon" door for now)
+- [ ] **Ore mining game**: dig down through a 2D cross-section of the Earth's layers with your sprite, finding ores at the depths and settings where they really occur. Each ore you collect earns coins relative to its worth, and a card pops up saying what it's made of, where it's found, what it's used for, and other facts.
 - [ ] **Electrochemistry**: interactive animations of different kinds of cells to test, with zoom into particle representations of how atoms and electrons move during the redox reaction inside each cell
 
 ## Improvements
