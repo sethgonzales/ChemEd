@@ -23,6 +23,13 @@ describe('Dropdown', () => {
     expect(screen.queryByText('Option')).not.toBeInTheDocument();
   });
 
+  it('closes with Escape', async () => {
+    renderDropdown();
+    await userEvent.click(screen.getByRole('button', { name: 'Theme' }));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByText('Option')).not.toBeInTheDocument();
+  });
+
   it('closes when clicking outside', async () => {
     renderDropdown();
     await userEvent.click(screen.getByRole('button', { name: 'Theme' }));

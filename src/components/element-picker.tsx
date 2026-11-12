@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { IElementData } from '~/types';
+import { useEscape } from '~/utils/use-escape';
 
 interface Props {
   elements: IElementData[];
@@ -11,12 +12,8 @@ interface Props {
 export default function ElementPicker({ elements, onPick, onClose }: Props) {
   const first = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    first.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useEffect(() => first.current?.focus(), []);
+  useEscape(onClose);
 
   // main-group elements only, so groups 1–2 and 13–18 make eight columns
   const column = (group: number | null) =>

@@ -743,6 +743,13 @@ describe('Lewis Structures page: draw', () => {
     expect(tool('Add Xe')).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('closes the element picker with Escape', async () => {
+    render(<LewisStructures />);
+    await userEvent.click(tool('More elements'));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('builds and checks a structure with no target molecule', async () => {
     render(<LewisStructures />);
     drag(tool('Add O'), drawing());

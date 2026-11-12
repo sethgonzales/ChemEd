@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { IconChevronDown } from '@tabler/icons-react';
 import { cn } from '~/utils/cn';
+import { useEscape } from '~/utils/use-escape';
 
 interface Props {
   label?: string;
@@ -65,6 +66,13 @@ export default function Dropdown({
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Escape closes the menu (not the page) and returns focus to its button
+  useEscape(() => {
+    setIsOpen(false);
+    buttonRef.current?.focus();
+  }, isOpen);
 
   useEffect(() => {
     if (!closeOnClickAway || !isOpen) return;
@@ -88,6 +96,7 @@ export default function Dropdown({
       className="relative inline-block text-left w-full sm:w-auto"
     >
       <button
+        ref={buttonRef}
         type="button"
         aria-label={ariaLabel}
         aria-haspopup="true"
