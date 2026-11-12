@@ -33,6 +33,26 @@ function exceptionReason(actual: Occupancy, predicted: Occupancy) {
   return '';
 }
 
+/** The element's tile, name and electron count, above the diagram */
+function ElementHeading({ element }: { element: IElementData }) {
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className="pixel-control flex size-12 shrink-0 items-center justify-center text-2xl font-bold text-white"
+        style={{ backgroundColor: blockColor(element) }}
+      >
+        {element.symbol}
+      </div>
+      <div>
+        <h3 className="font-pixel text-xl">{element.name}</h3>
+        <p className="text-sm text-white/60">
+          {electronsLabel(element.atomicNumber)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function Readouts({ element }: { element: IElementData }) {
   const z = element.atomicNumber;
   const occ = groundState(z);
@@ -58,18 +78,6 @@ function Readouts({ element }: { element: IElementData }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <div
-          className="pixel-control flex size-12 shrink-0 items-center justify-center text-2xl font-bold text-white"
-          style={{ backgroundColor: blockColor(element) }}
-        >
-          {element.symbol}
-        </div>
-        <div>
-          <h3 className="font-pixel text-xl">{element.name}</h3>
-          <p className="text-sm text-white/60">{electronsLabel(z)}</p>
-        </div>
-      </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
         {rows.map(({ label, value }) => (
           <div key={label} className="contents">
@@ -135,7 +143,8 @@ export default function ElectronConfigurations() {
         </div>
 
         <Stage label="Electron configuration" className="lg:flex-1 min-w-0">
-          {/* the diagram first, readouts under it (beside it on tablets) */}
+          <ElementHeading element={element} />
+          {/* the diagram, then the notation under it (beside it on tablets) */}
           <div className="flex flex-col md:flex-row lg:flex-col gap-6">
             <OrbitalDiagram occupancy={groundState(element.atomicNumber)} />
             <div className="md:w-80 lg:w-auto shrink-0">
