@@ -8,7 +8,7 @@ export const THEME = {
   },
   purple: {
     label: 'Classic',
-    primary: '#8186e4',
+    primary: '#6168dd', // darkened from #8186e4 so white text is readable
     primaryText: '#ffffff',
     secondary: '#fab87e',
     secondaryText: '#000000',
@@ -22,7 +22,7 @@ export const THEME = {
   },
   brown: {
     label: 'Beavers',
-    primary: '#dc4405',
+    primary: '#d24105', // darkened from #dc4405 so white text is readable
     primaryText: '#ffffff',
     secondary: '#000000',
     secondaryText: '#ffffff',
@@ -39,11 +39,11 @@ export const THEME = {
     primary: '#c2410c',
     primaryText: '#ffffff',
     secondary: '#000000',
-    secondaryText: '#000000',
+    secondaryText: '#ffffff', // black on black was unreadable
   },
   teal: {
     label: 'Jaguars',
-    primary: '#14b8a6',
+    primary: '#0e8376', // darkened from #14b8a6 so white text is readable
     primaryText: '#ffffff',
     secondary: '#000000',
     secondaryText: '#ffffff',

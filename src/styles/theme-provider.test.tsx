@@ -67,7 +67,7 @@ describe('ThemeProvider', () => {
     );
     act(() => screen.getByRole('button').click());
     expect(screen.getByRole('button')).toHaveTextContent('teal');
-    expect(rootVar('--primary')).toBe('#14b8a6');
+    expect(rootVar('--primary')).toBe(THEME.teal.primary);
     expect(localStorage.getItem('chem.theme')).toBe('teal');
   });
 });
