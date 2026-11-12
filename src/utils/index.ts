@@ -45,3 +45,21 @@ export const findElementsBySymbol = (
 
   return findElement(el);
 };
+
+/**
+ * An element's atomic mass for display. Elements with no stable isotopes have
+ * a whole-number mass in our data (the mass number of the most stable
+ * isotope), shown in brackets the way periodic tables do: [266].
+ */
+export const formatAtomicMass = (
+  mass: number | null,
+  maxDigits: number,
+  minDigits = maxDigits,
+) => {
+  if (mass === null) return 'Unknown';
+  if (Number.isInteger(mass)) return `[${mass}]`;
+  return mass.toLocaleString(undefined, {
+    minimumFractionDigits: minDigits,
+    maximumFractionDigits: maxDigits,
+  });
+};

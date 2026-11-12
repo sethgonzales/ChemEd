@@ -1,15 +1,14 @@
 import { type ReactNode, useRef, useState, useEffect } from 'react';
 import Container from '~/components/container';
+import Stage from '~/components/stage';
+import { BLOCK_COLORS } from '~/constants/blocks';
 import { ELEMENTS } from '~/constants/elements';
 import { IElementData } from '~/types';
+import { formatAtomicMass } from '~/utils';
 import { cn } from '~/utils/cn';
 
-const BLOCK_COLORS: Record<string, string> = {
-  s: 'bg-red-400/60 hover:bg-red-400/80',
-  p: 'bg-yellow-400/60 hover:bg-yellow-400/80',
-  d: 'bg-blue-400/60 hover:bg-blue-400/80',
-  f: 'bg-green-400/60 hover:bg-green-400/80',
-};
+const blockColor = (el: IElementData) =>
+  el.block ? BLOCK_COLORS[el.block] : '#4b5563';
 
 /**
  * Map each element to its (col, row) in the standard 18-column periodic table.
@@ -18,7 +17,7 @@ const BLOCK_COLORS: Record<string, string> = {
 function getGridPosition(el: IElementData): { col: number; row: number } {
   const { atomicNumber, period, group } = el;
 
-  // Lanthanides: Ce(58) through Lu(71) -> row 9, cols 4-17
+  // Lanthanides: Ce(58) through Lu(71) -> row 9, cols 4-17 (La sits in group 3)
   if (atomicNumber >= 58 && atomicNumber <= 71) {
     return { col: atomicNumber - 58 + 4, row: 9 };
   }
@@ -63,7 +62,6 @@ function ElementCell({
   isSelected: boolean;
   onSelect: (el: IElementData) => void;
 }) {
-  const blockColor = BLOCK_COLORS[element.block ?? ''] ?? 'bg-gray-400/60';
   const nameRef = useRef<HTMLSpanElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -93,11 +91,13 @@ function ElementCell({
     <button
       ref={btnRef}
       onClick={() => onSelect(element)}
+      aria-pressed={isSelected}
+      style={{ backgroundColor: blockColor(element) }}
       className={cn(
-        'flex flex-col items-center justify-center py-2 px-1 rounded-sm cursor-pointer transition-colors duration-150',
-        'w-full aspect-square text-white',
-        blockColor,
-        isSelected && 'brightness-150',
+        'pixel-control flex flex-col items-center justify-center py-2 px-1 cursor-pointer',
+        'w-full aspect-square text-white hover:brightness-125',
+        'focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_white]',
+        isSelected && 'brightness-125 shadow-[inset_0_0_0_3px_white]',
       )}
     >
       <span className="text-[1.8cqi] opacity-60 leading-none">
@@ -116,20 +116,13 @@ function ElementCell({
 }
 
 function ElementDetail({ element }: { element: IElementData }) {
-  const blockColor = BLOCK_COLORS[element.block ?? ''] ?? 'bg-gray-400/60';
-
   const details: { label: string; value: ReactNode }[] = [
     { label: 'Atomic Number', value: String(element.atomicNumber) },
     { label: 'Symbol', value: element.symbol },
     { label: 'Name', value: element.name },
     {
       label: 'Atomic Mass',
-      value: element.atomicMass
-        ? element.atomicMass.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 6,
-          })
-        : 'Unknown',
+      value: formatAtomicMass(element.atomicMass, 6, 2),
     },
     { label: 'Period', value: String(element.period) },
     { label: 'Group', value: element.group ? String(element.group) : 'N/A' },
@@ -141,18 +134,16 @@ function ElementDetail({ element }: { element: IElementData }) {
   ];
 
   return (
-    <div className="bg-primary-600 rounded-xl p-5">
+    <div className="pixel-control bg-primary-700 p-5">
       <div className="flex items-center gap-4 mb-4">
         <div
-          className={cn(
-            'w-16 h-16 rounded-lg flex items-center justify-center text-white shrink-0',
-            blockColor,
-          )}
+          className="pixel-control w-16 h-16 flex items-center justify-center text-white shrink-0"
+          style={{ backgroundColor: blockColor(element) }}
         >
           <span className="text-3xl font-bold">{element.symbol}</span>
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-white">{element.name}</h2>
+          <h2 className="font-pixel text-2xl text-white">{element.name}</h2>
           <p className="text-sm text-white/60">
             Element {element.atomicNumber}
           </p>
@@ -180,19 +171,17 @@ function Legend() {
     { block: 'p', label: 'p-block' },
     { block: 'd', label: 'd-block' },
     { block: 'f', label: 'f-block' },
-  ];
+  ] as const;
 
   return (
     <div className="flex gap-3 flex-wrap">
       {blocks.map(({ block, label }) => (
         <div key={block} className="flex items-center gap-1.5">
           <div
-            className={cn(
-              'w-3 h-3 rounded-sm',
-              BLOCK_COLORS[block]?.replace('hover:bg-', ''),
-            )}
+            className="w-3.5 h-3.5"
+            style={{ backgroundColor: BLOCK_COLORS[block] }}
           />
-          <span className="text-xs text-white/60">{label}</span>
+          <span className="text-sm text-white/80">{label}</span>
         </div>
       ))}
     </div>
@@ -216,73 +205,78 @@ export default function PeriodicTable() {
   const cols = Array.from({ length: 18 }, (_, i) => i + 1);
 
   return (
-    <Container backHref="/" header="Periodic Table" className="gap-4">
-      <Legend />
+    <Container
+      backHref="/"
+      header="Periodic Table"
+      description="Click any element to see its details. The colours show each element’s block."
+      className="gap-4"
+    >
+      <Stage label="Periodic table" header={<Legend />}>
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Table */}
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            {/* Main table */}
+            <div className="overflow-x-auto @container">
+              <div
+                className="grid gap-0.5 min-w-[540px]"
+                style={{
+                  gridTemplateColumns: 'repeat(18, minmax(0, 1fr))',
+                }}
+              >
+                {mainRows.map((row) =>
+                  cols.map((col) => {
+                    const el = gridMap.get(`${col}-${row}`);
+                    return el ? (
+                      <ElementCell
+                        key={el.atomicNumber}
+                        element={el}
+                        isSelected={selected.atomicNumber === el.atomicNumber}
+                        onSelect={setSelected}
+                      />
+                    ) : (
+                      <div key={`empty-${col}-${row}`} />
+                    );
+                  }),
+                )}
+              </div>
+            </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
-        {/* Table */}
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
-          {/* Main table */}
-          <div className="overflow-x-auto @container">
-            <div
-              className="grid gap-0.5 min-w-[540px]"
-              style={{
-                gridTemplateColumns: 'repeat(18, minmax(0, 1fr))',
-              }}
-            >
-              {mainRows.map((row) =>
-                cols.map((col) => {
-                  const el = gridMap.get(`${col}-${row}`);
-                  return el ? (
-                    <ElementCell
-                      key={el.atomicNumber}
-                      element={el}
-                      isSelected={selected.atomicNumber === el.atomicNumber}
-                      onSelect={setSelected}
-                    />
-                  ) : (
-                    <div key={`empty-${col}-${row}`} />
-                  );
-                }),
-              )}
+            {/* Lanthanides & Actinides */}
+            <div className="overflow-x-auto @container">
+              <div
+                className="grid gap-0.5 min-w-[540px]"
+                style={{
+                  gridTemplateColumns: 'repeat(18, minmax(0, 1fr))',
+                }}
+              >
+                {extraRows.map((row) =>
+                  cols.map((col) => {
+                    const el = gridMap.get(`${col}-${row}`);
+                    if (col < 4 || col > 17) {
+                      return <div key={`empty-${col}-${row}`} />;
+                    }
+                    return el ? (
+                      <ElementCell
+                        key={el.atomicNumber}
+                        element={el}
+                        isSelected={selected.atomicNumber === el.atomicNumber}
+                        onSelect={setSelected}
+                      />
+                    ) : (
+                      <div key={`empty-${col}-${row}`} />
+                    );
+                  }),
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Lanthanides & Actinides */}
-          <div className="overflow-x-auto @container">
-            <div
-              className="grid gap-0.5 min-w-[540px]"
-              style={{
-                gridTemplateColumns: 'repeat(18, minmax(0, 1fr))',
-              }}
-            >
-              {extraRows.map((row) =>
-                cols.map((col) => {
-                  const el = gridMap.get(`${col}-${row}`);
-                  if (col < 4 || col > 17) {
-                    return <div key={`empty-${col}-${row}`} />;
-                  }
-                  return el ? (
-                    <ElementCell
-                      key={el.atomicNumber}
-                      element={el}
-                      isSelected={selected.atomicNumber === el.atomicNumber}
-                      onSelect={setSelected}
-                    />
-                  ) : (
-                    <div key={`empty-${col}-${row}`} />
-                  );
-                }),
-              )}
-            </div>
+          {/* Detail panel */}
+          <div className="lg:w-72 h-fit shrink-0">
+            <ElementDetail element={selected} />
           </div>
         </div>
-
-        {/* Detail panel */}
-        <div className="lg:w-72 h-fit shrink-0">
-          <ElementDetail element={selected} />
-        </div>
-      </div>
+      </Stage>
     </Container>
   );
 }

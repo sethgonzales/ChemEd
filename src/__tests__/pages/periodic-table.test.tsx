@@ -61,4 +61,25 @@ describe('Periodic Table page', () => {
     await userEvent.click(screen.getByRole('button', { name: /^58\s*Ce/ }));
     expect(within(detailPanel()).getByText('N/A')).toBeInTheDocument();
   });
+
+  it('says what to do in one line', () => {
+    render(<PeriodicTable />);
+    expect(
+      screen.getByText(/Click any element to see its details/),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a synthetic element’s mass number in brackets', async () => {
+    render(<PeriodicTable />);
+    await userEvent.click(screen.getByRole('button', { name: /^103\s*Lr/ }));
+    expect(within(detailPanel()).getByText('[266]')).toBeInTheDocument();
+  });
+
+  it('marks the selected element as pressed', async () => {
+    render(<PeriodicTable />);
+    const iron = screen.getByRole('button', { name: /^26\s*Fe/ });
+    expect(iron).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(iron);
+    expect(iron).toHaveAttribute('aria-pressed', 'true');
+  });
 });

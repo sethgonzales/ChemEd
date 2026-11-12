@@ -43,4 +43,9 @@ describe('Header', () => {
     renderHeader();
     expect(screen.getByRole('button', { name: 'Dungeon' })).toBeInTheDocument();
   });
+
+  it('shows a synthetic element’s mass number in brackets', () => {
+    renderHeader();
+    expect(screen.getByText('[268]')).toBeInTheDocument(); // dubnium
+  });
 });

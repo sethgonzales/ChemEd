@@ -707,8 +707,8 @@ export const ELEMENTS: IElementData[] = [
     name: 'Lutetium',
     atomicMass: 174.9668,
     period: 6,
-    group: 3,
-    block: 'd',
+    group: null, // drawn in the f row, as most textbooks do
+    block: 'f',
     electronConfiguration: '[Xe] 4f14 5d1 6s2',
   },
   {
@@ -1027,8 +1027,8 @@ export const ELEMENTS: IElementData[] = [
     name: 'Lawrencium',
     atomicMass: 266,
     period: 7,
-    group: 3,
-    block: 'd',
+    group: null, // drawn in the f row, as most textbooks do
+    block: 'f',
     electronConfiguration: '[Rn] 5f14 7s2 7p1',
   },
   {

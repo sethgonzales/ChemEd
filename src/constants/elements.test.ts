@@ -1,7 +1,8 @@
 import { ELEMENTS } from './elements';
 
+// the f rows under the table, as most textbooks draw them: Ce–Lu and Th–Lr
 const isLanthanideOrActinide = (n: number) =>
-  (n >= 58 && n <= 70) || (n >= 90 && n <= 102);
+  (n >= 58 && n <= 71) || (n >= 90 && n <= 103);
 
 describe('ELEMENTS', () => {
   it('lists all 118 elements in atomic number order', () => {
@@ -24,7 +25,7 @@ describe('ELEMENTS', () => {
     }
   });
 
-  it('has no group only for the f-block series (Ce–Yb, Th–No)', () => {
+  it('has no group only for the f-block series (Ce–Lu, Th–Lr)', () => {
     for (const el of ELEMENTS) {
       if (isLanthanideOrActinide(el.atomicNumber)) {
         expect(el.group).toBeNull();
@@ -33,6 +34,14 @@ describe('ELEMENTS', () => {
         expect(el.group).toBeLessThanOrEqual(18);
       }
     }
+  });
+
+  it('colours each element by the row it sits in: La and Ac in group 3, Lu and Lr in the f rows', () => {
+    const bySymbol = Object.fromEntries(ELEMENTS.map((e) => [e.symbol, e]));
+    expect(bySymbol.La).toMatchObject({ group: 3, block: 'd' });
+    expect(bySymbol.Ac).toMatchObject({ group: 3, block: 'd' });
+    expect(bySymbol.Lu).toMatchObject({ group: null, block: 'f' });
+    expect(bySymbol.Lr).toMatchObject({ group: null, block: 'f' });
   });
 
   it('matches known values for spot-checked elements', () => {

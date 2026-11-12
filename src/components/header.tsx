@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
-import { findElementsBySymbol } from '~/utils';
+import { findElementsBySymbol, formatAtomicMass } from '~/utils';
 import { ThemeSelect } from '~/components/theme-select';
 import { useChime } from '~/utils/sounds';
 
@@ -46,12 +46,7 @@ function ElementCard({ element }: { element: IElementData }) {
         )}
       </h1>
       <h5 className="opacity-50 truncate w-full">{element.name}</h5>
-      <h5 className="opacity-50">
-        {element.atomicMass?.toLocaleString(undefined, {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        })}
-      </h5>
+      <h5 className="opacity-50">{formatAtomicMass(element.atomicMass, 2)}</h5>
     </div>
   );
 }

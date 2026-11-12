@@ -28,13 +28,13 @@
 
 ## Improvements (from the simulation review)
 
-- [ ] Periodic Table: apply the shared design (`Stage`, `Container` description, colour roles in CLAUDE.md); check the home page cards match too
+- [x] Periodic Table: apply the shared design (`Stage`, `Container` description, colour roles in CLAUDE.md); check the home page cards match too
 
 - [ ] Periodic Table: more colour modes (metal/nonmetal, electronegativity, atomic radius) and search
-- [ ] Periodic Table: show synthetic element masses as `[266]` rather than `266.00`
-- [ ] Periodic Table: Lu and Lr sit in the f-block row but are coloured d-block blue
+- [x] Periodic Table: show synthetic element masses as `[266]` rather than `266.00`
+- [x] Periodic Table: Lu and Lr sit in the f-block row but are coloured d-block blue (now f-block, with La and Ac in group 3, as most textbooks draw it)
 - [ ] States of Matter: temperature/kinetic energy readout, heating curve, choice of substance
-- [ ] Accessibility: element buttons need `aria-pressed` and arrow-key navigation; white text on yellow p-block cells is low contrast; canvas needs a text alternative and should respect reduced motion
+- [ ] Accessibility: element buttons need arrow-key navigation; the States of Matter canvas needs a text alternative and should respect reduced motion (done: `aria-pressed` on elements, readable block colours)
 - [ ] Mark placeholder simulations as "Coming soon"
 - [ ] Replace the default README
 - [ ] Migrate `next lint` (deprecated) to the ESLint CLI
