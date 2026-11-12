@@ -1,6 +1,13 @@
 export const THEME = {
+  dungeon: {
+    label: 'Dungeon',
+    primary: '#52525b', // stone gray
+    primaryText: '#ffffff',
+    secondary: '#84cc16', // glowing ooze
+    secondaryText: '#000000',
+  },
   purple: {
-    label: 'Default',
+    label: 'Classic',
     primary: '#8186e4',
     primaryText: '#ffffff',
     secondary: '#fab87e',

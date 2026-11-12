@@ -1,4 +1,6 @@
 import { act, render, renderHook, screen } from '@testing-library/react';
+import { colord } from 'colord';
+import { THEME } from './theme';
 import { ThemeProvider, useTheme } from './theme-provider';
 
 function ShowTheme() {
@@ -15,15 +17,25 @@ beforeEach(() => {
 });
 
 describe('ThemeProvider', () => {
-  it('defaults to the purple theme and applies its colours', () => {
+  it('defaults to the dungeon theme and applies its colours', () => {
     render(
       <ThemeProvider>
         <ShowTheme />
       </ThemeProvider>,
     );
-    expect(screen.getByRole('button')).toHaveTextContent('purple');
-    expect(rootVar('--primary')).toBe('#8186e4');
-    expect(rootVar('--secondary')).toBe('#fab87e');
+    expect(screen.getByRole('button')).toHaveTextContent('dungeon');
+    expect(rootVar('--primary')).toBe(THEME.dungeon.primary);
+    expect(rootVar('--secondary')).toBe(THEME.dungeon.secondary);
+  });
+
+  it('makes the dungeon stone gray with green ooze', () => {
+    const stone = colord(THEME.dungeon.primary).toHsl();
+    const ooze = colord(THEME.dungeon.secondary).toHsl();
+    expect(stone.s).toBeLessThan(15); // gray, barely tinted
+    expect(stone.l).toBeLessThan(45); // dark, like a dungeon
+    expect(ooze.h).toBeGreaterThan(70); // yellow-green to green
+    expect(ooze.h).toBeLessThan(140);
+    expect(ooze.s).toBeGreaterThan(60); // vivid, so it glows
   });
 
   it('restores a saved theme from localStorage', () => {
@@ -44,7 +56,7 @@ describe('ThemeProvider', () => {
         <ShowTheme />
       </ThemeProvider>,
     );
-    expect(screen.getByRole('button')).toHaveTextContent('purple');
+    expect(screen.getByRole('button')).toHaveTextContent('dungeon');
   });
 
   it('applies and saves a newly selected theme', () => {

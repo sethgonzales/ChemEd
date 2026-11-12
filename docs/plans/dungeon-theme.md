@@ -57,7 +57,7 @@ All made in the browser with Web Audio as now, with no sound files.
 2. **Home map** (done): chamber-door cards with per-simulation colours, torchlight hover and sealed doors.
 3. **Card art** (done): pixel-art illustrations for each simulation.
 4. **Sounds:** the new sound set, the mute button, and the "correct" sound tied to the cheers Mr. G already gives.
-5. **Dungeon theme:** the new colour theme, and a check that every theme still has enough contrast.
+5. **Dungeon theme** (built; contrast check still to do): the new colour theme, and a check that every theme still has enough contrast.
 
 ## Decisions (11 Nov 2026)
 

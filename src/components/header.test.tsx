@@ -41,6 +41,6 @@ describe('Header', () => {
 
   it('includes the theme selector', () => {
     renderHeader();
-    expect(screen.getByRole('button', { name: 'Default' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dungeon' })).toBeInTheDocument();
   });
 });

@@ -13,7 +13,7 @@ describe('ThemeSelect', () => {
         <ThemeSelect />
       </ThemeProvider>,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Default' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Dungeon' }));
     for (const { label } of Object.values(THEME)) {
       expect(
         screen.getAllByRole('button', { name: label }).length,

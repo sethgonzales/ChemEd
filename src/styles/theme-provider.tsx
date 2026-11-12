@@ -15,7 +15,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const DEFAULT_THEME: ThemeName = 'purple';
+const DEFAULT_THEME: ThemeName = 'dungeon';
 
 function applyTheme(name: ThemeName) {
   const { primary, secondary, primaryText, secondaryText } = THEME[name];

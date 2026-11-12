@@ -70,6 +70,10 @@ export default function Header() {
           ))}
         </div>
         <ThemeSelect />
+        <div
+          aria-hidden="true"
+          className="ooze-drips absolute inset-x-0 top-full"
+        />
       </header>
     </Link>
   );
