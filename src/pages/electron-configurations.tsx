@@ -9,6 +9,7 @@ import ShellDiagram from '~/components/shell-diagram';
 import Stage from '~/components/stage';
 import Tabs from '~/components/tabs';
 import { ELEMENTS } from '~/constants/elements';
+import { BESIDE_HEADER, SPLIT_CARD, SPLIT_PANEL } from '~/constants/layout';
 import type { IElementData } from '~/types';
 import {
   aufbauConfiguration,
@@ -119,11 +120,12 @@ function ExploreMode() {
     ? groundState(steppedFrom.atomicNumber)
     : undefined;
 
-  // side by side on desktop: pick on the left, see the result on the right
+  // on desktop the parts join the card's grid: pick on the left, and the
+  // result on the right from the top of the card
   return (
-    <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+    <>
       {/* Previous and Next sit with the table, since they pick elements too */}
-      <div className="w-full max-w-2xl lg:flex-1 flex flex-col gap-4">
+      <div className="w-full flex flex-col gap-4">
         <PeriodicGrid
           selected={element}
           onSelect={pick}
@@ -152,7 +154,7 @@ function ExploreMode() {
         </div>
       </div>
 
-      <Stage label="Electron configuration" className="lg:flex-1 min-w-0">
+      <Stage label="Electron configuration" className={BESIDE_HEADER}>
         <ElementHeading element={element} />
         {/* the diagram, then the notation under it (beside it on tablets) */}
         <div className="flex flex-col md:flex-row lg:flex-col gap-6">
@@ -187,7 +189,7 @@ function ExploreMode() {
           </div>
         </div>
       </Stage>
-    </div>
+    </>
   );
 }
 
@@ -197,10 +199,11 @@ export default function ElectronConfigurations() {
       backHref="/"
       header="Electron Configurations"
       description="See how electrons fill an atom’s orbitals, then fill them in yourself."
-      className="gap-4"
+      className={SPLIT_CARD}
     >
       <Tabs
         label="Mode"
+        panelClassName={SPLIT_PANEL}
         tabs={[
           { id: 'explore', label: 'Explore', content: <ExploreMode /> },
           { id: 'build', label: 'Build', content: <ConfigurationBuilder /> },

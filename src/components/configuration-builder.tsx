@@ -3,6 +3,8 @@ import Button from '~/components/button';
 import OrbitalDiagram from '~/components/orbital-diagram';
 import PeriodicGrid from '~/components/periodic-grid';
 import Stage from '~/components/stage';
+import { BESIDE_HEADER } from '~/constants/layout';
+import { cn } from '~/utils/cn';
 import type { IElementData } from '~/types';
 import {
   checkDiagram,
@@ -76,10 +78,11 @@ export default function ConfigurationBuilder() {
       ? feedback.problems.map((p) => p.subshell).filter((s): s is string => !!s)
       : [];
 
-  // side by side on desktop, like Explore: the table on the left
+  // like Explore, the parts join the page card's grid on desktop: the table
+  // on the left, the diagram on the right from the top of the card
   return (
-    <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-      <div className="w-full max-w-2xl lg:flex-1">
+    <>
+      <div className="w-full">
         <PeriodicGrid
           selected={element}
           onSelect={pick}
@@ -88,7 +91,7 @@ export default function ConfigurationBuilder() {
         />
       </div>
 
-      <div className="lg:flex-1 min-w-0 flex flex-col gap-4">
+      <div className={cn(BESIDE_HEADER, 'flex flex-col gap-4')}>
         <Stage label="Your diagram">
           <h3 className="font-pixel text-xl">
             {element
@@ -159,6 +162,6 @@ export default function ConfigurationBuilder() {
           <Button onClick={clear}>Clear</Button>
         </div>
       </div>
-    </div>
+    </>
   );
 }

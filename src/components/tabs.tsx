@@ -15,6 +15,7 @@ interface Props {
   tabs: Tab[];
   selected?: string; // pass with onSelect to control the tabs from outside
   onSelect?: (id: string) => void;
+  panelClassName?: string; // e.g. to lay a panel's parts out in the page's grid
 }
 
 /**
@@ -26,6 +27,7 @@ export default function Tabs({
   tabs,
   selected: controlled,
   onSelect,
+  panelClassName,
 }: Props) {
   const [own, setOwn] = useState(tabs[0].id);
   const selected = controlled ?? own;
@@ -87,6 +89,7 @@ export default function Tabs({
           role="tabpanel"
           aria-labelledby={tabId(tab.id)}
           hidden={tab.id !== selected}
+          className={panelClassName}
         >
           {tab.content}
         </div>
