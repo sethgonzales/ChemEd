@@ -120,7 +120,7 @@ export default function ElectronConfigurations() {
             compact
             minWidth={PICKER_MIN_WIDTH}
           />
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center gap-2">
             <Button
               onClick={() => step(-1)}
               disabled={element.atomicNumber === 1}
