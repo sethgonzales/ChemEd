@@ -155,7 +155,7 @@ export default function StatesOfMatter() {
               data-testid="phase"
               className="flex flex-col items-start gap-1"
             >
-              <span className="px-3 py-1 rounded-full bg-secondary-500 text-text-secondary font-semibold">
+              <span className="px-3 py-1 pixel-control bg-secondary-500 text-text-secondary font-pixel">
                 {phaseLabel(temperature)}
               </span>
               {phaseHint(temperature) && (
@@ -185,7 +185,7 @@ export default function StatesOfMatter() {
       >
         <div
           ref={wrapRef}
-          className="h-64 sm:h-80 w-full rounded-md bg-primary-800 overflow-hidden"
+          className="h-64 sm:h-80 w-full pixel-control bg-primary-800 overflow-hidden"
         >
           <canvas ref={canvasRef} className="block" />
         </div>

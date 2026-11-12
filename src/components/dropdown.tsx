@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { IconChevronDown } from '@tabler/icons-react';
 import { cn } from '~/utils/cn';
+import { PIXEL_CONTROL } from '~/utils/pixel';
 import { useEscape } from '~/utils/use-escape';
 
 interface Props {
@@ -106,8 +107,8 @@ export default function Dropdown({
           setIsOpen((prev) => !prev);
         }}
         className={cn(
-          'text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none',
-          'focus:ring-primary-300 font-semibold rounded-lg text-sm px-3 py-2.5',
+          PIXEL_CONTROL,
+          'text-white bg-primary-700 hover:bg-primary-800 text-sm px-3 pt-2.5 pb-3',
           'inline-flex items-center justify-between gap-2 cursor-pointer truncate',
           className,
         )}
@@ -125,7 +126,7 @@ export default function Dropdown({
       {isOpen && (
         <div
           className={cn(
-            'absolute z-10 mt-2 bg-primary-300 divide-y divide-primary-400 rounded-lg shadow w-44 max-h-72 overflow-y-auto',
+            'absolute z-10 mt-2 bg-primary-300 divide-y divide-primary-400 pixel-control shadow w-44 max-h-72 overflow-y-auto',
             menuClassName,
           )}
         >

@@ -21,7 +21,8 @@ export default function Stage({
     <section
       aria-label={label}
       className={cn(
-        'bg-primary-600 rounded-lg p-3 flex flex-col gap-3',
+        'pixel-frame [--frame-fill:var(--color-primary-600)] [--frame-outline:var(--color-primary-800)]',
+        'p-4 flex flex-col gap-3',
         className,
       )}
     >

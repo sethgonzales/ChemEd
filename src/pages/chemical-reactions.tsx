@@ -107,7 +107,7 @@ function OwnEquation() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="e.g. CH4 + O2 -> CO2 + H2O"
-          className="flex-1 rounded-lg px-3 py-2 bg-white text-gray-900"
+          className="flex-1 pixel-control px-3 py-2 bg-white text-gray-900 focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_var(--color-secondary-500)]"
         />
         <Button type="submit" pressed>
           Balance this

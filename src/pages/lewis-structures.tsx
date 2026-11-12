@@ -113,7 +113,7 @@ function DrawMode({ active, settings, onSettings }: ModeProps) {
               aria-label="More elements"
               title="More elements"
               onClick={() => setPicking(true)}
-              className="w-full h-9 sm:h-10 rounded-md text-sm font-semibold text-white hover:bg-primary-800 cursor-pointer"
+              className="w-full h-9 sm:h-10 pixel-control text-sm font-semibold text-white hover:bg-primary-800 cursor-pointer focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_white]"
             >
               More…
             </button>

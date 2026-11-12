@@ -17,7 +17,8 @@ export default function Container(props: Props) {
   return (
     <div
       className={cn(
-        'flex flex-col px-6 py-4 min-h-78 bg-primary-500 text-white rounded-xl',
+        'pixel-frame [--frame-fill:var(--color-primary-500)] [--frame-outline:var(--color-primary-700)]',
+        'flex flex-col px-7 py-5 min-h-78 text-white',
         className,
       )}
     >
@@ -34,7 +35,7 @@ export default function Container(props: Props) {
             </Link>
           )}
           <div>
-            {header && <h2 className="text-2xl font-bold">{header}</h2>}
+            {header && <h2 className="font-pixel text-3xl">{header}</h2>}
             {description && <p className="text-sm">{description}</p>}
           </div>
         </div>

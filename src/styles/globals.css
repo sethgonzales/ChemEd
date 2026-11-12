@@ -14,12 +14,64 @@
   --secondary-base: #ffffff;
   --text-primary-base: #000;
   --text-secondary-base: #000;
+
+  /* 8-bit corners, in 4px steps: two steps for panels, one for controls */
+  --pixel-corners-2: polygon(
+    0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0,
+    calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px,
+    calc(100% - 4px) 8px, 100% 8px,
+    100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px),
+    calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px),
+    calc(100% - 8px) 100%,
+    8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px),
+    0 calc(100% - 8px)
+  );
+  --pixel-corners-1: polygon(
+    0 4px, 4px 4px, 4px 0,
+    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px),
+    calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+  );
+}
+
+/*
+ * A panel with an 8-bit outline. The outline and fill are layers behind the
+ * content, so menus and tooltips can still spill out of the panel. Set the
+ * colours with --frame-fill and --frame-outline.
+ */
+@utility pixel-frame {
+  position: relative;
+  isolation: isolate;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+  }
+  &::before {
+    inset: 0;
+    background: var(--frame-outline);
+    clip-path: var(--pixel-corners-2);
+  }
+  &::after {
+    inset: 4px;
+    background: var(--frame-fill);
+    clip-path: var(--pixel-corners-1);
+  }
+}
+
+/* A small control (button, tab, checkbox) with 8-bit corners */
+@utility pixel-control {
+  clip-path: var(--pixel-corners-1);
 }
 
 @theme inline {
   /* Fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-pixel: var(--font-pixelify), ui-sans-serif, sans-serif; /* headings and buttons */
 
   /* Font sizes */
   --font-size-2xs: 0.625rem;

@@ -170,7 +170,7 @@ export default function LewisToolbar({
     <div
       role="toolbar"
       aria-label="Drawing tools"
-      className="flex flex-col gap-1 bg-primary-700 rounded-lg p-1 h-fit"
+      className="flex flex-col gap-1 bg-primary-700 pixel-control p-1 h-fit"
     >
       {groups.map((group, g) => (
         <div
@@ -192,7 +192,8 @@ export default function LewisToolbar({
               onClick={() => onSelect(tool)}
               onPointerDown={(e) => draggable && !disabled && onPress(tool, e)}
               className={cn(
-                'relative w-full h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-md text-white cursor-pointer',
+                'relative w-full h-9 sm:w-10 sm:h-10 flex items-center justify-center pixel-control text-white cursor-pointer',
+                'focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_white]',
                 'disabled:opacity-40 disabled:cursor-not-allowed',
                 draggable && 'touch-none',
                 active === tool

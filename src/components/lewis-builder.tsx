@@ -11,6 +11,7 @@ import LewisToolbar, {
   type ToolItem,
 } from '~/components/lewis-toolbar';
 import { cn } from '~/utils/cn';
+import { PIXEL_CONTROL } from '~/utils/pixel';
 import { checkMessage } from '~/utils/guide';
 import type { Feedback, LewisStructure, Verdict } from '~/utils/lewis';
 import {
@@ -261,7 +262,8 @@ export default function LewisBuilder({
                   dispatchForms({ type: 'selectForm', index: i });
                 }}
                 className={cn(
-                  'px-3 py-1 rounded-md text-sm font-semibold cursor-pointer',
+                  PIXEL_CONTROL,
+                  'px-3 pt-1 pb-1.5 text-sm cursor-pointer',
                   i === state.active
                     ? 'bg-white text-gray-900'
                     : 'bg-primary-700 text-white hover:bg-primary-800',
@@ -351,7 +353,7 @@ export default function LewisBuilder({
             }
             extra={paletteExtra?.(selectTool)}
           />
-          <div className="relative sm:flex-1 min-w-0 bg-white rounded-md h-80 sm:h-auto sm:min-h-[28rem] overflow-hidden">
+          <div className="relative sm:flex-1 min-w-0 bg-white pixel-control h-80 sm:h-auto sm:min-h-[28rem] overflow-hidden">
             <LewisCanvas
               ref={svgRef}
               structure={structure}
@@ -368,7 +370,7 @@ export default function LewisBuilder({
             {arrowSource && (
               <p
                 role="status"
-                className="absolute top-2 left-2 px-2 py-1 rounded-md bg-gray-900/80 text-white text-sm pointer-events-none"
+                className="absolute top-2 left-2 px-2 py-1 pixel-control bg-gray-900/80 text-white text-sm pointer-events-none"
               >
                 Now tap where the electrons go.
               </p>
@@ -381,7 +383,7 @@ export default function LewisBuilder({
         <div
           data-testid="feedback"
           role="status"
-          className="bg-primary-600 rounded-lg p-3 text-sm space-y-1"
+          className="bg-primary-600 pixel-control p-3 text-sm space-y-1"
         >
           {VERDICT_LABEL[result.verdict] && (
             <p className="font-bold">{VERDICT_LABEL[result.verdict]}</p>
@@ -410,7 +412,7 @@ export default function LewisBuilder({
       {drag && !preview && (
         <div
           aria-hidden="true"
-          className="fixed z-50 pointer-events-none px-2 py-1 rounded-md bg-secondary-500 text-text-secondary text-xs font-semibold shadow-lg"
+          className="fixed z-50 pointer-events-none px-2 py-1 pixel-control bg-secondary-500 text-text-secondary text-xs font-semibold shadow-lg"
           style={{ left: drag.at.clientX + 12, top: drag.at.clientY + 12 }}
         >
           {drag.payload.label}

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '~/utils/cn';
+import { PIXEL_CONTROL } from '~/utils/pixel';
 
 interface Props {
   onClick?: () => void;
@@ -23,7 +24,8 @@ export default function Button({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        'px-3 py-2 rounded-lg text-sm font-semibold cursor-pointer',
+        PIXEL_CONTROL,
+        'px-3 pt-2 pb-2.5 text-base cursor-pointer',
         'disabled:opacity-40 disabled:cursor-not-allowed',
         pressed
           ? 'bg-secondary-500 text-text-secondary'

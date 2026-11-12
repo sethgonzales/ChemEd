@@ -17,7 +17,7 @@ export default function Setting({ checked, onChange, children }: Props) {
           type="checkbox"
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
-          className="peer size-5 appearance-none rounded-md border-2 border-primary-300 bg-primary-700 cursor-pointer hover:bg-primary-800 checked:border-secondary-500 checked:bg-secondary-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="peer pixel-control size-5 appearance-none bg-primary-700 shadow-[inset_0_0_0_2px_var(--color-primary-300)] cursor-pointer hover:bg-primary-800 checked:bg-secondary-500 checked:shadow-none focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_white]"
         />
         <IconCheck
           size={14}

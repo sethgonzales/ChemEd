@@ -53,7 +53,7 @@ All made in the browser with Web Audio as now, with no sound files.
 
 ## Phases (each test-first where there's behaviour)
 
-1. **Type and frames:** the pixel heading font and `PixelFrame`, applied to `Container`, `Stage`, `Button`, `Dropdown` and `Setting`. Reviewed from screenshots before going further.
+1. **Type and frames** (done): the pixel heading font and `PixelFrame`, applied to `Container`, `Stage`, `Button`, `Dropdown` and `Setting`. Reviewed from screenshots before going further.
 2. **Home map:** chamber-door cards with per-simulation colours, torchlight hover and sealed doors.
 3. **Card art:** pixel-art illustrations for each simulation.
 4. **Sounds:** the new sound set, the mute button, and the "correct" sound tied to the cheers Mr. G already gives.

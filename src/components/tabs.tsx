@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { cn } from '~/utils/cn';
+import { PIXEL_CONTROL } from '~/utils/pixel';
 
 export type Tab = { id: string; label: string; content: ReactNode };
 
@@ -67,7 +68,8 @@ export default function Tabs({
               onClick={() => setSelected(tab.id)}
               onKeyDown={(e) => onKeyDown(e, i)}
               className={cn(
-                'px-4 py-2 rounded-lg font-semibold cursor-pointer',
+                PIXEL_CONTROL,
+                'px-4 pt-2 pb-2.5 text-lg cursor-pointer',
                 active
                   ? 'bg-white text-gray-900'
                   : 'bg-primary-700 text-white hover:bg-primary-800',
