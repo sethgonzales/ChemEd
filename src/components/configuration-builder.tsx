@@ -6,7 +6,7 @@ import Stage from '~/components/stage';
 import { BUILD_LEVELS } from '~/constants/electron-levels';
 import { ELEMENTS } from '~/constants/elements';
 import {
-  applyTool,
+  cycleBox,
   checkDiagram,
   electronsLabel,
   emptyDiagram,
@@ -15,14 +15,7 @@ import {
   orbitalDiagram,
   parseConfiguration,
   type Problem,
-  type Tool,
 } from '~/utils/electron-configurations';
-
-const TOOLS: { tool: Tool; label: string; text: string }[] = [
-  { tool: 'up', label: 'Up arrow', text: '↑' },
-  { tool: 'down', label: 'Down arrow', text: '↓' },
-  { tool: 'erase', label: 'Erase', text: 'Erase' },
-];
 
 const bySymbol = (symbol: string) => ELEMENTS.find((e) => e.symbol === symbol)!;
 
@@ -32,7 +25,6 @@ type Result = { correct: boolean; problems: Problem[] };
 export default function ConfigurationBuilder() {
   const [level, setLevel] = useState(0);
   const [symbol, setSymbol] = useState(BUILD_LEVELS[0].symbols[0]);
-  const [tool, setTool] = useState<Tool>('up');
   const { upTo, symbols } = BUILD_LEVELS[level];
   const [diagram, setDiagram] = useState(() => emptyDiagram(upTo));
   const [typed, setTyped] = useState('');
@@ -114,31 +106,19 @@ export default function ConfigurationBuilder() {
         </div>
       </div>
 
-      <div role="group" aria-label="Tools" className="flex flex-wrap gap-2">
-        {TOOLS.map((t) => (
-          <Button
-            key={t.tool}
-            pressed={tool === t.tool}
-            onClick={() => setTool(t.tool)}
-          >
-            <span aria-hidden="true">{t.text}</span>
-            <span className="sr-only">{t.label}</span>
-          </Button>
-        ))}
-      </div>
-
       <Stage label="Your diagram">
         <h3 className="font-pixel text-xl">
           Draw {element.name}: {electronsLabel(element.atomicNumber)}
         </h3>
         <p className="text-sm text-white/60">
-          Pick a tool, then tap boxes. Lowest energy is at the bottom.
+          Tap a box once for ↑, twice for ↑↓, three times to empty it. Lowest
+          energy is at the bottom.
         </p>
         <OrbitalDiagram
           diagram={diagram}
           flagged={flagged}
           onBox={(subshell, box) =>
-            edit(() => setDiagram((d) => applyTool(d, subshell, box, tool)))
+            edit(() => setDiagram((d) => cycleBox(d, subshell, box)))
           }
         />
         <label className="flex flex-col gap-1 text-sm">

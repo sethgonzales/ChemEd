@@ -1,7 +1,7 @@
 import { ELEMENTS } from '~/constants/elements';
 import {
   SUBSHELL_ORDER,
-  applyTool,
+  cycleBox,
   checkDiagram,
   emptyDiagram,
   type Diagram,
@@ -288,26 +288,22 @@ describe('Build mode', () => {
     });
   });
 
-  describe('applyTool', () => {
+  describe('cycleBox', () => {
     const empty = emptyDiagram('2p');
     const p = (d: Diagram) => d.find((r) => r.subshell === '2p')!.boxes;
 
-    it('adds an arrow of the chosen spin, up to two per box', () => {
-      let d = applyTool(empty, '2p', 0, 'up');
-      d = applyTool(d, '2p', 0, 'up'); // a Pauli mistake is allowed
-      d = applyTool(d, '2p', 0, 'down'); // but a third doesn't fit
-      expect(p(d)[0]).toEqual(['up', 'up']);
+    it('goes empty → ↑ → ↑↓ → empty with each tap', () => {
+      const once = cycleBox(empty, '2p', 0);
+      const twice = cycleBox(once, '2p', 0);
+      expect(p(once)[0]).toEqual(['up']);
+      expect(p(twice)[0]).toEqual(['up', 'down']);
+      expect(p(cycleBox(twice, '2p', 0))[0]).toEqual([]);
     });
 
-    it('erases the last arrow in a box', () => {
-      let d = applyTool(empty, '2p', 1, 'down');
-      d = applyTool(d, '2p', 1, 'up');
-      expect(p(applyTool(d, '2p', 1, 'erase'))[1]).toEqual(['down']);
-    });
-
-    it('leaves the original diagram alone', () => {
-      applyTool(empty, '2p', 0, 'up');
-      expect(p(empty)[0]).toEqual([]);
+    it('leaves the other boxes, and the original diagram, alone', () => {
+      const d = cycleBox(empty, '2p', 1);
+      expect(p(d)).toEqual([[], ['up'], []]);
+      expect(p(empty)).toEqual([[], [], []]);
     });
   });
 
@@ -329,43 +325,13 @@ describe('Build mode', () => {
       });
     });
 
-    it('catches two same-spin electrons in one box (Pauli)', () => {
-      const d = applyTool(
-        applyTool(drawn('1s2 2s2 2p2'), '2p', 2, 'up'),
-        '2p',
-        2,
-        'up',
-      );
-      expect(problems(d)).toContainEqual({
-        rule: 'pauli',
-        subshell: '2p',
-        message: 'Two electrons in one box must spin opposite ways (↑↓).',
-      });
-    });
-
     it('catches pairing before every box has one (Hund)', () => {
       let d = drawn('1s2 2s2');
-      for (const spin of ['up', 'down'] as const)
-        d = applyTool(d, '2p', 0, spin);
-      d = applyTool(d, '2p', 1, 'up');
-      d = applyTool(d, '2p', 1, 'down');
+      for (const box of [0, 0, 1, 1]) d = cycleBox(d, '2p', box);
       expect(problems(d)).toContainEqual({
         rule: 'hund',
         subshell: '2p',
         message: 'In 2p, put one electron in each box before pairing.',
-      });
-    });
-
-    it('catches single electrons spinning opposite ways (Hund)', () => {
-      let d = drawn('1s2 2s2');
-      d = applyTool(d, '2p', 0, 'up');
-      d = applyTool(d, '2p', 1, 'down');
-      expect(
-        checkDiagram(groundState(z('C')), d, '1s2 2s2 2p2', 'Carbon').problems,
-      ).toContainEqual({
-        rule: 'hund',
-        subshell: '2p',
-        message: 'Single electrons in 2p should all spin the same way.',
       });
     });
 

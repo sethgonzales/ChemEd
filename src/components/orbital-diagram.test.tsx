@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { ELEMENTS } from '~/constants/elements';
 import userEvent from '@testing-library/user-event';
 import {
-  applyTool,
+  cycleBox,
   emptyDiagram,
   groundState,
 } from '~/utils/electron-configurations';
@@ -64,7 +64,7 @@ describe('OrbitalDiagram stepping from the previous element', () => {
 });
 
 describe('OrbitalDiagram for drawing (Build mode)', () => {
-  const diagram = applyTool(emptyDiagram('2p'), '2p', 0, 'up');
+  const diagram = cycleBox(emptyDiagram('2p'), '2p', 0);
 
   it('turns each box into a button named by its contents', async () => {
     const onBox = jest.fn();

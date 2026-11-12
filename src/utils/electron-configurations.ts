@@ -242,7 +242,6 @@ export const newShellElectrons = (before: number[], after: number[]) =>
 // ---- Build mode: students draw the diagram and type the notation ----
 
 export type Diagram = { subshell: string; boxes: Spin[][] }[];
-export type Tool = Spin | 'erase';
 
 /** Empty boxes for every subshell from 1s up to `upTo`, in filling order */
 export const emptyDiagram = (upTo: string): Diagram =>
@@ -251,25 +250,25 @@ export const emptyDiagram = (upTo: string): Diagram =>
     boxes: Array.from({ length: orbitalCount(subshell) }, () => []),
   }));
 
-/**
- * Tapping a box with a tool: ↑ or ↓ adds that arrow (a box holds two, and
- * same-spin pairs are allowed so Check can explain them); erase removes the last.
- */
-export function applyTool(
+// each tap moves a box one step round: empty → ↑ → ↑↓ → empty
+const NEXT_SPINS: Spin[][] = [['up'], ['up', 'down'], []];
+
+/** Tapping a box: empty, then ↑, then ↑↓, then empty again */
+export function cycleBox(
   diagram: Diagram,
   subshell: string,
   box: number,
-  tool: Tool,
 ): Diagram {
-  return diagram.map((row) => {
-    if (row.subshell !== subshell) return row;
-    const boxes = row.boxes.map((spins, i) => {
-      if (i !== box) return spins;
-      if (tool === 'erase') return spins.slice(0, -1);
-      return spins.length < 2 ? [...spins, tool] : spins;
-    });
-    return { ...row, boxes };
-  });
+  return diagram.map((row) =>
+    row.subshell !== subshell
+      ? row
+      : {
+          ...row,
+          boxes: row.boxes.map((spins, i) =>
+            i === box ? NEXT_SPINS[spins.length] : spins,
+          ),
+        },
+  );
 }
 
 /** How many electrons a drawn diagram puts in each subshell */
@@ -281,13 +280,7 @@ export const diagramOccupancy = (diagram: Diagram): Occupancy =>
     }))
     .filter((o) => o.electrons > 0);
 
-export type Rule =
-  | 'count'
-  | 'pauli'
-  | 'hund'
-  | 'aufbau'
-  | 'subshell'
-  | 'notation';
+export type Rule = 'count' | 'hund' | 'aufbau' | 'subshell' | 'notation';
 export type Problem = { rule: Rule; subshell?: string; message: string };
 
 const countIn = (occ: Occupancy, subshell: string) =>
@@ -321,27 +314,13 @@ export function checkDiagram(
     });
   }
 
+  // the tap cycle always pairs ↑ with ↓, so Pauli can't break; Hund can
   for (const { subshell, boxes } of diagram) {
-    if (boxes.some((s) => s.length === 2 && s[0] === s[1])) {
-      problems.push({
-        rule: 'pauli',
-        subshell,
-        message: 'Two electrons in one box must spin opposite ways (↑↓).',
-      });
-    }
     if (boxes.some((s) => s.length === 2) && boxes.some((s) => !s.length)) {
       problems.push({
         rule: 'hund',
         subshell,
         message: `In ${subshell}, put one electron in each box before pairing.`,
-      });
-    }
-    const singles = boxes.filter((s) => s.length === 1).map((s) => s[0]);
-    if (new Set(singles).size > 1) {
-      problems.push({
-        rule: 'hund',
-        subshell,
-        message: `Single electrons in ${subshell} should all spin the same way.`,
       });
     }
   }
