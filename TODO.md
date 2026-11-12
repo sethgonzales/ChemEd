@@ -38,3 +38,7 @@
 - [ ] Mark placeholder simulations as "Coming soon"
 - [ ] Replace the default README
 - [ ] Migrate `next lint` (deprecated) to the ESLint CLI
+- [ ] create a checkbox component that fits the app theme... 
+- [x] remove esc as a way to exit simulations... 
+- [ ] explore new text theme, make the app feel more like a dungeon crawler sciencey, make the cards more artful and colorful and remove or change sounds to be more like a dungeon.
+- [x] mr g avatar needs to have more of a brushed to one side hair style not so symetrical
