@@ -393,10 +393,10 @@ export function checkDiagram(
   return { correct: problems.length === 0, problems };
 }
 
-const MIN_ROWS = 3; // 1s, 2s, 2p
+const MIN_ROWS = rank('5s') + 1; // 1s to 5s, enough for elements up to Sr
 const ROWS_AHEAD = 2; // empty subshells shown above the highest drawn in
 
-/** The rows to draw: up to two past the highest with electrons, so room grows as students fill */
+/** The rows to draw: 1s to 5s, or two past the highest with electrons once drawing goes higher */
 export function visibleRows(diagram: Diagram): Diagram {
   const highest = diagram.findLastIndex((r) => r.boxes.some((s) => s.length));
   return diagram.slice(0, Math.max(MIN_ROWS, highest + 1 + ROWS_AHEAD));

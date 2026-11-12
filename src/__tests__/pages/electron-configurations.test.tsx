@@ -171,12 +171,13 @@ describe('Electron Configurations page: Build', () => {
     expect(box('1s box 1: empty')).toBeInTheDocument();
   });
 
-  it('adds rows above as the drawing grows', async () => {
+  it('shows rows up to 5s, adding more above as the drawing grows', async () => {
     await startBuild();
-    expect(screen.queryByRole('button', { name: /^3s box/ })).toBeNull();
-    await tap('2p box 1: empty');
-    expect(box('3s box 1: empty')).toBeInTheDocument();
-    expect(box('3p box 1: empty')).toBeInTheDocument();
+    expect(box('5s box 1: empty')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^4d box/ })).toBeNull();
+    await tap('5s box 1: empty');
+    expect(box('4d box 1: empty')).toBeInTheDocument();
+    expect(box('5p box 1: empty')).toBeInTheDocument();
   });
 
   it('explains a mistake and marks its row', async () => {

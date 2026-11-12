@@ -292,13 +292,28 @@ describe('Build mode', () => {
   describe('visibleRows', () => {
     const shown = (d: Diagram) => visibleRows(d).map((r) => r.subshell);
 
-    it('starts with 1s to 2p', () => {
-      expect(shown(emptyDiagram('7p'))).toEqual(['1s', '2s', '2p']);
+    it('starts with 1s to 5s, enough for elements up to strontium', () => {
+      expect(shown(emptyDiagram('7p'))).toEqual([
+        '1s',
+        '2s',
+        '2p',
+        '3s',
+        '3p',
+        '4s',
+        '3d',
+        '4p',
+        '5s',
+      ]);
     });
 
-    it('shows the next two subshells above the highest one drawn in', () => {
-      const d = cycleBox(emptyDiagram('7p'), '3p', 0);
-      expect(shown(d).slice(-3)).toEqual(['3p', '4s', '3d']);
+    it('keeps that size while drawing below 5s', () => {
+      const d = cycleBox(emptyDiagram('7p'), '3d', 0);
+      expect(shown(d).at(-1)).toBe('5s');
+    });
+
+    it('grows two subshells past the highest one drawn in, beyond 5s', () => {
+      const d = cycleBox(emptyDiagram('7p'), '5s', 0);
+      expect(shown(d).slice(-3)).toEqual(['5s', '4d', '5p']);
     });
 
     it('stops at 7p', () => {
