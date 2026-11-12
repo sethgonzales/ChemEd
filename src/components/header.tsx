@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react';
 
 import { findElementsBySymbol, formatAtomicMass } from '~/utils';
 import { ThemeSelect } from '~/components/theme-select';
-import { useChime } from '~/utils/sounds';
+import MuteButton from '~/components/mute-button';
+import { useBloop } from '~/utils/sounds';
 
 import { IElementData } from '~/types';
 
@@ -15,14 +16,9 @@ const getColorByElement = (atomicNumber: number) =>
 
 function ElementCard({ element }: { element: IElementData }) {
   const [color, setColor] = useState(getColorByElement(element.atomicNumber));
-  const playChime = useChime();
 
-  const handleHover = () => {
-    setColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
-    playChime();
-  };
-
-  const handleHoverOut = () =>
+  // a new colour on the way in and out; silent, since sounds are for clicks
+  const shuffle = () =>
     setColor(COLORS[Math.floor(Math.random() * COLORS.length)]);
 
   const hideSecondLetter = ['Mn', 'Eu', 'Db'].includes(element.symbol);
@@ -31,8 +27,8 @@ function ElementCard({ element }: { element: IElementData }) {
     <div
       className="w-14 h-20 sm:w-16 sm:h-21 flex flex-col gap-0.5 items-center justify-center font-pixel text-xs truncate text-center text-white pixel-control hover:translate-y-1.5 transition-transform duration-200"
       style={{ backgroundColor: color }}
-      onMouseEnter={handleHover}
-      onMouseLeave={handleHoverOut}
+      onMouseEnter={shuffle}
+      onMouseLeave={shuffle}
     >
       <h5 className="opacity-50">{element.atomicNumber}</h5>
       <h1 className="text-2xl leading-6">
@@ -55,21 +51,28 @@ export default function Header() {
   const elements = useMemo<IElementData[]>(() => {
     return findElementsBySymbol(HEADER_ELEMENTS) as IElementData[];
   }, []);
+  const playBloop = useBloop();
 
   return (
-    <Link href="/">
-      <header className="flex flex-col sm:flex-row gap-4 justify-between items-center sm:items-end w-full py-4 px-6 bg-primary-500 text-secondary-500 sticky top-0 z-999 cursor-pointer">
-        <div className="flex flex-row gap-1">
-          {elements?.map((e) => (
-            <ElementCard key={e.atomicNumber} element={e} />
-          ))}
-        </div>
+    <header className="flex flex-col sm:flex-row gap-4 justify-between items-center sm:items-end w-full py-4 px-6 bg-primary-500 text-secondary-500 sticky top-0 z-999">
+      <Link
+        href="/"
+        aria-label="ChemEd home"
+        onClick={playBloop}
+        className="flex flex-row gap-1"
+      >
+        {elements?.map((e) => (
+          <ElementCard key={e.atomicNumber} element={e} />
+        ))}
+      </Link>
+      <div className="flex gap-2 w-full sm:w-auto">
         <ThemeSelect />
-        <div
-          aria-hidden="true"
-          className="ooze-drips absolute inset-x-0 top-full"
-        />
-      </header>
-    </Link>
+        <MuteButton />
+      </div>
+      <div
+        aria-hidden="true"
+        className="ooze-drips absolute inset-x-0 top-full"
+      />
+    </header>
   );
 }

@@ -7,6 +7,9 @@ import {
 } from '~/utils/guide';
 import { GuideProvider, useGuide } from './guide';
 
+const playTreasure = jest.fn();
+jest.mock('~/utils/sounds', () => ({ useTreasureSound: () => playTreasure }));
+
 function mockScreen({ desktop = true, reducedMotion = false } = {}) {
   window.matchMedia = jest.fn((query: string) => ({
     matches: query.includes('min-width')
@@ -31,6 +34,7 @@ function Page() {
   return (
     <>
       <button onClick={() => say(HINT, 'hint')}>Get a hint</button>
+      <button onClick={() => say('Balanced!', 'cheer')}>Balance it</button>
       {['A', 'B'].map((name) => (
         <button
           key={name}
@@ -71,6 +75,7 @@ const closeBubble = () =>
 beforeEach(() => {
   jest.useFakeTimers();
   localStorage.clear();
+  playTreasure.mockClear();
   sessionStorage.clear();
   mockScreen();
 });
@@ -169,6 +174,21 @@ describe('Mr. G guide', () => {
     renderGuide();
     fireEvent.click(screen.getByRole('button', { name: 'Get a hint' }));
     expect(bubble()).toHaveTextContent(HINT);
+  });
+
+  it('plays the treasure sound when he cheers, but not for hints', () => {
+    renderGuide();
+    fireEvent.click(screen.getByRole('button', { name: 'Get a hint' }));
+    expect(playTreasure).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Balance it' }));
+    expect(playTreasure).toHaveBeenCalledTimes(1);
+  });
+
+  it('plays the treasure sound on phones too, where he is off screen', () => {
+    mockScreen({ desktop: false });
+    renderGuide();
+    fireEvent.click(screen.getByRole('button', { name: 'Balance it' }));
+    expect(playTreasure).toHaveBeenCalledTimes(1);
   });
 
   it('closes the bubble by itself after a while', () => {

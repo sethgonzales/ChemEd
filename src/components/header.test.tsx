@@ -3,8 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '~/styles/theme-provider';
 import Header from './header';
 
-const playChime = jest.fn();
-jest.mock('~/utils/sounds', () => ({ useChime: () => playChime }));
+const playBloop = jest.fn();
+jest.mock('~/utils/sounds', () => ({
+  ...jest.requireActual('~/utils/sounds'),
+  useBloop: () => playBloop,
+}));
+
+beforeEach(() => playBloop.mockClear());
 
 function renderHeader() {
   render(
@@ -30,13 +35,25 @@ describe('Header', () => {
 
   it('links to the home page', () => {
     renderHeader();
-    expect(screen.getAllByRole('link')[0]).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'ChemEd home' })).toHaveAttribute(
+      'href',
+      '/',
+    );
   });
 
-  it('plays a chime when an element tile is hovered', async () => {
+  it('bloops when an element tile is clicked, but not on hover', async () => {
     renderHeader();
     await userEvent.hover(screen.getByText('Carbon'));
-    expect(playChime).toHaveBeenCalled();
+    expect(playBloop).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByText('Carbon'));
+    expect(playBloop).toHaveBeenCalled();
+  });
+
+  it('has a mute switch for the sounds', () => {
+    renderHeader();
+    expect(
+      screen.getByRole('button', { name: 'Mute sounds' }),
+    ).toBeInTheDocument();
   });
 
   it('includes the theme selector', () => {

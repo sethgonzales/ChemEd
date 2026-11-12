@@ -21,6 +21,7 @@ import {
 } from '~/utils/guide';
 import { useEscape } from '~/utils/use-escape';
 import { useMedia } from '~/utils/use-media';
+import { useTreasureSound } from '~/utils/sounds';
 
 export type Mood = 'tip' | 'hint' | 'cheer' | 'nudge';
 
@@ -345,6 +346,7 @@ export function GuideProvider({
     }
   };
 
+  const playTreasure = useTreasureSound();
   const lastUnprompted = useRef<number | null>(null);
   const say = useCallback(
     (text: string, mood: Mood = 'tip', { unprompted }: SayOptions = {}) => {
@@ -354,9 +356,11 @@ export function GuideProvider({
         if (last !== null && now - last < UNPROMPTED_GAP_MS) return;
         lastUnprompted.current = now;
       }
+      // successes ring out even on phones, where he isn't on screen
+      if (mood === 'cheer') playTreasure();
       setMessage({ text, mood, id: Date.now() });
     },
-    [],
+    [playTreasure],
   );
   const close = useCallback(() => setMessage(null), []);
 

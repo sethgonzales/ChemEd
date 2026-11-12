@@ -1,12 +1,14 @@
-import { useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-// Low, echoing sounds, so the app sounds like a stone dungeon: tones for
-// hovering the header's element tiles, and a heavy door for opening a simulation.
+// Low, echoing sounds, so the app sounds like a stone dungeon. Sounds play only
+// on clicks and successes, never on hover, and a mute switch silences them all.
 
 const ECHO_DELAY = 0.22; // s between echoes, like a stone corridor
 const ECHO_FEEDBACK = 0.35; // each echo this much quieter than the last
 const ECHO_LOWPASS = 900; // Hz; stone swallows the highs
+const TREASURE_NOTE = 0.09; // s between arpeggio notes
 
+const MUTED_KEY = 'chem.sound.muted';
 type Voice = (ctx: AudioContext, out: AudioNode, time: number) => void;
 
 /** A decaying tone into `out` */
@@ -40,33 +42,27 @@ function tone(
   osc.stop(t + length);
 }
 
-const HOVER_VOICES: Voice[] = [
-  // stone gong
-  (ctx, out, t) => {
-    tone(ctx, out, t, { from: 98, volume: 0.22, length: 1.4 });
-    tone(ctx, out, t, { from: 147, volume: 0.08, length: 1 });
-  },
-  // deep bell
-  (ctx, out, t) => {
-    tone(ctx, out, t, {
-      type: 'triangle',
-      from: 131,
-      volume: 0.16,
-      length: 1.1,
-    });
-    tone(ctx, out, t, { from: 196, to: 190, volume: 0.06, length: 0.8 });
-  },
-  // a drip somewhere in the dark
+// a potion bubbling: a soft pitch sweeping up, sometimes twice
+const BLOOP_VOICES: Voice[] = [
   (ctx, out, t) =>
-    tone(ctx, out, t, { from: 392, to: 196, volume: 0.12, length: 0.15 }),
-  // low minor chord
+    tone(ctx, out, t, { from: 220, to: 660, volume: 0.14, length: 0.12 }),
   (ctx, out, t) => {
-    tone(ctx, out, t, { from: 110, volume: 0.12, length: 0.9 });
-    tone(ctx, out, t, { from: 131, volume: 0.1, length: 0.9 });
+    tone(ctx, out, t, { from: 196, to: 523, volume: 0.12, length: 0.1 });
+    tone(ctx, out, t + 0.11, { from: 262, to: 784, volume: 0.1, length: 0.1 });
   },
-  // rumbling thud
+];
+
+// "treasure found": a square-wave C major arpeggio, like an 8-bit game
+const TREASURE_VOICES: Voice[] = [
   (ctx, out, t) =>
-    tone(ctx, out, t, { from: 70, to: 45, volume: 0.3, length: 0.5 }),
+    [523, 659, 784, 1047].forEach((hz, i) =>
+      tone(ctx, out, t + i * TREASURE_NOTE, {
+        type: 'square',
+        from: hz,
+        volume: 0.05,
+        length: i === 3 ? 0.4 : 0.15,
+      }),
+    ),
 ];
 
 /** Sends `input` to the speakers, plus fading echoes */
@@ -100,12 +96,43 @@ const DOOR_VOICES: Voice[] = [
   },
 ];
 
+/** Whether the student has turned sounds off in this browser */
+export function isMuted() {
+  try {
+    return localStorage.getItem(MUTED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setMuted(muted: boolean) {
+  try {
+    localStorage.setItem(MUTED_KEY, String(muted));
+  } catch {
+    // storage can be blocked; the setting just won't be remembered
+  }
+}
+
+/** The mute switch: [muted, toggle] */
+export function useMuted() {
+  const [muted, setState] = useState(false);
+  // read after mount, so the server render and first client render match
+  useEffect(() => setState(isMuted()), []);
+  const toggle = () => {
+    setMuted(!muted);
+    setState(!muted);
+  };
+  return [muted, toggle] as const;
+}
+
 /** Plays a random one of these voices through the dungeon echo */
 function useSound(voices: Voice[]) {
   // one context and one echo, reused for every play
   const audio = useRef<{ ctx: AudioContext; echo: AudioNode } | null>(null);
 
-  return () => {
+  // stable, so callers can list it as an effect or callback dependency
+  return useCallback(() => {
+    if (isMuted() || typeof AudioContext === 'undefined') return;
     if (!audio.current) {
       const ctx = new AudioContext();
       audio.current = { ctx, echo: withEcho(ctx) };
@@ -113,11 +140,14 @@ function useSound(voices: Voice[]) {
     const { ctx, echo } = audio.current;
     const voice = voices[Math.floor(Math.random() * voices.length)];
     voice(ctx, echo, ctx.currentTime);
-  };
+  }, [voices]);
 }
 
-/** Hovering a header tile */
-export const useChime = () => useSound(HOVER_VOICES);
+/** Clicking a header tile */
+export const useBloop = () => useSound(BLOOP_VOICES);
 
 /** Opening a simulation's door */
 export const useDoorSound = () => useSound(DOOR_VOICES);
+
+/** A success: balanced, a correct structure */
+export const useTreasureSound = () => useSound(TREASURE_VOICES);

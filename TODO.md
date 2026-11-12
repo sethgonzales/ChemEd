@@ -8,6 +8,7 @@
 - [x] **Chemical Reactions**, currently the Reaction Balancing activity: practice levels, your own equation, Show answer, and a balance-beam scale that only levels when every element matches ([plan](docs/plans/reaction-balancing.md))
 - [ ] **Electron Configurations** (sealed "Coming soon" door for now)
 - [ ] **Titrations** (sealed "Coming soon" door for now)
+- [ ] **Electrochemistry**: interactive animations of different kinds of cells to test, with zoom into particle representations of how atoms and electrons move during the redox reaction inside each cell
 
 ## Improvements
 
@@ -22,7 +23,7 @@
 - [x] Home map: chamber doors with their own colours, torchlight hover, sealed doors for unbuilt simulations
 - [x] Pixel-art door illustrations
 - [x] Dungeon colour theme (the default), with readable text in every theme
-- [ ] Sounds: a mute button, a "treasure found" sound on successes, and no hover sounds
+- [x] Sounds: a mute button, a "treasure found" sound on successes, and no hover sounds
 
 ## Integrations and accounts
 
