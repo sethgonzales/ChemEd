@@ -4,11 +4,15 @@ import ElectronConfigurations from '~/pages/electron-configurations';
 import { CONFIGURATION_NUDGE, NUDGE_AFTER_MS } from '~/utils/guide';
 
 const mockSay = jest.fn();
+let mockGuideVisible = false;
 jest.mock('~/components/guide', () => ({
-  useGuide: () => ({ say: mockSay, visible: false }),
+  useGuide: () => ({ say: mockSay, visible: mockGuideVisible }),
 }));
 
-beforeEach(() => mockSay.mockClear());
+beforeEach(() => {
+  mockSay.mockClear();
+  mockGuideVisible = false;
+});
 afterEach(() => jest.useRealTimers());
 
 const button = (name: string) => screen.getByRole('button', { name });
@@ -208,6 +212,22 @@ describe('Electron Configurations page: Build', () => {
         (li) => li.dataset.subshell === '2p' && li.closest('[hidden]') === null,
       )!;
     expect(row).toHaveAttribute('data-problem');
+  });
+
+  it('keeps the feedback short while Mr. G is on screen to explain', async () => {
+    mockGuideVisible = true;
+    await startBuild();
+    await userEvent.click(button('Carbon'));
+    for (const b of ['1s box 1: empty', '1s box 1: up']) await tap(b);
+    for (const b of ['2s box 1: empty', '2s box 1: up']) await tap(b);
+    await tap('2p box 1: empty');
+    await tap('2p box 1: up');
+    await userEvent.click(button('Check'));
+
+    // the row problem goes to Mr. G; the box keeps the rest and points at the red row
+    expect(status()).not.toHaveTextContent('In 2p, put one electron');
+    expect(status()).toHaveTextContent('Type the notation too');
+    expect(status()).toHaveTextContent('Look again at the red row.');
   });
 
   it('shows the answer once an element is picked, and clears it', async () => {

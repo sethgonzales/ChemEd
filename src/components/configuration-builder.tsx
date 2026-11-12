@@ -41,7 +41,7 @@ export default function ConfigurationBuilder() {
   const target = element && groundState(element.atomicNumber);
   const preview = parseConfiguration(typed);
 
-  const { say } = useGuide();
+  const { say, visible: guideShowing } = useGuide();
   // Mr. G offers a way forward once if a student draws for a while without checking
   const [started, setStarted] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -158,9 +158,20 @@ export default function ConfigurationBuilder() {
                 `Correct! That’s ${element?.name}’s configuration.`
               ) : (
                 <ul className="space-y-1">
-                  {feedback.problems.map((p, i) => (
-                    <li key={i}>{p.message}</li>
-                  ))}
+                  {/* with Mr. G on screen, row problems are his to explain;
+                      the box keeps the rest and points at the red rows */}
+                  {feedback.problems
+                    .filter((p) => !guideShowing || !p.subshell)
+                    .map((p, i) => (
+                      <li key={i}>{p.message}</li>
+                    ))}
+                  {guideShowing && flagged.length > 0 && (
+                    <li>
+                      {flagged.length === 1
+                        ? 'Look again at the red row.'
+                        : 'Look again at the red rows.'}
+                    </li>
+                  )}
                 </ul>
               )}
             </div>
