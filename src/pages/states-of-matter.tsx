@@ -52,7 +52,7 @@ export default function StatesOfMatter() {
   useEffect(() => {
     if (phase === announced.current) return;
     const timer = setTimeout(() => {
-      say(phaseMessage(announced.current, phase), 'tip');
+      say(phaseMessage(announced.current, phase), 'tip', { unprompted: true });
       announced.current = phase;
     }, PHASE_SETTLE_MS);
     return () => clearTimeout(timer);

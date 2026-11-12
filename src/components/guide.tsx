@@ -12,6 +12,7 @@ import { IconX } from '@tabler/icons-react';
 import MrG from '~/components/mr-g';
 import { PALETTE, type Frame } from '~/constants/mr-g-sprite';
 import {
+  UNPROMPTED_GAP_MS,
   WELCOME_DELAY_MS,
   bubbleDuration,
   nextWanderX,
@@ -24,10 +25,16 @@ export type Mood = 'tip' | 'hint' | 'cheer' | 'nudge';
 
 type Message = { text: string; mood: Mood; id: number };
 
-type Guide = { say: (text: string, mood?: Mood) => void };
+// unprompted: he speaks up without the student asking or acting, so it's rationed
+type SayOptions = { unprompted?: boolean };
 
-// Without a provider (phones, tests), asking Mr. G to speak does nothing
-const GuideContext = createContext<Guide>({ say: () => {} });
+type Guide = {
+  say: (text: string, mood?: Mood, options?: SayOptions) => void;
+  visible: boolean; // on screen (desktop, not hidden), so pages can lean on him
+};
+
+// Without a provider (tests), asking Mr. G to speak does nothing
+const GuideContext = createContext<Guide>({ say: () => {}, visible: false });
 
 /** Lets any page ask Mr. G to say something */
 export const useGuide = () => useContext(GuideContext);
@@ -176,15 +183,19 @@ function Corner({
   message,
   say,
   close,
+  desktop,
+  hidden,
+  hide,
 }: {
   page?: string;
   message: Message | null;
   say: Guide['say'];
   close: () => void;
+  desktop: boolean;
+  hidden: boolean;
+  hide: (hidden: boolean) => void;
 }) {
-  const desktop = useMedia('(min-width: 768px)');
   const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
-  const [hidden, setHidden] = useState(false);
   const [frame, setFrame] = useState<Frame>('idle');
   const [x, setX] = useState(0);
   const [facingLeft, setFacingLeft] = useState(false);
@@ -194,17 +205,6 @@ function Corner({
   useEffect(() => {
     talking.current = !!message;
   }, [message]);
-
-  useEffect(() => setHidden(readHidden()), []);
-
-  const hide = (value: boolean) => {
-    setHidden(value);
-    try {
-      localStorage.setItem(HIDDEN_KEY, String(value));
-    } catch {
-      // storage can be blocked; he just won't stay hidden next visit
-    }
-  };
 
   const active = desktop && !hidden;
 
@@ -344,17 +344,45 @@ export function GuideProvider({
   children: ReactNode;
 }) {
   const [message, setMessage] = useState<Message | null>(null);
+  const desktop = useMedia('(min-width: 768px)');
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => setHidden(readHidden()), []);
+  const hide = (value: boolean) => {
+    setHidden(value);
+    try {
+      localStorage.setItem(HIDDEN_KEY, String(value));
+    } catch {
+      // storage can be blocked; he just won't stay hidden next visit
+    }
+  };
+
+  const lastUnprompted = useRef<number | null>(null);
   const say = useCallback(
-    (text: string, mood: Mood = 'tip') =>
-      setMessage({ text, mood, id: Date.now() }),
+    (text: string, mood: Mood = 'tip', { unprompted }: SayOptions = {}) => {
+      if (unprompted) {
+        const now = Date.now();
+        const last = lastUnprompted.current;
+        if (last !== null && now - last < UNPROMPTED_GAP_MS) return;
+        lastUnprompted.current = now;
+      }
+      setMessage({ text, mood, id: Date.now() });
+    },
     [],
   );
   const close = useCallback(() => setMessage(null), []);
 
   return (
-    <GuideContext.Provider value={{ say }}>
+    <GuideContext.Provider value={{ say, visible: desktop && !hidden }}>
       {children}
-      <Corner page={page} message={message} say={say} close={close} />
+      <Corner
+        page={page}
+        message={message}
+        say={say}
+        close={close}
+        desktop={desktop}
+        hidden={hidden}
+        hide={hide}
+      />
     </GuideContext.Provider>
   );
 }

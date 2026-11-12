@@ -1,6 +1,10 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { PAGE_TIPS } from '~/constants/guide-tips';
-import { bubbleDuration, WELCOME_DELAY_MS } from '~/utils/guide';
+import {
+  UNPROMPTED_GAP_MS,
+  bubbleDuration,
+  WELCOME_DELAY_MS,
+} from '~/utils/guide';
 import { GuideProvider, useGuide } from './guide';
 
 function mockScreen({ desktop = true, reducedMotion = false } = {}) {
@@ -23,8 +27,23 @@ function mockScreen({ desktop = true, reducedMotion = false } = {}) {
 const HINT = 'Try changing the coefficient in front of O₂.';
 
 function Page() {
-  const { say } = useGuide();
-  return <button onClick={() => say(HINT, 'hint')}>Get a hint</button>;
+  const { say, visible } = useGuide();
+  return (
+    <>
+      <button onClick={() => say(HINT, 'hint')}>Get a hint</button>
+      {['A', 'B'].map((name) => (
+        <button
+          key={name}
+          onClick={() =>
+            say(`Unprompted ${name}`, 'nudge', { unprompted: true })
+          }
+        >
+          Nudge {name}
+        </button>
+      ))}
+      <p data-testid="visible">{visible ? 'showing' : 'not showing'}</p>
+    </>
+  );
 }
 
 const mrG = () => screen.queryByRole('button', { name: /^Mr\. G/ });
@@ -221,5 +240,40 @@ describe('Mr. G guide', () => {
     expect(() =>
       fireEvent.click(screen.getByRole('button', { name: 'Get a hint' })),
     ).not.toThrow();
+  });
+
+  it('speaks unprompted at most once every two minutes', () => {
+    renderGuide();
+    fireEvent.click(screen.getByRole('button', { name: 'Nudge A' }));
+    expect(bubble()).toHaveTextContent('Unprompted A');
+    closeBubble();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nudge B' }));
+    expect(bubble()).toBeNull();
+
+    act(() => jest.advanceTimersByTime(UNPROMPTED_GAP_MS));
+    fireEvent.click(screen.getByRole('button', { name: 'Nudge B' }));
+    expect(bubble()).toHaveTextContent('Unprompted B');
+  });
+
+  it('always answers when asked, even just after speaking unprompted', () => {
+    renderGuide();
+    fireEvent.click(screen.getByRole('button', { name: 'Nudge A' }));
+    closeBubble();
+    fireEvent.click(screen.getByRole('button', { name: 'Get a hint' }));
+    expect(bubble()).toHaveTextContent(HINT);
+  });
+
+  it('tells pages whether he is on screen', () => {
+    const { unmount } = renderGuide();
+    expect(screen.getByTestId('visible')).toHaveTextContent(/^showing/);
+    fireEvent.click(screen.getByRole('button', { name: 'Hide Mr. G' }));
+    expect(screen.getByTestId('visible')).toHaveTextContent('not showing');
+    unmount();
+
+    localStorage.clear();
+    mockScreen({ desktop: false });
+    renderGuide();
+    expect(screen.getByTestId('visible')).toHaveTextContent('not showing');
   });
 });

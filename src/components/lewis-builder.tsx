@@ -12,7 +12,8 @@ import LewisToolbar, {
 } from '~/components/lewis-toolbar';
 import { cn } from '~/utils/cn';
 import { PIXEL_CONTROL } from '~/utils/pixel';
-import { checkMessage } from '~/utils/guide';
+import { CHECK_NUDGE, checkMessage } from '~/utils/guide';
+import { useGuideNudge } from '~/utils/use-guide-message';
 import type { Feedback, LewisStructure, Verdict } from '~/utils/lewis';
 import {
   formsReducer,
@@ -88,8 +89,13 @@ export default function LewisBuilder({
   const svgRef = useRef<SVGSVGElement>(null);
   const editor = state.forms[state.active];
   const { structure } = editor;
-  const dispatch = (action: EditorAction) =>
+  // the student has started drawing (the quiz starts with a skeleton already there)
+  const [edited, setEdited] = useState(false);
+  const dispatch = (action: EditorAction) => {
+    setEdited(true);
     dispatchForms({ type: 'edit', action });
+  };
+  useGuideNudge(active && edited && checked === null, CHECK_NUDGE);
 
   const selectTool = (t: Tool) => {
     setTool(t);

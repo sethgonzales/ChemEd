@@ -121,3 +121,10 @@ export const phaseMessage = (from: Phase, to: Phase) =>
 export const CHEER_DELAY_MS = 500; // a beat after the last change, so it lands on the result
 export const HINT_PAUSE_MS = 3000; // hints wait until the student stops changing things
 export const PHASE_SETTLE_MS = 800; // let the slider settle before naming a phase change
+export const UNPROMPTED_GAP_MS = 120000; // at most one unprompted message every 2 minutes
+export const NUDGE_AFTER_MS = 60000; // stuck this long, and he offers a way forward
+
+export const BALANCE_NUDGE =
+  'Stuck? Balance an element that’s in just one molecule on each side first, and save H and O for last.';
+export const CHECK_NUDGE =
+  'Looking good so far! Press Check your work whenever you want me to take a look.';

@@ -140,6 +140,7 @@ describe('States of Matter page: Mr. G', () => {
     expect(mockSay).toHaveBeenCalledWith(
       expect.stringMatching(/boiling/),
       'tip',
+      { unprompted: true }, // nobody asked, so it's rationed
     );
   });
 

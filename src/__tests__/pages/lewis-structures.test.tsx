@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { NUDGE_AFTER_MS } from '~/utils/guide';
 import userEvent from '@testing-library/user-event';
 import { LEVELS, MOLECULES } from '~/constants/molecules';
 import LewisStructures from '~/pages/lewis-structures';
@@ -990,6 +991,33 @@ describe('Lewis Structures page: layout', () => {
 
 describe('Lewis Structures page: Mr. G', () => {
   beforeEach(() => mockSay.mockClear());
+
+  describe('nudges', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => jest.useRealTimers());
+
+    const nudges = () =>
+      mockSay.mock.calls.filter(([, mood]) => mood === 'nudge');
+
+    it('suggests checking after a minute of drawing, once', () => {
+      render(<LewisStructures />);
+      drag(tool('Add O'), drawing());
+      act(() => jest.advanceTimersByTime(NUDGE_AFTER_MS + 50));
+      expect(mockSay).toHaveBeenCalledWith(
+        expect.stringMatching(/Check your work/),
+        'nudge',
+        { unprompted: true },
+      );
+      act(() => jest.advanceTimersByTime(NUDGE_AFTER_MS * 3));
+      expect(nudges()).toHaveLength(1);
+    });
+
+    it('waits for the student to start drawing', () => {
+      render(<LewisStructures />);
+      act(() => jest.advanceTimersByTime(NUDGE_AFTER_MS * 2));
+      expect(nudges()).toHaveLength(0);
+    });
+  });
 
   it('reacts when the student checks their work', async () => {
     render(<LewisStructures />);

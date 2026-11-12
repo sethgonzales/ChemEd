@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import { CHEER_DELAY_MS, HINT_PAUSE_MS } from '~/utils/guide';
+import { CHEER_DELAY_MS, HINT_PAUSE_MS, NUDGE_AFTER_MS } from '~/utils/guide';
 import userEvent from '@testing-library/user-event';
 import ChemicalReactions from '~/pages/chemical-reactions';
 
@@ -234,6 +234,7 @@ describe('Chemical Reactions page: Mr. G', () => {
     expect(mockSay).toHaveBeenCalledWith(
       expect.stringMatching(/Hydrogen is off/),
       'hint',
+      { unprompted: true }, // nobody asked, so it's rationed
     );
   });
 
@@ -246,7 +247,30 @@ describe('Chemical Reactions page: Mr. G', () => {
     expect(mockSay).toHaveBeenCalledWith(
       expect.stringMatching(/Balanced/),
       'cheer',
+      { unprompted: false }, // a reaction to what they just did
     );
+  });
+
+  const nudges = () =>
+    mockSay.mock.calls.filter(([, mood]) => mood === 'nudge');
+
+  it('nudges once if the student is stuck for a minute', () => {
+    render(<ChemicalReactions />);
+    fireEvent.click(moreButton('H₂O'));
+    wait(NUDGE_AFTER_MS + 50);
+    expect(mockSay).toHaveBeenCalledWith(expect.any(String), 'nudge', {
+      unprompted: true,
+    });
+    wait(NUDGE_AFTER_MS * 3);
+    expect(nudges()).toHaveLength(1);
+  });
+
+  it('does not nudge once the equation is balanced', () => {
+    render(<ChemicalReactions />);
+    fireEvent.click(moreButton('H₂O'));
+    fireEvent.click(moreButton('H₂'));
+    wait(NUDGE_AFTER_MS * 2);
+    expect(nudges()).toHaveLength(0);
   });
 
   it('stays quiet after Show answer', () => {

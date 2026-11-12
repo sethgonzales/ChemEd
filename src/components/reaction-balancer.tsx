@@ -4,7 +4,12 @@ import Seesaw from '~/components/seesaw';
 import Stage from '~/components/stage';
 import Button from '~/components/button';
 import { cn } from '~/utils/cn';
-import { CHEER_DELAY_MS, HINT_PAUSE_MS, balanceMessage } from '~/utils/guide';
+import {
+  BALANCE_NUDGE,
+  CHEER_DELAY_MS,
+  HINT_PAUSE_MS,
+  balanceMessage,
+} from '~/utils/guide';
 import { formatFormula } from '~/utils/lewis';
 import {
   elementTally,
@@ -13,7 +18,7 @@ import {
   atomTotals,
   type Reaction,
 } from '~/utils/reactions';
-import { useGuideMessage } from '~/utils/use-guide-message';
+import { useGuideMessage, useGuideNudge } from '~/utils/use-guide-message';
 
 interface Props {
   reaction: Reaction;
@@ -59,6 +64,10 @@ export default function ReactionBalancer({ reaction, answer }: Props) {
   useGuideMessage(
     guide,
     guide?.mood === 'cheer' ? CHEER_DELAY_MS : HINT_PAUSE_MS,
+  );
+  useGuideNudge(
+    touched && !revealed && !isBalanced(reaction, coefficients),
+    BALANCE_NUDGE,
   );
 
   const set = (i: number, value: string) => {
