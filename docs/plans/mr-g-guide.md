@@ -19,7 +19,7 @@ Mr. G is an 8-bit version of Seth who lives in the bottom corner of every page o
 
 ## Where and when
 
-- Fixed to the **bottom-left corner**, desktop only. He's hidden below the `md` breakpoint, so phones never see him.
+- Fixed to the **bottom-right corner**, desktop only. He's hidden below the `md` breakpoint, so phones never see him.
 - Wanders a short way along the bottom edge now and then (every 20–40 s), then settles. He never walks over the main buttons.
 - **Speech bubble** above him, with the name "Mr. G" and a short message. It closes on its own after a few seconds (longer for longer messages), or with ✕ or Escape.
 - **Clicking Mr. G** gives a tip for the current page.
@@ -62,13 +62,13 @@ Mr. G is an 8-bit version of Seth who lives in the bottom corner of every page o
 
 1. **Sprite:** the pixel map, palette and animation frames for Mr. G, reviewed by Seth from screenshots before anything else.
 2. **Guide shell:** the provider, the bubble, placement, desktop only, hiding, wandering and reduced motion.
-3. **Page tips:** welcome and on-click tips for Home, Periodic Table, States of Matter, Lewis Structures and Chemical Reactions.
+3. **Page tips** (done): welcome and on-click tips for Home, Periodic Table, States of Matter, Lewis Structures and Chemical Reactions. The tips live in `src/constants/guide-tips.ts`. He introduces himself once per browser tab, welcomes you to each page once, and clicking him cycles through that page's tips.
 4. **Simulation events:** balancing hints and cheers, Lewis _Check your work_ hints and cheers, States of Matter phase changes ("It's melting!").
 5. **Polish:** the throttling rules, nudges when stuck, and a final review.
 
 ## Decisions (11 Nov 2026)
 
-1. **Likeness:** square face with a rounded top, short dark brown hair with goggles pushed up on it, blue-gray eyes, light stubble down both sides of the face with a separate mustache, and a light blue lab coat worn open over a red flannel shirt.
-2. **Corner:** bottom-left.
+1. **Likeness:** oval face, short medium-brown hair brushed over to one side with goggles pushed up on it, soft, raised and arched eyebrows, blue-gray eyes, light stubble down both sides of the face with a mustache that runs down beside the mouth into the chin stubble, and a light blue lab coat worn open over a red flannel shirt.
+2. **Corner:** bottom-right (moved from bottom-left, where he covered more of the pages).
 3. **Hints on desktop:** Mr. G gives the friendly hint; the page keeps a short status line. Phones keep the full hints.
 4. **How chatty:** a welcome tip per simulation, plus hints and cheers. Scale back if it turns out to be too much.

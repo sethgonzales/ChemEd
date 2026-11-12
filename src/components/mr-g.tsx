@@ -44,6 +44,7 @@ export default function MrG({ frame = 'idle', height = 96, className }: Props) {
       width={(height * SPRITE_WIDTH) / SPRITE_HEIGHT}
       height={height}
       shapeRendering="crispEdges"
+      data-frame={frame}
       className={className}
     >
       {runs(FRAMES[frame]).map((r) => (
