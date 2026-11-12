@@ -268,6 +268,7 @@ export default function LewisStructures() {
 
   return (
     <Container
+      backHref="/"
       header="Lewis Structures"
       description="Draw Lewis structures with atoms, bonds and electrons, then check your work."
       className="gap-4"

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import Container from './container';
 
 describe('Container', () => {
@@ -23,5 +23,43 @@ describe('Container', () => {
     );
     const heading = screen.getByRole('heading', { name: 'States of Matter' });
     expect(heading.nextElementSibling).toHaveTextContent('Heat it up.');
+  });
+
+  describe('back arrow', () => {
+    let click: jest.SpyInstance;
+    beforeEach(() => {
+      // jsdom can't navigate, so record the click on the back link instead
+      click = jest
+        .spyOn(HTMLAnchorElement.prototype, 'click')
+        .mockImplementation(() => {});
+    });
+    afterEach(() => click.mockRestore());
+
+    const back = () =>
+      screen.queryByRole('link', { name: 'Back to simulations' });
+
+    it('has a back arrow beside the header', () => {
+      render(
+        <Container header="Titrations" backHref="/">
+          content
+        </Container>,
+      );
+      expect(back()).toHaveAttribute('href', '/');
+    });
+
+    it('has no back arrow unless given somewhere to go', () => {
+      render(<Container header="Titrations">content</Container>);
+      expect(back()).toBeNull();
+    });
+
+    it('stays on the page when Escape is pressed', () => {
+      render(
+        <Container header="Titrations" backHref="/">
+          content
+        </Container>,
+      );
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(click).not.toHaveBeenCalled();
+    });
   });
 });

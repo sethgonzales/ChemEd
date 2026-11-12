@@ -136,6 +136,7 @@ function OwnEquation() {
 export default function ChemicalReactions() {
   return (
     <Container
+      backHref="/"
       header="Chemical Reactions"
       description="Balance equations: change the coefficients until every element has the same number of atoms on both sides."
       className="gap-4"

@@ -216,7 +216,7 @@ export default function PeriodicTable() {
   const cols = Array.from({ length: 18 }, (_, i) => i + 1);
 
   return (
-    <Container header="Periodic Table" className="gap-4">
+    <Container backHref="/" header="Periodic Table" className="gap-4">
       <Legend />
 
       <div className="flex flex-col lg:flex-row gap-4">
