@@ -1,6 +1,6 @@
 # Electron Configurations — plan
 
-Status: **approved** (12 Nov 2026), see Decisions
+Status: **in progress** (12 Nov 2026): phases 1–2 built, see Decisions
 
 Students see how electrons fill an atom's orbitals, then fill them in themselves. The page opens the sealed Electron Configurations door on the home map.
 
@@ -17,7 +17,7 @@ Two modes, as `Tabs`:
    - full notation: 1s² 2s² 2p⁶ 3s¹
    - noble-gas shorthand: [Ne] 3s¹
    - valence electrons, and the block (s, p, d, f), coloured like the Periodic Table
-5. **Exceptions** (Cr, Cu, Mo, Ag, Au, …) get a short note: "Chromium is an exception: a half-filled 3d is more stable, so it's [Ar] 3d⁵ 4s¹, not 3d⁴ 4s²." A **Show Aufbau prediction** switch compares the two.
+5. **Exceptions** (Cr, Cu, Mo, Ag, Au, …) get a short note: "Chromium is an exception: a half-filled 3d is more stable, so it's [Ar] 3d⁵ 4s¹, not 3d⁴ 4s²." The note shows the Aufbau prediction next to the real configuration (this replaced a planned "Show Aufbau prediction" switch, which added nothing for the other elements).
 6. **Orbitals / Shells** view switch: the **Bohr shell view** draws the nucleus with electrons on rings by n (2, 8, 18, …), next to the same notation. New electrons drop onto their ring just as they do into boxes.
 
 ### Build (practice)
@@ -53,14 +53,14 @@ Data: every element already has a ground-state `electronConfiguration` (includin
 ## UI
 
 - `Container` with the title and one line: "See how electrons fill an atom's orbitals, then fill them in yourself."
-- `Tabs` (Explore, Build), then `Dropdown`s, then the `Stage` with the diagram and readouts, then one row of `Button`s (◀ Previous / Next ▶, or Check (main) / Show answer / Clear), then `Setting`s (Show Aufbau prediction).
+- `Tabs` (Explore, Build), then `Dropdown`s, then the `Stage` with the diagram and readouts, then one row of `Button`s (◀ Previous / Next ▶, or Check (main) / Show answer / Clear). In Explore, the mini periodic table is the picker.
 - Phones: rows of boxes wrap. Elements up to Kr fit without wrapping at 390 px; f-block rows (7 boxes) wrap under their label. No sideways scroll.
 - New components: `OrbitalDiagram` (boxes, arrows, drop-in animation, tools), `ShellDiagram` (Bohr rings) and `MiniPeriodicTable` (the picker). The Periodic Table page then uses the shared `formatConfiguration` instead of its own superscript formatter. The page stays a thin wrapper.
 
 ## Phases (each test-first)
 
-1. **Engine:** order, parse, format, Aufbau prediction, exceptions, Hund diagram, ions, plus the data test over all 118 elements.
-2. **Explore:** page shell, mini periodic table picker, `OrbitalDiagram` (read-only), readouts, Previous/Next, unseal the door.
+1. **Engine** (done): order, parse, format, Aufbau prediction, exceptions, Hund diagram, ions, plus the data test over all 118 elements.
+2. **Explore** (done): page shell, mini periodic table picker, `OrbitalDiagram` (read-only), readouts, Previous/Next, unseal the door.
 3. **Drop-in animation**, with reduced motion respected.
 4. **Shell view:** `ShellDiagram` and the Orbitals / Shells switch.
 5. **Build:** ↑ / ↓ / Erase tools, typed notation, `checkDiagram` (count, Aufbau, Pauli, Hund, notation), Check / Show answer, levels 1–3.

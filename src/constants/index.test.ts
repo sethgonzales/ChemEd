@@ -31,7 +31,6 @@ describe('SIMULATIONS', () => {
 
   it('seals the simulations that are not built yet', () => {
     expect(SIMULATIONS.filter((s) => !s.ready).map((s) => s.title)).toEqual([
-      'Electron Configurations',
       'Titrations',
     ]);
   });

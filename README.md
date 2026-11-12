@@ -12,7 +12,7 @@ Everything works on phones (touch input, narrow screens) and by keyboard.
 | States of Matter        | Built       | Heat or cool a substance and watch its particles change phase, with a °C / K readout.                                |
 | Lewis Structures        | Built       | Draw structures (atoms, bonds, lone pairs, charges, resonance forms with curved arrows), check them, or take a quiz. |
 | Chemical Reactions      | Built       | Balance equations on a balance-beam scale: practice levels, or type your own equation.                               |
-| Electron Configurations | Coming soon | Sealed door on the home page.                                                                                        |
+| Electron Configurations | In progress | Pick an element to see its orbital diagram, notation and any exception to the filling order.                         |
 | Titrations              | Coming soon | Sealed door on the home page.                                                                                        |
 
 ## Getting started

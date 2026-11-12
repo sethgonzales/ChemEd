@@ -35,7 +35,7 @@ export const SIMULATIONS: Simulation[] = [
     path: '/electron-configurations',
     art: 'electrons',
     color: '#a855f7', // purple
-    ready: false,
+    ready: true,
   },
   {
     title: 'Chemical Reactions',

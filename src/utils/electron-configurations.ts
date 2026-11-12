@@ -206,3 +206,7 @@ export function ionConfiguration(z: number, charge: number): Occupancy | null {
   }
   return inOrder(occ.filter((o) => o.electrons > 0));
 }
+
+/** "1 electron", "2 electrons" */
+export const electronsLabel = (n: number) =>
+  `${n} electron${n === 1 ? '' : 's'}`;

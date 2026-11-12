@@ -25,6 +25,13 @@ export const PAGE_TIPS: Record<string, string[]> = {
     'Made a mistake? Ctrl+Z undoes it, and Ctrl+Y redoes it.',
     'Switch to Quiz to practise real molecules and get them graded.',
   ],
+  '/electron-configurations': [
+    'Pick any element on the table, or press Next to add electrons one at a time and watch the orbitals fill.',
+    'Electrons fill the lowest-energy orbitals first. That’s why 4s fills before 3d.',
+    'Hund’s rule: in p, d and f, electrons take an empty box each before they pair up.',
+    'Two electrons in one box always spin opposite ways, one ↑ and one ↓. That’s the Pauli principle.',
+    'Try Cr and Cu: they break the pattern, because half-full and full d subshells are extra stable.',
+  ],
   '/chemical-reactions': [
     'Use + and − to change the coefficients, or type a number. Never change the formulas themselves.',
     'The seesaw tips toward the side with more atoms. Match every element and it levels out.',

@@ -6,6 +6,7 @@ const PAGES = [
   '/states-of-matter',
   '/lewis-structures',
   '/chemical-reactions',
+  '/electron-configurations',
 ];
 
 describe('Mr. G page tips', () => {
