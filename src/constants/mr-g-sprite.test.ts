@@ -40,11 +40,41 @@ describe('Mr. G sprite', () => {
     expect(Math.min(...stubble)).toBeGreaterThan(Math.max(...eyes));
   });
 
-  it('has a square face: the same width from forehead to jaw', () => {
-    const face = FRAMES.idle.slice(5, 14).map((row) => row.indexOf('K'));
-    // the outline only steps out for the ears
-    expect(new Set(face.filter((col) => col === 3)).size).toBe(1);
-    expect(face.filter((col) => col === 3).length).toBeGreaterThanOrEqual(7);
+  it('has an oval head: narrow at the top and chin, widest at the cheeks', () => {
+    const width = (row: string) => row.replace(/\./g, '').length;
+    const head = FRAMES.idle.slice(0, 16).map(width);
+    const widest = Math.max(...head);
+    const cheeks = head.indexOf(widest);
+    for (let i = 1; i <= cheeks; i++)
+      expect(head[i]).toBeGreaterThanOrEqual(head[i - 1]);
+    for (let i = cheeks + 1; i < head.length; i++)
+      expect(head[i]).toBeLessThanOrEqual(head[i - 1]);
+    expect(head[0]).toBeLessThan(widest - 4);
+    expect(head[15]).toBeLessThan(widest - 4);
+  });
+
+  it('has medium brown hair', () => {
+    const [r, g, b] = [1, 3, 5].map((i) =>
+      parseInt(PALETTE.H.slice(i, i + 2), 16),
+    );
+    expect(r).toBeGreaterThan(g);
+    expect(g).toBeGreaterThan(b);
+    // a shade lighter than the first dark brown, #4a3424
+    expect(r + g + b).toBeGreaterThan(0x4a + 0x34 + 0x24 + 40);
+  });
+
+  it('brushes his hair to one side', () => {
+    const filled = (row: string) =>
+      [...row].flatMap((p, i) => (p === '.' ? [] : [i]));
+    const middle = (row: string) =>
+      (Math.min(...filled(row)) + Math.max(...filled(row))) / 2;
+    const [crown, next] = FRAMES.idle;
+    const face = FRAMES.idle[Math.min(...rowsWith(FRAMES.idle, 'E'))];
+    // the top of his hair leans to one side of his face
+    expect(middle(crown)).not.toBe(middle(face));
+    expect(middle(next)).not.toBe(middle(face));
+    // darker strands show which way it's combed
+    expect(rowsWith(FRAMES.idle.slice(0, 3), 'h').length).toBeGreaterThan(0);
   });
 
   it('has blue-gray eyes', () => {
@@ -64,6 +94,50 @@ describe('Mr. G sprite', () => {
       p === 'M' ? [i] : [],
     );
     for (const col of mouthCols) expect(above[col]).toBe('b');
+  });
+
+  it('has a mustache that runs down beside his mouth into the chin stubble', () => {
+    const mouth = Math.min(...rowsWith(FRAMES.idle, 'M'));
+    const line = FRAMES.idle[mouth];
+    expect(line[line.indexOf('M') - 1]).toBe('b');
+    expect(line[line.lastIndexOf('M') + 1]).toBe('b');
+    // and the row under the mouth is stubble too
+    const below = FRAMES.idle[Math.max(...rowsWith(FRAMES.idle, 'M')) + 1];
+    for (let col = line.indexOf('M'); col <= line.lastIndexOf('M'); col++)
+      expect(below[col]).toBe('b');
+  });
+
+  it('has a neutral mouth: one short straight line', () => {
+    const rows = rowsWith(FRAMES.idle, 'M');
+    expect(rows).toHaveLength(1);
+    expect(FRAMES.idle[rows[0]]).toMatch(/[^M]MM[^M]/);
+  });
+
+  it('has soft, raised brows with skin between them and his eyes', () => {
+    const brows = rowsWith(FRAMES.idle, 'B');
+    const eyes = Math.min(...rowsWith(FRAMES.idle, 'E'));
+    const eyeCols = [...FRAMES.idle[eyes]].flatMap((p, i) =>
+      p === 'E' ? [i] : [],
+    );
+    // the row just above the eyes is bare skin, and the brows sit above it
+    for (const col of eyeCols) {
+      expect(FRAMES.idle[eyes - 1][col]).toBe('S');
+      expect(FRAMES.idle[eyes - 2][col]).toBe('B');
+    }
+    expect(Math.max(...brows)).toBeLessThan(eyes);
+    // lighter than his hair, so they don't read as a scowl
+    const sum = (hex: string) =>
+      [1, 3, 5].reduce((t, i) => t + parseInt(hex.slice(i, i + 2), 16), 0);
+    expect(sum(PALETTE.B)).toBeGreaterThan(sum(PALETTE.H));
+  });
+
+  it('arches his brows: the outer ends dip lower than the middle', () => {
+    const [high, low] = rowsWith(FRAMES.idle, 'B');
+    expect(low).toBe(high + 1);
+    const cols = (row: number) =>
+      [...FRAMES.idle[row]].flatMap((p, i) => (p === 'B' ? [i] : []));
+    expect(Math.min(...cols(low))).toBeLessThan(Math.min(...cols(high)));
+    expect(Math.max(...cols(low))).toBeGreaterThan(Math.max(...cols(high)));
   });
 
   it('wears his lab coat open over a flannel shirt', () => {

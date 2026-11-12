@@ -1,5 +1,5 @@
 /**
- * Mr. G, the in-app guide, as 8-bit pixel art: an 8-bit Seth with a square
+ * Mr. G, the in-app guide, as 8-bit pixel art: an 8-bit Seth with an oval
  * face, light facial hair, goggles pushed up on his head and a light blue
  * lab coat. Each frame is rows of palette letters; '.' is transparent.
  */
@@ -9,7 +9,9 @@ export const SPRITE_HEIGHT = 30;
 
 export const PALETTE = {
   K: '#1f2937', // outline
-  H: '#4a3424', // hair, dark brown
+  H: '#6b4a32', // hair, medium brown
+  h: '#4f3524', // hair strands, showing which way it's combed
+  B: '#94704f', // eyebrows, softer than his hair
   S: '#ecc6a4', // skin
   s: '#d6a986', // skin shadow
   b: '#a8805f', // stubble and mustache, light
@@ -27,22 +29,22 @@ export const PALETTE = {
 } as const;
 
 const idle = [
-  '.....KKKKKKKKKK.....', // rounded top of the head
-  '....KHHHHHHHHHHK....',
-  '...KHHHHHHHHHHHHK...',
+  '....KKKKKKKK........', // hair brushed over to one side
+  '...KHHHhhHHHHKK.....',
+  '...KHHhhHHHHHHHHK...',
   '...KgGGGGHHGGGGgK...', // goggles pushed up on his hair
   '...KgGLLGggGLLGgK...',
   '...KHGGGGHHGGGGHK...',
-  '...KHSSSSSSSSSSHK...',
-  '...KSHHHSSSSHHHSK...', // eyebrows
+  '...KHSBBBSSBBBSHK...', // eyebrows, raised and arched so he looks friendly
+  '...KSBSSSSSSSSBSK...', // their outer ends dip, with skin above the eyes
   '...KSSEESSSSEESSK...', // blue eyes
   '..KSSSSSSSSSSSSSSK..', // ears
   '..KSbSSSSssSSSSbSK..', // nose; stubble starts at the sides
-  '...KbSSSbbbbSSSbK...', // mustache
-  '...KbbSSSMMSSSbbK...', // mouth
-  '...KbbbSSSSSSbbbK...', // stubble along the jaw
-  '....KbbbbbbbbbbK....',
-  '....KKKKKKKKKKKK....',
+  '...KbSSbbbbbbSSbK...', // mustache
+  '....KbSSbMMbSSbK....', // mouth, with the mustache running down its sides
+  '....KbbSbbbbSbbK....', // into the chin and jaw stubble; the face narrows
+  '.....KbbbbbbbbK.....',
+  '......KKKKKKKK......',
   '........KSSK........',
   '...KCCCcRrRrcCCCK...', // lab coat, open over a flannel shirt
   '..KCCCCcrRrRcCCCCK..',
@@ -67,8 +69,8 @@ export const FRAMES = {
   idle,
   blink: withRows({ 8: '...KSSKKSSSSKKSSK...' }),
   talk: withRows({
-    12: '...KbbSSMMMMSSbbK...',
-    13: '...KbbbSMMMMSbbbK...',
+    12: '....KbSbMMMMbSbK....',
+    13: '....KbbbMMMMbbbK....',
   }),
   walk1: withRows({
     27: '....KPPK....KPPK....',
