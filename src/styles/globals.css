@@ -62,6 +62,49 @@
   }
 }
 
+/* The home page doors: a stone wall with mortar lines round each archway */
+@utility stone-wall {
+  --frame-outline: #1c1917;
+  --frame-fill: repeating-linear-gradient(
+    to bottom,
+    #57534e 0 14px,
+    #44403c 14px 16px
+  );
+}
+
+/* A stepped archway, filled dark and tinted with the door's colour (--door) */
+@utility door-arch {
+  background:
+    linear-gradient(to top, var(--door) 0 4px, transparent 4px),
+    color-mix(in srgb, var(--door) 28%, #0c0a09);
+  clip-path: polygon(
+    0 40px, 4px 40px, 4px 28px, 8px 28px, 8px 20px, 12px 20px, 12px 12px,
+    20px 12px, 20px 8px, 28px 8px, 28px 4px, 40px 4px, 40px 0,
+    calc(100% - 40px) 0, calc(100% - 40px) 4px, calc(100% - 28px) 4px,
+    calc(100% - 28px) 8px, calc(100% - 20px) 8px, calc(100% - 20px) 12px,
+    calc(100% - 12px) 12px, calc(100% - 12px) 20px, calc(100% - 8px) 20px,
+    calc(100% - 8px) 28px, calc(100% - 4px) 28px, calc(100% - 4px) 40px,
+    100% 40px, 100% 100%, 0 100%
+  );
+}
+
+/* Torchlight round an open door on hover or keyboard focus; flickers unless motion is reduced */
+@keyframes torch-flicker {
+  0%, 100% { filter: drop-shadow(0 0 10px rgb(251 146 60 / 0.7)); }
+  35% { filter: drop-shadow(0 0 16px rgb(251 191 36 / 0.85)); }
+  70% { filter: drop-shadow(0 0 7px rgb(249 115 22 / 0.6)); }
+}
+@utility torchlight {
+  &:is(:hover, :focus-visible):not([aria-disabled="true"]) {
+    filter: drop-shadow(0 0 12px rgb(251 146 60 / 0.75));
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    &:is(:hover, :focus-visible):not([aria-disabled="true"]) {
+      animation: torch-flicker 1.2s steps(3) infinite;
+    }
+  }
+}
+
 /* A small control (button, tab, checkbox) with 8-bit corners */
 @utility pixel-control {
   clip-path: var(--pixel-corners-1);

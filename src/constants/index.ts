@@ -1,32 +1,54 @@
-export const SIMULATIONS = [
+import type { DoorArtName } from '~/constants/door-art';
+
+type Simulation = {
+  title: string;
+  path: string;
+  art: DoorArtName; // the picture inside its door on the home page
+  color: string; // its own colour, like potions on a shelf
+  ready: boolean; // unbuilt ones get a sealed door
+};
+
+export const SIMULATIONS: Simulation[] = [
   {
     title: 'Periodic Table',
-    img: '/images/periodic-table.svg',
     path: '/periodic-table',
+    art: 'periodic',
+    color: '#14b8a6', // teal
+    ready: true,
   },
   {
     title: 'States of Matter',
-    img: '/images/states-of-matter.svg',
     path: '/states-of-matter',
+    art: 'states',
+    color: '#22c55e', // green
+    ready: true,
   },
   {
     title: 'Lewis Structures',
-    img: '/images/lewis-structures.svg',
     path: '/lewis-structures',
+    art: 'lewis',
+    color: '#3b82f6', // blue
+    ready: true,
   },
   {
     title: 'Electron Configurations',
-    img: '/images/electron-configurations.svg',
     path: '/electron-configurations',
+    art: 'electrons',
+    color: '#a855f7', // purple
+    ready: false,
   },
   {
     title: 'Chemical Reactions',
-    img: '/images/chemical-reactions.svg',
     path: '/chemical-reactions',
+    art: 'reactions',
+    color: '#f59e0b', // amber
+    ready: true,
   },
   {
     title: 'Titrations',
-    img: '/images/titrations.svg',
     path: '/titrations',
+    art: 'titrations',
+    color: '#ef4444', // red
+    ready: false,
   },
 ];

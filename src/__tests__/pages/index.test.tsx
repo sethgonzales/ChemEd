@@ -5,20 +5,16 @@ import Home from '~/pages/index';
 
 const push = jest.fn();
 jest.mock('next/router', () => ({ useRouter: () => ({ push }) }));
-jest.mock('~/utils/use-knock', () => ({ useKnock: () => jest.fn() }));
+jest.mock('~/utils/sounds', () => ({ useDoorSound: () => jest.fn() }));
 
-beforeEach(() => {
-  push.mockClear();
-  global.fetch = jest
-    .fn()
-    .mockResolvedValue({ text: () => Promise.resolve('') });
-});
+beforeEach(() => push.mockClear());
 
 describe('Home page', () => {
   it('shows a card for every simulation', () => {
     render(<Home />);
-    for (const { title } of SIMULATIONS) {
-      expect(screen.getByRole('button', { name: title })).toBeInTheDocument();
+    for (const { title, ready } of SIMULATIONS) {
+      const name = ready ? title : `${title} (coming soon)`;
+      expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }
   });
 
@@ -28,5 +24,13 @@ describe('Home page', () => {
       screen.getByRole('button', { name: 'Periodic Table' }),
     );
     expect(push).toHaveBeenCalledWith('/periodic-table');
+  });
+
+  it('keeps sealed doors closed', async () => {
+    render(<Home />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Titrations (coming soon)' }),
+    );
+    expect(push).not.toHaveBeenCalled();
   });
 });

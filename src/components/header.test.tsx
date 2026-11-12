@@ -4,7 +4,7 @@ import { ThemeProvider } from '~/styles/theme-provider';
 import Header from './header';
 
 const playChime = jest.fn();
-jest.mock('~/utils/use-knock', () => ({ useChime: () => playChime }));
+jest.mock('~/utils/sounds', () => ({ useChime: () => playChime }));
 
 function renderHeader() {
   render(

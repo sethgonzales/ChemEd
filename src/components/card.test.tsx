@@ -2,45 +2,47 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Card from './card';
 
-const playKnock = jest.fn();
-jest.mock('~/utils/use-knock', () => ({ useKnock: () => playKnock }));
+const mockDoorSound = jest.fn();
+jest.mock('~/utils/sounds', () => ({ useDoorSound: () => mockDoorSound }));
 
-beforeEach(() => {
-  global.fetch = jest.fn().mockResolvedValue({
-    text: () => Promise.resolve('<svg data-testid="card-svg"></svg>'),
-  });
-});
+beforeEach(() => mockDoorSound.mockClear());
 
-describe('Card', () => {
-  it('shows its title and calls onClick when clicked', async () => {
+const door = {
+  title: 'Lewis Structures',
+  color: '#3b82f6',
+  art: 'lewis' as const,
+};
+
+describe('Card (a chamber door)', () => {
+  it('opens when clicked', async () => {
     const onClick = jest.fn();
-    render(<Card title="Periodic Table" onClick={onClick} />);
+    render(<Card {...door} ready onClick={onClick} />);
     await userEvent.click(
-      screen.getByRole('button', { name: 'Periodic Table' }),
+      screen.getByRole('button', { name: 'Lewis Structures' }),
     );
     expect(onClick).toHaveBeenCalled();
+    expect(mockDoorSound).toHaveBeenCalled();
   });
 
-  it('fetches and inlines its SVG image', async () => {
-    render(
-      <Card
-        title="Titrations"
-        img="/images/titrations.svg"
-        onClick={jest.fn()}
-      />,
-    );
-    expect(await screen.findByTestId('card-svg')).toBeInTheDocument();
-    expect(global.fetch).toHaveBeenCalledWith('/images/titrations.svg');
+  it('shows the simulation’s art', () => {
+    render(<Card {...door} ready onClick={jest.fn()} />);
+    expect(
+      screen
+        .getByRole('button', { name: 'Lewis Structures' })
+        .querySelector('svg rect'),
+    ).not.toBeNull();
   });
 
-  it('does not fetch without an image', () => {
-    render(<Card title="Titrations" onClick={jest.fn()} />);
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('plays a knock on hover', async () => {
-    render(<Card title="Titrations" onClick={jest.fn()} />);
-    await userEvent.hover(screen.getByRole('button'));
-    expect(playKnock).toHaveBeenCalled();
+  it('is sealed, saying coming soon, when the simulation isn’t built', async () => {
+    const onClick = jest.fn();
+    render(<Card {...door} ready={false} onClick={onClick} />);
+    const sealed = screen.getByRole('button', {
+      name: 'Lewis Structures (coming soon)',
+    });
+    expect(sealed).toHaveAttribute('aria-disabled', 'true');
+    expect(sealed).toHaveTextContent('Coming soon');
+    await userEvent.click(sealed);
+    expect(onClick).not.toHaveBeenCalled();
+    expect(mockDoorSound).not.toHaveBeenCalled();
   });
 });

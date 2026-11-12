@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 
 import { findElementsBySymbol } from '~/utils';
 import { ThemeSelect } from '~/components/theme-select';
-import { useChime } from '~/utils/use-knock';
+import { useChime } from '~/utils/sounds';
 
 import { IElementData } from '~/types';
 
@@ -29,13 +29,13 @@ function ElementCard({ element }: { element: IElementData }) {
 
   return (
     <div
-      className="w-14 h-20 sm:w-16 sm:h-21 flex flex-col gap-0.5 items-center justify-center text-xs truncate text-center text-white rounded-sm hover:translate-y-1.5 transition-transform duration-200"
+      className="w-14 h-20 sm:w-16 sm:h-21 flex flex-col gap-0.5 items-center justify-center font-pixel text-xs truncate text-center text-white pixel-control hover:translate-y-1.5 transition-transform duration-200"
       style={{ backgroundColor: color }}
       onMouseEnter={handleHover}
       onMouseLeave={handleHoverOut}
     >
       <h5 className="opacity-50">{element.atomicNumber}</h5>
-      <h1 className="font-semibold text-xl">
+      <h1 className="text-2xl leading-6">
         {hideSecondLetter ? (
           <>
             <span>{element.symbol[0]}</span>

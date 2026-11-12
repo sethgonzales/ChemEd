@@ -12,7 +12,9 @@ export default function Home() {
         <Card
           key={index}
           title={simulation.title}
-          img={simulation.img}
+          color={simulation.color}
+          art={simulation.art}
+          ready={simulation.ready}
           onClick={() => router.push(simulation.path)}
         />
       ))}
