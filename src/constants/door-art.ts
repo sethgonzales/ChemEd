@@ -135,32 +135,32 @@ export const DOOR_ART = {
       P: '#374151', // cauldron
     },
   },
-  // an atom as a dungeon map: the nucleus and its shells of rooms
+  // a carbon atom: the nucleus with 2 electrons on its inner ring and 4 on the outer
   electrons: {
     rows: [
-      '........................',
-      '..RRRRRRRRRERRRRRRRRRR..',
-      '..R..................R..',
-      '..R..................R..',
-      '..E..................R..',
-      '..R....RRRRRRRRRR....R..',
-      '..R....R........R....E..',
-      '..R....E........R....R..',
-      '..R....R...NN...R....R..',
-      '..R....R...NN...R....R..',
-      '..R....R........E....R..',
-      '..E....R........R....R..',
-      '..R....RRRRRRRRRR....R..',
-      '..R..................E..',
-      '..R..................R..',
-      '..R..................R..',
-      '..RRRRRRRRRRERRRRRRRRR..',
-      '........................',
+      '...........RR...........',
+      '........RRRRRRRRE.......',
+      '......RR.......EEE......',
+      '.....ER.........ERR.....',
+      '....EEE...RRRR....R.....',
+      '....RE...RR..RR....R....',
+      '....R..ER......R...R....',
+      '....R.EEE..NN..RR..R....',
+      '...RR..E..NNNN..R..RR...',
+      '...RR..R..NNNN..E..RR...',
+      '....R..RR..NN..EEE.R....',
+      '....R...R......RE..R....',
+      '....R....RR..RR...ER....',
+      '.....R....RRRR...EEE....',
+      '.....RRE.........RE.....',
+      '......EEE.......RR......',
+      '.......ERRRRRRRR........',
+      '...........RR...........',
     ],
     palette: {
       R: '#a855f7', // shells
       N: '#f472b6', // nucleus
-      E: '#f5d0fe', // electrons
+      E: '#fdf4ff', // electrons, as beads on the rings
     },
   },
   // a burette drips into a flask that is turning pink

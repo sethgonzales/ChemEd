@@ -22,3 +22,21 @@ describe('door art', () => {
     expect(dots).toHaveLength(4);
   });
 });
+
+describe('electrons door', () => {
+  it('draws its shells as round rings, not squares', () => {
+    const centre = { x: (ART_WIDTH - 1) / 2, y: (ART_HEIGHT - 1) / 2 };
+    const radii = DOOR_ART.electrons.rows.flatMap((row, y) =>
+      [...row].flatMap((p, x) =>
+        p === 'R' ? [Math.hypot(x - centre.x, y - centre.y)] : [],
+      ),
+    );
+    // two rings, each a steady distance from the nucleus (electrons sit on them)
+    const inner = radii.filter((r) => r < 6);
+    const outer = radii.filter((r) => r >= 6);
+    for (const ring of [inner, outer]) {
+      expect(ring.length).toBeGreaterThan(0);
+      expect(Math.max(...ring) - Math.min(...ring)).toBeLessThanOrEqual(1.5);
+    }
+  });
+});
