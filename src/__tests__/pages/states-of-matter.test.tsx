@@ -159,3 +159,52 @@ describe('States of Matter page: Mr. G', () => {
     expect(mockSay).not.toHaveBeenCalled();
   });
 });
+
+describe('States of Matter page: accessibility', () => {
+  it('describes the particles in words for screen readers', () => {
+    renderPage();
+    expect(
+      screen.getByRole('img', { name: /liquid.*sliding past each other/i }),
+    ).toBeInTheDocument();
+    setTemperature(110);
+    expect(
+      screen.getByRole('img', { name: /gas.*spread out/i }),
+    ).toBeInTheDocument();
+  });
+
+  describe('with reduced motion', () => {
+    const realMatchMedia = window.matchMedia;
+    beforeEach(() => {
+      jest.useFakeTimers();
+      window.matchMedia = ((query: string) => ({
+        ...realMatchMedia(query),
+        matches: query.includes('reduce'),
+      })) as typeof window.matchMedia;
+    });
+    afterEach(() => {
+      jest.useRealTimers();
+      window.matchMedia = realMatchMedia;
+    });
+
+    const frames = () => ctx.clearRect.mock.calls.length;
+    const wait = (ms: number) => act(() => jest.advanceTimersByTime(ms));
+
+    it('holds the picture still until the temperature changes', () => {
+      renderPage();
+      wait(500);
+      const drawn = frames();
+      expect(drawn).toBeGreaterThan(0); // the first picture is drawn
+      wait(1000);
+      expect(frames()).toBe(drawn);
+
+      setTemperature(110);
+      wait(100);
+      expect(frames()).toBeGreaterThan(drawn);
+    });
+
+    it('says why the particles are still', () => {
+      renderPage();
+      expect(screen.getByText(/reduced motion/i)).toBeInTheDocument();
+    });
+  });
+});

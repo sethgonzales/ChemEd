@@ -20,6 +20,7 @@ import {
   withGreeting,
 } from '~/utils/guide';
 import { useEscape } from '~/utils/use-escape';
+import { useMedia } from '~/utils/use-media';
 
 export type Mood = 'tip' | 'hint' | 'cheer' | 'nudge';
 
@@ -49,18 +50,6 @@ const BLINK_EVERY_TICKS = 16; // a blink every 4 s
 const WANDER_MIN_MS = 20000;
 const WANDER_MAX_MS = 40000;
 const WALK_MS = 2000; // how long a stroll takes
-
-function useMedia(query: string) {
-  const [matches, setMatches] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    setMatches(media.matches);
-    const onChange = (e: MediaQueryListEvent) => setMatches(e.matches);
-    media.addEventListener?.('change', onChange);
-    return () => media.removeEventListener?.('change', onChange);
-  }, [query]);
-  return matches;
-}
 
 function readHidden() {
   try {

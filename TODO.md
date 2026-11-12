@@ -34,7 +34,7 @@
 - [x] Periodic Table: show synthetic element masses as `[266]` rather than `266.00`
 - [x] Periodic Table: Lu and Lr sit in the f-block row but are coloured d-block blue (now f-block, with La and Ac in group 3, as most textbooks draw it)
 - [ ] States of Matter: temperature/kinetic energy readout, heating curve, choice of substance
-- [ ] Accessibility: element buttons need arrow-key navigation; the States of Matter canvas needs a text alternative and should respect reduced motion (done: `aria-pressed` on elements, readable block colours)
+- [x] Accessibility: arrow-key navigation and `aria-pressed` on the Periodic Table, readable block colours, and a described, reduced-motion-friendly States of Matter canvas
 - [ ] Mark placeholder simulations as "Coming soon"
 - [ ] Replace the default README
 - [ ] Migrate `next lint` (deprecated) to the ESLint CLI

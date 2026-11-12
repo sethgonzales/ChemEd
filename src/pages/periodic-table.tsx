@@ -1,4 +1,4 @@
-import { type ReactNode, useRef, useState, useEffect } from 'react';
+import { type CSSProperties, type ReactNode, useRef, useState } from 'react';
 import Container from '~/components/container';
 import Stage from '~/components/stage';
 import { BLOCK_COLORS } from '~/constants/blocks';
@@ -6,33 +6,22 @@ import { ELEMENTS } from '~/constants/elements';
 import { IElementData } from '~/types';
 import { formatAtomicMass } from '~/utils';
 import { cn } from '~/utils/cn';
+import { elementAt, neighbor, type Direction } from '~/utils/periodic-table';
+
+const NAME_FIT_CHARS = 8; // names this long or shorter fit a cell at full size
+
+// the name's font size in cqi: smaller for longer names so every name fits
+const nameSize = (name: string) => Math.min(1, NAME_FIT_CHARS / name.length);
+
+const ARROWS: Record<string, Direction> = {
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+};
 
 const blockColor = (el: IElementData) =>
   el.block ? BLOCK_COLORS[el.block] : '#4b5563';
-
-/**
- * Map each element to its (col, row) in the standard 18-column periodic table.
- * Lanthanides (58-71) go in row 9, Actinides (90-103) go in row 10.
- */
-function getGridPosition(el: IElementData): { col: number; row: number } {
-  const { atomicNumber, period, group } = el;
-
-  // Lanthanides: Ce(58) through Lu(71) -> row 9, cols 4-17 (La sits in group 3)
-  if (atomicNumber >= 58 && atomicNumber <= 71) {
-    return { col: atomicNumber - 58 + 4, row: 9 };
-  }
-  // Actinides: Th(90) through Lr(103) -> row 10, cols 4-17
-  if (atomicNumber >= 90 && atomicNumber <= 103) {
-    return { col: atomicNumber - 90 + 4, row: 10 };
-  }
-
-  if (group !== null) {
-    return { col: group, row: period };
-  }
-
-  // Fallback (shouldn't happen with our data)
-  return { col: 1, row: period };
-}
 
 function formatElectronConfig(config: string | null): ReactNode {
   if (!config) return 'Unknown';
@@ -60,38 +49,21 @@ function ElementCell({
 }: {
   element: IElementData;
   isSelected: boolean;
-  onSelect: (el: IElementData) => void;
+  onSelect: (el: IElementData, focus?: boolean) => void;
 }) {
-  const nameRef = useRef<HTMLSpanElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const el = nameRef.current;
-    const btn = btnRef.current;
-    if (!el || !btn) return;
-
-    const fit = () => {
-      el.style.transform = '';
-      const style = getComputedStyle(btn);
-      const padding =
-        (parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)) * 3;
-      const availW = btn.clientWidth - padding;
-      const textW = el.scrollWidth;
-      if (textW > availW) {
-        el.style.transform = `scaleX(${availW / textW})`;
-      }
-    };
-
-    fit();
-    window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
-  }, [element.name]);
-
   return (
     <button
-      ref={btnRef}
       onClick={() => onSelect(element)}
+      onKeyDown={(e) => {
+        const next = ARROWS[e.key] && neighbor(element, ARROWS[e.key]);
+        if (!next) return;
+        e.preventDefault();
+        onSelect(next, true);
+      }}
       aria-pressed={isSelected}
+      // one Tab stop for the whole table; arrows move between elements
+      tabIndex={isSelected ? 0 : -1}
+      data-atomic-number={element.atomicNumber}
       style={{ backgroundColor: blockColor(element) }}
       className={cn(
         'pixel-control flex flex-col items-center justify-center py-2 px-1 cursor-pointer',
@@ -106,10 +78,12 @@ function ElementCell({
       <span className="text-[2.5cqi] font-bold leading-tight">
         {element.symbol}
       </span>
-      <span className="opacity-60 leading-none w-full text-center overflow-hidden whitespace-nowrap text-[1cqi]">
-        <span ref={nameRef} className="inline-block origin-center">
-          {element.name}
-        </span>
+      {/* long names get a smaller font so they fit; no measuring needed */}
+      <span
+        className="opacity-60 leading-none w-full text-center whitespace-nowrap text-[calc(var(--name-size)*1cqi)]"
+        style={{ '--name-size': nameSize(element.name) } as CSSProperties}
+      >
+        {element.name}
       </span>
     </button>
   );
@@ -192,13 +166,17 @@ const hydrogen = ELEMENTS[0];
 
 export default function PeriodicTable() {
   const [selected, setSelected] = useState<IElementData>(hydrogen);
-
-  // Build grid lookup: key = "col-row"
-  const gridMap = new Map<string, IElementData>();
-  for (const el of ELEMENTS) {
-    const pos = getGridPosition(el);
-    gridMap.set(`${pos.col}-${pos.row}`, el);
-  }
+  const tableRef = useRef<HTMLDivElement>(null);
+  const select = (el: IElementData, focus = false) => {
+    setSelected(el);
+    if (focus) {
+      tableRef.current
+        ?.querySelector<HTMLButtonElement>(
+          `[data-atomic-number="${el.atomicNumber}"]`,
+        )
+        ?.focus();
+    }
+  };
 
   const mainRows = [1, 2, 3, 4, 5, 6, 7];
   const extraRows = [9, 10];
@@ -214,7 +192,7 @@ export default function PeriodicTable() {
       <Stage label="Periodic table" header={<Legend />}>
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Table */}
-          <div className="flex-1 min-w-0 flex flex-col gap-2">
+          <div ref={tableRef} className="flex-1 min-w-0 flex flex-col gap-2">
             {/* Main table */}
             <div className="overflow-x-auto @container">
               <div
@@ -225,13 +203,13 @@ export default function PeriodicTable() {
               >
                 {mainRows.map((row) =>
                   cols.map((col) => {
-                    const el = gridMap.get(`${col}-${row}`);
+                    const el = elementAt(col, row);
                     return el ? (
                       <ElementCell
                         key={el.atomicNumber}
                         element={el}
                         isSelected={selected.atomicNumber === el.atomicNumber}
-                        onSelect={setSelected}
+                        onSelect={select}
                       />
                     ) : (
                       <div key={`empty-${col}-${row}`} />
@@ -251,7 +229,7 @@ export default function PeriodicTable() {
               >
                 {extraRows.map((row) =>
                   cols.map((col) => {
-                    const el = gridMap.get(`${col}-${row}`);
+                    const el = elementAt(col, row);
                     if (col < 4 || col > 17) {
                       return <div key={`empty-${col}-${row}`} />;
                     }
@@ -260,7 +238,7 @@ export default function PeriodicTable() {
                         key={el.atomicNumber}
                         element={el}
                         isSelected={selected.atomicNumber === el.atomicNumber}
-                        onSelect={setSelected}
+                        onSelect={select}
                       />
                     ) : (
                       <div key={`empty-${col}-${row}`} />

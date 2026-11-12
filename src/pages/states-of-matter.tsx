@@ -19,10 +19,24 @@ import {
   type Simulation,
 } from '~/utils/states-of-matter';
 import { PHASE_SETTLE_MS, phaseMessage, type Phase } from '~/utils/guide';
+import { useMedia } from '~/utils/use-media';
 
 const RANGE_STEPS = 7; // number of discrete labels on slider
 
 const KELVIN_OFFSET = 273.15;
+
+// with reduced motion, steps run before each still picture, so it shows the phase settled
+const SETTLE_STEPS = 120;
+
+const PARTICLES: Record<Phase, string> = {
+  Solid: 'packed tightly, vibrating in place',
+  Liquid: 'close together, sliding past each other',
+  Gas: 'spread out, flying around fast',
+};
+
+// the picture in words, for screen readers
+const describeParticles = (tempC: number) =>
+  `${phaseLabel(tempC)} at ${tempC} °C: particles ${PARTICLES[phaseLabel(tempC)]}`;
 
 function phaseLabel(tempC: number): Phase {
   if (tempC < MELT_POINT_C) return 'Solid';
@@ -66,9 +80,20 @@ export default function StatesOfMatter() {
   const colorRef = useRef('#000');
   const simRef = useRef<Simulation | null>(null);
 
+  // reduced motion: no animation; redraw a settled picture when something changes
+  const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
+  const reducedRef = useRef(reducedMotion);
+  const redrawRef = useRef(true);
+
   useEffect(() => {
     temperatureRef.current = temperature;
+    redrawRef.current = true;
   }, [temperature]);
+
+  useEffect(() => {
+    reducedRef.current = reducedMotion;
+    redrawRef.current = true;
+  }, [reducedMotion]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -100,6 +125,7 @@ export default function StatesOfMatter() {
       } else {
         resizeSimulation(simRef.current, width, height, temperatureRef.current);
       }
+      redrawRef.current = true;
     });
 
     observer.observe(wrap);
@@ -120,9 +146,15 @@ export default function StatesOfMatter() {
       last = t;
 
       const sim = simRef.current;
-      if (sim) {
+      const still = reducedRef.current;
+      if (sim && (!still || redrawRef.current)) {
         const tempC = temperatureRef.current;
-        step(sim, tempC, dt);
+        if (still) {
+          for (let i = 0; i < SETTLE_STEPS; i++) step(sim, tempC, DT_MAX);
+          redrawRef.current = false;
+        } else {
+          step(sim, tempC, dt);
+        }
 
         ctx.clearRect(0, 0, sim.w, sim.h);
         ctx.fillStyle = colorRef.current;
@@ -187,8 +219,19 @@ export default function StatesOfMatter() {
           ref={wrapRef}
           className="h-64 sm:h-80 w-full pixel-control bg-primary-800 overflow-hidden"
         >
-          <canvas ref={canvasRef} className="block" />
+          <canvas
+            ref={canvasRef}
+            role="img"
+            aria-label={describeParticles(temperature)}
+            className="block"
+          />
         </div>
+        {reducedMotion && (
+          <p className="text-xs text-white/80">
+            Reduced motion is on, so the particles hold still. The picture
+            updates when you change the temperature.
+          </p>
+        )}
       </Stage>
     </Container>
   );

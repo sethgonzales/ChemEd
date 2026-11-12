@@ -82,4 +82,35 @@ describe('Periodic Table page', () => {
     await userEvent.click(iron);
     expect(iron).toHaveAttribute('aria-pressed', 'true');
   });
+
+  it('moves between elements with the arrow keys', async () => {
+    render(<PeriodicTable />);
+    const cell = (name: RegExp) => screen.getByRole('button', { name });
+    await userEvent.click(cell(/^26\s*Fe/));
+    await userEvent.keyboard('{ArrowRight}');
+    expect(cell(/^27\s*Co/)).toHaveFocus();
+    expect(
+      within(detailPanel()).getByRole('heading', { name: 'Cobalt' }),
+    ).toBeInTheDocument();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(cell(/^45\s*Rh/)).toHaveFocus();
+  });
+
+  it('puts only the selected element in the Tab order', () => {
+    render(<PeriodicTable />);
+    const tabbable = screen
+      .getAllByRole('button', { name: /^\d+/ })
+      .filter((b) => b.tabIndex === 0);
+    expect(tabbable).toHaveLength(1);
+    expect(tabbable[0]).toHaveAccessibleName(/^1\s*H/);
+  });
+
+  it('shrinks long element names so they fit their cell', () => {
+    render(<PeriodicTable />);
+    const size = (name: string) =>
+      parseFloat(screen.getByText(name).style.getPropertyValue('--name-size'));
+    expect(size('Iron')).toBe(1);
+    expect(size('Rutherfordium')).toBeLessThan(size('Magnesium'));
+    expect(size('Magnesium')).toBeLessThan(1);
+  });
 });
