@@ -4,7 +4,7 @@ Interactive chemistry simulations for students, styled as an 8-bit dungeon crawl
 
 Everything works on phones (touch input, narrow screens) and by keyboard.
 
-**Live:** https://chemed-6a31a.web.app
+**Live:** https://chemed-app.web.app
 
 ## Simulations
 

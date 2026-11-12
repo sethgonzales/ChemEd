@@ -1,0 +1,10 @@
+rules_version = '2';
+
+// Locked until student logins are built: nothing can read or write yet.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

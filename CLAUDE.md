@@ -10,7 +10,8 @@ Interactive chemistry simulations for students. Next.js 15 (pages router), React
 - `npm run lint` — ESLint
 - `npx tsc --noEmit` — type check
 - `npm run build` — production build, exported as static files to `out/`. It shares `.next/` with the dev server and breaks a running one (500s), so stop `npm run dev` first or restart it afterwards with a fresh `.next/`.
-- `npm run deploy` — build and deploy `out/` to Firebase Hosting (project `chemed-6a31a`, https://chemed-6a31a.web.app). Same `.next/` caveat as `build`. The app must stay static: no API routes, `getServerSideProps` or image optimization.
+- `npm run deploy` — build and deploy `out/` to Firebase Hosting (project `chemed-app`, https://chemed-app.web.app). Same `.next/` caveat as `build`. The app must stay static: no API routes, `getServerSideProps` or image optimization. Never deploy to `chemed-6a31a`: that's the archived original ChemEd.
+- Firestore (`chemed-app`, nam5) rules live in `firestore.rules`, locked until logins exist; deploy them with `firebase deploy --only firestore:rules`.
 
 ## Test-driven development (required for every feature and bug fix)
 

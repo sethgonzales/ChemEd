@@ -28,7 +28,7 @@
 
 ## Integrations and accounts
 
-- [ ] **Set up Firebase**. Hosting is live at https://chemed-6a31a.web.app (`npm run deploy`, a static export); Auth and Firestore are still to come.
+- [ ] **Set up Firebase** in the `chemed-app` project. Hosting is live at https://chemed-app.web.app (`npm run deploy`, a static export). Firestore exists (nam5) with locked rules; Auth is still to come. (`chemed-6a31a` is the archived original ChemEd: don't deploy there.)
   - [x] **Hosting**: static export (`output: 'export'`) served from `out/`
   - [ ] **Student logins** (Firebase Auth), with each student's progress saved (Firestore).
   - [ ] **8-bit avatar builder** for logged-in students: body/gender, skin tone, eyes, hair, facial features, clothing.
