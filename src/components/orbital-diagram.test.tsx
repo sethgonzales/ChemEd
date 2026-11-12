@@ -1,6 +1,11 @@
 import { render, screen, within } from '@testing-library/react';
 import { ELEMENTS } from '~/constants/elements';
-import { groundState } from '~/utils/electron-configurations';
+import userEvent from '@testing-library/user-event';
+import {
+  applyTool,
+  emptyDiagram,
+  groundState,
+} from '~/utils/electron-configurations';
 import OrbitalDiagram from './orbital-diagram';
 
 const of = (symbol: string) =>
@@ -55,5 +60,29 @@ describe('OrbitalDiagram stepping from the previous element', () => {
   it('marks nothing without a previous element', () => {
     render(<OrbitalDiagram occupancy={of('N')} />);
     expect(fresh()).toHaveLength(0);
+  });
+});
+
+describe('OrbitalDiagram for drawing (Build mode)', () => {
+  const diagram = applyTool(emptyDiagram('2p'), '2p', 0, 'up');
+
+  it('turns each box into a button named by its contents', async () => {
+    const onBox = jest.fn();
+    render(<OrbitalDiagram diagram={diagram} onBox={onBox} />);
+    expect(
+      screen.getByRole('button', { name: '2p box 1: up' }),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: '2p box 2: empty' }),
+    );
+    expect(onBox).toHaveBeenCalledWith('2p', 1);
+  });
+
+  it('marks the rows with problems', () => {
+    render(
+      <OrbitalDiagram diagram={diagram} onBox={jest.fn()} flagged={['2p']} />,
+    );
+    const flagged = rows().filter((r) => r.dataset.problem !== undefined);
+    expect(flagged.map((r) => r.dataset.subshell)).toEqual(['2p']);
   });
 });

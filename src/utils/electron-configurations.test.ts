@@ -1,6 +1,10 @@
 import { ELEMENTS } from '~/constants/elements';
 import {
   SUBSHELL_ORDER,
+  applyTool,
+  checkDiagram,
+  emptyDiagram,
+  type Diagram,
   aufbauConfiguration,
   electronCount,
   formatConfiguration,
@@ -259,5 +263,160 @@ describe('newShellElectrons', () => {
       0, 0, 2, 0,
     ]);
     expect(newShellElectrons([2, 8], [2, 8, 1])).toEqual([0, 0, 1]);
+  });
+});
+
+describe('Build mode', () => {
+  // a diagram with the given subshells filled by Hund's rule, plus empty rows up to `upTo`
+  const drawn = (config: string, upTo = '2p') => {
+    const filled = orbitalDiagram(parseConfiguration(config)!);
+    return emptyDiagram(upTo).map(
+      (row) => filled.find((f) => f.subshell === row.subshell) ?? row,
+    );
+  };
+  const oxygen = groundState(z('O'));
+  const problems = (diagram: Diagram, typed = '1s2 2s2 2p4', target = oxygen) =>
+    checkDiagram(target, diagram, typed, 'Oxygen').problems;
+
+  describe('emptyDiagram', () => {
+    it('has empty boxes for every subshell up to the last one', () => {
+      expect(emptyDiagram('2p')).toEqual([
+        { subshell: '1s', boxes: [[]] },
+        { subshell: '2s', boxes: [[]] },
+        { subshell: '2p', boxes: [[], [], []] },
+      ]);
+    });
+  });
+
+  describe('applyTool', () => {
+    const empty = emptyDiagram('2p');
+    const p = (d: Diagram) => d.find((r) => r.subshell === '2p')!.boxes;
+
+    it('adds an arrow of the chosen spin, up to two per box', () => {
+      let d = applyTool(empty, '2p', 0, 'up');
+      d = applyTool(d, '2p', 0, 'up'); // a Pauli mistake is allowed
+      d = applyTool(d, '2p', 0, 'down'); // but a third doesn't fit
+      expect(p(d)[0]).toEqual(['up', 'up']);
+    });
+
+    it('erases the last arrow in a box', () => {
+      let d = applyTool(empty, '2p', 1, 'down');
+      d = applyTool(d, '2p', 1, 'up');
+      expect(p(applyTool(d, '2p', 1, 'erase'))[1]).toEqual(['down']);
+    });
+
+    it('leaves the original diagram alone', () => {
+      applyTool(empty, '2p', 0, 'up');
+      expect(p(empty)[0]).toEqual([]);
+    });
+  });
+
+  describe('checkDiagram', () => {
+    it('accepts a correct diagram and notation, in either notation form', () => {
+      const d = drawn('1s2 2s2 2p4');
+      expect(checkDiagram(oxygen, d, '1s2 2s2 2p4', 'Oxygen').correct).toBe(
+        true,
+      );
+      expect(checkDiagram(oxygen, d, '[He] 2s² 2p⁴', 'Oxygen').correct).toBe(
+        true,
+      );
+    });
+
+    it('counts the electrons placed', () => {
+      expect(problems(drawn('1s2 2s2 2p3'))).toContainEqual({
+        rule: 'count',
+        message: 'Oxygen has 8 electrons; you’ve placed 7.',
+      });
+    });
+
+    it('catches two same-spin electrons in one box (Pauli)', () => {
+      const d = applyTool(
+        applyTool(drawn('1s2 2s2 2p2'), '2p', 2, 'up'),
+        '2p',
+        2,
+        'up',
+      );
+      expect(problems(d)).toContainEqual({
+        rule: 'pauli',
+        subshell: '2p',
+        message: 'Two electrons in one box must spin opposite ways (↑↓).',
+      });
+    });
+
+    it('catches pairing before every box has one (Hund)', () => {
+      let d = drawn('1s2 2s2');
+      for (const spin of ['up', 'down'] as const)
+        d = applyTool(d, '2p', 0, spin);
+      d = applyTool(d, '2p', 1, 'up');
+      d = applyTool(d, '2p', 1, 'down');
+      expect(problems(d)).toContainEqual({
+        rule: 'hund',
+        subshell: '2p',
+        message: 'In 2p, put one electron in each box before pairing.',
+      });
+    });
+
+    it('catches single electrons spinning opposite ways (Hund)', () => {
+      let d = drawn('1s2 2s2');
+      d = applyTool(d, '2p', 0, 'up');
+      d = applyTool(d, '2p', 1, 'down');
+      expect(
+        checkDiagram(groundState(z('C')), d, '1s2 2s2 2p2', 'Carbon').problems,
+      ).toContainEqual({
+        rule: 'hund',
+        subshell: '2p',
+        message: 'Single electrons in 2p should all spin the same way.',
+      });
+    });
+
+    it('catches a higher subshell filling first (Aufbau)', () => {
+      // potassium with its last electron in 3d instead of 4s
+      const k = groundState(z('K'));
+      const d = drawn('1s2 2s2 2p6 3s2 3p6 3d1', '3d');
+      expect(
+        checkDiagram(k, d, '1s2 2s2 2p6 3s2 3p6 4s1', 'Potassium').problems,
+      ).toContainEqual({
+        rule: 'aufbau',
+        subshell: '3d',
+        message:
+          '3d has electrons, but 4s isn’t full yet. Fill lower energy first.',
+      });
+    });
+
+    it('accepts an exception drawn the real way, and points at the subshell when not', () => {
+      const cr = groundState(z('Cr'));
+      const real = drawn('[Ar] 4s1 3d5', '4p');
+      expect(checkDiagram(cr, real, '[Ar] 4s1 3d5', 'Chromium').correct).toBe(
+        true,
+      );
+      const predicted = drawn('[Ar] 4s2 3d4', '4p');
+      expect(
+        checkDiagram(cr, predicted, '[Ar] 4s2 3d4', 'Chromium').problems,
+      ).toEqual([
+        {
+          rule: 'subshell',
+          subshell: '4s',
+          message: 'Check 4s: Chromium has 1 electron there.',
+        },
+      ]);
+    });
+
+    it('says when the notation disagrees with the diagram', () => {
+      expect(problems(drawn('1s2 2s2 2p4'), '1s2 2s2 2p3')).toContainEqual({
+        rule: 'notation',
+        message: 'Your notation says 2p³, but your diagram has 2p⁴.',
+      });
+    });
+
+    it('asks for the notation, and explains how to write it', () => {
+      expect(problems(drawn('1s2 2s2 2p4'), '')).toContainEqual({
+        rule: 'notation',
+        message: 'Type the notation too, like 1s2 2s2.',
+      });
+      expect(problems(drawn('1s2 2s2 2p4'), 'oxygen')).toContainEqual({
+        rule: 'notation',
+        message: 'I can’t read that notation. Write it like 1s2 2s2 2p4.',
+      });
+    });
   });
 });

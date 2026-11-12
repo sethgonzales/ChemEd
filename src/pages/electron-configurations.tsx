@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import Button from '~/components/button';
+import ConfigurationBuilder from '~/components/configuration-builder';
 import Container from '~/components/container';
 import OrbitalDiagram from '~/components/orbital-diagram';
 import PeriodicGrid, { blockColor } from '~/components/periodic-grid';
@@ -100,7 +101,8 @@ function Readouts({ element }: { element: IElementData }) {
   );
 }
 
-export default function ElectronConfigurations() {
+/** Pick or step through elements and see how their electrons sit */
+function ExploreMode() {
   const [element, setElement] = useState<IElementData>(ELEMENTS[0]);
   // set only by Next, so its new electron drops in; picking jumps straight there
   const [steppedFrom, setSteppedFrom] = useState<IElementData | null>(null);
@@ -117,84 +119,93 @@ export default function ElectronConfigurations() {
     ? groundState(steppedFrom.atomicNumber)
     : undefined;
 
+  // side by side on desktop: pick on the left, see the result on the right
+  return (
+    <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+      {/* Previous and Next sit with the table, since they pick elements too */}
+      <div className="w-full max-w-2xl lg:flex-1 flex flex-col gap-4">
+        <PeriodicGrid
+          selected={element}
+          onSelect={pick}
+          compact
+          minWidth={PICKER_MIN_WIDTH}
+        />
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button
+            onClick={() => step(-1)}
+            disabled={element.atomicNumber === 1}
+          >
+            <span className="flex items-center gap-1">
+              <IconChevronLeft size={18} aria-hidden="true" />
+              Previous<span className="sr-only"> element</span>
+            </span>
+          </Button>
+          <Button
+            onClick={() => step(1)}
+            disabled={element.atomicNumber === ELEMENTS.length}
+          >
+            <span className="flex items-center gap-1">
+              Next<span className="sr-only"> element</span>
+              <IconChevronRight size={18} aria-hidden="true" />
+            </span>
+          </Button>
+        </div>
+      </div>
+
+      <Stage label="Electron configuration" className="lg:flex-1 min-w-0">
+        <ElementHeading element={element} />
+        {/* the diagram, then the notation under it (beside it on tablets) */}
+        <div className="flex flex-col md:flex-row lg:flex-col gap-6">
+          {/* the gap keeps the view tabs off the picture below them */}
+          <div className="min-w-0 flex-1 flex flex-col gap-4">
+            <Tabs
+              label="View"
+              tabs={[
+                {
+                  id: 'orbitals',
+                  label: 'Orbitals',
+                  content: (
+                    <OrbitalDiagram occupancy={occupancy} previous={previous} />
+                  ),
+                },
+                {
+                  id: 'shells',
+                  label: 'Shells',
+                  content: (
+                    <ShellDiagram
+                      symbol={element.symbol}
+                      occupancy={occupancy}
+                      previous={previous}
+                    />
+                  ),
+                },
+              ]}
+            />
+          </div>
+          <div className="md:w-80 lg:w-auto shrink-0">
+            <Readouts element={element} />
+          </div>
+        </div>
+      </Stage>
+    </div>
+  );
+}
+
+export default function ElectronConfigurations() {
   return (
     <Container
       backHref="/"
       header="Electron Configurations"
-      description="See how electrons fill an atom’s orbitals: pick an element, or step through them in order."
+      description="See how electrons fill an atom’s orbitals, then fill them in yourself."
       className="gap-4"
     >
-      {/* side by side on desktop: pick on the left, see the result on the right */}
-      <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-        {/* Previous and Next sit with the table, since they pick elements too */}
-        <div className="w-full max-w-2xl lg:flex-1 flex flex-col gap-4">
-          <PeriodicGrid
-            selected={element}
-            onSelect={pick}
-            compact
-            minWidth={PICKER_MIN_WIDTH}
-          />
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button
-              onClick={() => step(-1)}
-              disabled={element.atomicNumber === 1}
-            >
-              <span className="flex items-center gap-1">
-                <IconChevronLeft size={18} aria-hidden="true" />
-                Previous<span className="sr-only"> element</span>
-              </span>
-            </Button>
-            <Button
-              onClick={() => step(1)}
-              disabled={element.atomicNumber === ELEMENTS.length}
-            >
-              <span className="flex items-center gap-1">
-                Next<span className="sr-only"> element</span>
-                <IconChevronRight size={18} aria-hidden="true" />
-              </span>
-            </Button>
-          </div>
-        </div>
-
-        <Stage label="Electron configuration" className="lg:flex-1 min-w-0">
-          <ElementHeading element={element} />
-          {/* the diagram, then the notation under it (beside it on tablets) */}
-          <div className="flex flex-col md:flex-row lg:flex-col gap-6">
-            {/* the gap keeps the view tabs off the picture below them */}
-            <div className="min-w-0 flex-1 flex flex-col gap-4">
-              <Tabs
-                label="View"
-                tabs={[
-                  {
-                    id: 'orbitals',
-                    label: 'Orbitals',
-                    content: (
-                      <OrbitalDiagram
-                        occupancy={occupancy}
-                        previous={previous}
-                      />
-                    ),
-                  },
-                  {
-                    id: 'shells',
-                    label: 'Shells',
-                    content: (
-                      <ShellDiagram
-                        symbol={element.symbol}
-                        occupancy={occupancy}
-                        previous={previous}
-                      />
-                    ),
-                  },
-                ]}
-              />
-            </div>
-            <div className="md:w-80 lg:w-auto shrink-0">
-              <Readouts element={element} />
-            </div>
-          </div>
-        </Stage>
-      </div>
+      <Tabs
+        label="Mode"
+        tabs={[
+          { id: 'explore', label: 'Explore', content: <ExploreMode /> },
+          { id: 'build', label: 'Build', content: <ConfigurationBuilder /> },
+        ]}
+      />
     </Container>
   );
 }

@@ -238,3 +238,178 @@ export const ringPositions = (count: number, radius: number) =>
 /** Electrons each shell gains from `before` to `after`, for the drop-in */
 export const newShellElectrons = (before: number[], after: number[]) =>
   after.map((n, i) => Math.max(0, n - (before[i] ?? 0)));
+
+// ---- Build mode: students draw the diagram and type the notation ----
+
+export type Diagram = { subshell: string; boxes: Spin[][] }[];
+export type Tool = Spin | 'erase';
+
+/** Empty boxes for every subshell from 1s up to `upTo`, in filling order */
+export const emptyDiagram = (upTo: string): Diagram =>
+  SUBSHELL_ORDER.slice(0, rank(upTo) + 1).map((subshell) => ({
+    subshell,
+    boxes: Array.from({ length: orbitalCount(subshell) }, () => []),
+  }));
+
+/**
+ * Tapping a box with a tool: ↑ or ↓ adds that arrow (a box holds two, and
+ * same-spin pairs are allowed so Check can explain them); erase removes the last.
+ */
+export function applyTool(
+  diagram: Diagram,
+  subshell: string,
+  box: number,
+  tool: Tool,
+): Diagram {
+  return diagram.map((row) => {
+    if (row.subshell !== subshell) return row;
+    const boxes = row.boxes.map((spins, i) => {
+      if (i !== box) return spins;
+      if (tool === 'erase') return spins.slice(0, -1);
+      return spins.length < 2 ? [...spins, tool] : spins;
+    });
+    return { ...row, boxes };
+  });
+}
+
+/** How many electrons a drawn diagram puts in each subshell */
+export const diagramOccupancy = (diagram: Diagram): Occupancy =>
+  diagram
+    .map(({ subshell, boxes }) => ({
+      subshell,
+      electrons: boxes.flat().length,
+    }))
+    .filter((o) => o.electrons > 0);
+
+export type Rule =
+  | 'count'
+  | 'pauli'
+  | 'hund'
+  | 'aufbau'
+  | 'subshell'
+  | 'notation';
+export type Problem = { rule: Rule; subshell?: string; message: string };
+
+const countIn = (occ: Occupancy, subshell: string) =>
+  occ.find((o) => o.subshell === subshell)?.electrons ?? 0;
+
+const term = (subshell: string, n: number) => subshell + superscript(n);
+
+/** Whether `later` holds electrons while `earlier` isn't full */
+const fillsOutOfOrder = (occ: Occupancy, earlier: string, later: string) =>
+  countIn(occ, later) > 0 && countIn(occ, earlier) < capacity(earlier);
+
+/**
+ * Everything wrong with a student's diagram and notation for `target`, each
+ * problem naming its rule (and subshell, so the page can mark that row).
+ */
+export function checkDiagram(
+  target: Occupancy,
+  diagram: Diagram,
+  typed: string,
+  name: string,
+) {
+  const problems: Problem[] = [];
+  const drawn = diagramOccupancy(diagram);
+  const total = electronCount(target);
+  const placed = electronCount(drawn);
+
+  if (placed !== total) {
+    problems.push({
+      rule: 'count',
+      message: `${name} has ${electronsLabel(total)}; you’ve placed ${placed}.`,
+    });
+  }
+
+  for (const { subshell, boxes } of diagram) {
+    if (boxes.some((s) => s.length === 2 && s[0] === s[1])) {
+      problems.push({
+        rule: 'pauli',
+        subshell,
+        message: 'Two electrons in one box must spin opposite ways (↑↓).',
+      });
+    }
+    if (boxes.some((s) => s.length === 2) && boxes.some((s) => !s.length)) {
+      problems.push({
+        rule: 'hund',
+        subshell,
+        message: `In ${subshell}, put one electron in each box before pairing.`,
+      });
+    }
+    const singles = boxes.filter((s) => s.length === 1).map((s) => s[0]);
+    if (new Set(singles).size > 1) {
+      problems.push({
+        rule: 'hund',
+        subshell,
+        message: `Single electrons in ${subshell} should all spin the same way.`,
+      });
+    }
+  }
+
+  // the first subshell that fills before a lower one is full, unless the real
+  // atom does the same (an exception like Cr)
+  const order = diagram.map((r) => r.subshell);
+  const outOfOrder = order
+    .flatMap((later, j) =>
+      order
+        .slice(0, j)
+        .filter(
+          (earlier) =>
+            fillsOutOfOrder(drawn, earlier, later) &&
+            !fillsOutOfOrder(target, earlier, later),
+        )
+        .map((earlier) => ({ earlier, later })),
+    )
+    .at(0);
+  if (outOfOrder) {
+    const { earlier, later } = outOfOrder;
+    problems.push({
+      rule: 'aufbau',
+      subshell: later,
+      message: `${later} has electrons, but ${earlier} isn’t full yet. Fill lower energy first.`,
+    });
+  } else if (placed === total) {
+    const wrong = order.find((s) => countIn(drawn, s) !== countIn(target, s));
+    if (wrong) {
+      problems.push({
+        rule: 'subshell',
+        subshell: wrong,
+        message: `Check ${wrong}: ${name} has ${electronsLabel(countIn(target, wrong))} there.`,
+      });
+    }
+  }
+
+  const notation = parseConfiguration(typed);
+  if (!typed.trim()) {
+    problems.push({
+      rule: 'notation',
+      message: 'Type the notation too, like 1s2 2s2.',
+    });
+  } else if (!notation) {
+    problems.push({
+      rule: 'notation',
+      message: 'I can’t read that notation. Write it like 1s2 2s2 2p4.',
+    });
+  } else {
+    const subshells = SUBSHELL_ORDER.filter(
+      (s) => countIn(notation, s) || countIn(drawn, s),
+    );
+    const differ = subshells.find(
+      (s) => countIn(notation, s) !== countIn(drawn, s),
+    );
+    if (differ) {
+      const said = countIn(notation, differ);
+      const has = countIn(drawn, differ);
+      problems.push({
+        rule: 'notation',
+        message: !said
+          ? `Your notation leaves out ${differ}, but your diagram has ${term(differ, has)}.`
+          : !has
+            ? `Your notation says ${term(differ, said)}, but your diagram has no ${differ} electrons.`
+            : `Your notation says ${term(differ, said)}, but your diagram has ${term(differ, has)}.`,
+      });
+    }
+  }
+
+  return { correct: problems.length === 0, problems };
+}
