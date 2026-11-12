@@ -48,7 +48,7 @@ All made in the browser with Web Audio as now, with no sound files.
 
 ### 5. Colour
 
-- A new **Dungeon theme** in the picker: dark stone gray-blue with torch-orange accents.
+- A new **Dungeon theme**, the default: stone-gray panels with glowing green ooze accents, and ooze dripping off the header.
 - The school themes stay. The fonts, frames, cards and sounds apply to all of them, and only the colours change.
 
 ## Phases (each test-first where there's behaviour)
