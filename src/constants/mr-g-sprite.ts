@@ -34,7 +34,7 @@ const idle = [
   '...KHHhhHHHHHHHHK...',
   '...KgGGGGHHGGGGgK...', // goggles pushed up on his hair
   '...KgGLLGggGLLGgK...',
-  '...KHGGGGHHGGGGHK...',
+  '...KHGGGGSSGGGGHK...', // forehead peeks between the lenses, so the hairline arcs
   '...KHSBBBSSBBBSHK...', // eyebrows, raised and arched so he looks friendly
   '...KSBSSSSSSSSBSK...', // their outer ends dip, with skin above the eyes
   '...KSSEESSSSEESSK...', // blue eyes

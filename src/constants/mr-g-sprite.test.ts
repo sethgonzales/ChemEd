@@ -77,6 +77,17 @@ describe('Mr. G sprite', () => {
     expect(rowsWith(FRAMES.idle.slice(0, 3), 'h').length).toBeGreaterThan(0);
   });
 
+  it('has an arched hairline: higher in the middle than at the temples', () => {
+    const firstSkin = (col: number) =>
+      FRAMES.idle.findIndex((row) => row[col] === 'S');
+    // forehead starts highest in the middle, a step lower beside it, lowest at the temples
+    const middle = [9, 10].map(firstSkin);
+    const beside = [5, 14].map(firstSkin);
+    const temples = [4, 15].map(firstSkin);
+    expect(Math.max(...middle)).toBeLessThan(Math.min(...beside));
+    expect(Math.max(...beside)).toBeLessThan(Math.min(...temples));
+  });
+
   it('has blue-gray eyes', () => {
     const [r, g, b] = [1, 3, 5].map((i) =>
       parseInt(PALETTE.E.slice(i, i + 2), 16),
