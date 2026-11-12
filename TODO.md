@@ -9,6 +9,7 @@
 - [x] **Electron Configurations**: Explore (mini periodic table, orbital diagram with drop-in electrons, Bohr shell view, notation, exceptions) and Build (pick an element and charge, tap boxes to draw the diagram, type the notation, Check), with Mr. G's tips, hints and cheers ([plan](docs/plans/electron-configurations.md))
 - [ ] **Titrations** (sealed "Coming soon" door for now)
 - [ ] **Ore mining game**: dig down through a 2D cross-section of the Earth's layers with your sprite, finding ores at the depths and settings where they really occur. Each ore you collect earns coins relative to its worth, and a card pops up saying what it's made of, where it's found, what it's used for, and other facts.
+- [ ] **Dungeon quest game**: a step-by-step dungeon crawl that strings the quizzes together as levels. Each level opens with a wall of story text setting up a chemistry problem to solve or something to rescue. Each ends with a chemistry-themed boss, beaten by answering a question on a topic from one of the simulations or from general chemistry.
 - [ ] **Electrochemistry**: interactive animations of different kinds of cells to test, with zoom into particle representations of how atoms and electrons move during the redox reaction inside each cell
 
 ## Improvements
