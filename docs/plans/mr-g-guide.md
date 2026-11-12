@@ -63,7 +63,7 @@ Mr. G is an 8-bit version of Seth who lives in the bottom corner of every page o
 1. **Sprite:** the pixel map, palette and animation frames for Mr. G, reviewed by Seth from screenshots before anything else.
 2. **Guide shell:** the provider, the bubble, placement, desktop only, hiding, wandering and reduced motion.
 3. **Page tips** (done): welcome and on-click tips for Home, Periodic Table, States of Matter, Lewis Structures and Chemical Reactions. The tips live in `src/constants/guide-tips.ts`. He introduces himself once per browser tab, welcomes you to each page once, and clicking him cycles through that page's tips.
-4. **Simulation events:** balancing hints and cheers, Lewis _Check your work_ hints and cheers, States of Matter phase changes ("It's melting!").
+4. **Simulation events** (done): balancing hints and cheers, Lewis _Check your work_ hints and cheers, States of Matter phase changes ("It's melting!"). Cheers come half a second after the change, balancing hints wait for a 3-second pause, and phase changes wait for the slider to settle. The pages still show their full feedback for now; shortening it on desktop (decision 3) is left for phase 5.
 5. **Polish:** the throttling rules, nudges when stuck, and a final review.
 
 ## Decisions (11 Nov 2026)

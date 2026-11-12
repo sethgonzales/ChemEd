@@ -4,6 +4,7 @@ import Seesaw from '~/components/seesaw';
 import Stage from '~/components/stage';
 import Button from '~/components/button';
 import { cn } from '~/utils/cn';
+import { CHEER_DELAY_MS, HINT_PAUSE_MS, balanceMessage } from '~/utils/guide';
 import { formatFormula } from '~/utils/lewis';
 import {
   elementTally,
@@ -12,6 +13,7 @@ import {
   atomTotals,
   type Reaction,
 } from '~/utils/reactions';
+import { useGuideMessage } from '~/utils/use-guide-message';
 
 interface Props {
   reaction: Reaction;
@@ -49,9 +51,18 @@ export default function ReactionBalancer({ reaction, answer }: Props) {
   const ones = formulas.map(() => '1');
   const [values, setValues] = useState(ones);
   const [revealed, setRevealed] = useState(false);
+  const [touched, setTouched] = useState(false); // Mr. G waits for the student to start
   const coefficients = values.map((v) => Number(v) || 0);
 
+  const guide =
+    touched && !revealed ? balanceMessage(reaction, coefficients) : null;
+  useGuideMessage(
+    guide,
+    guide?.mood === 'cheer' ? CHEER_DELAY_MS : HINT_PAUSE_MS,
+  );
+
   const set = (i: number, value: string) => {
+    setTouched(true);
     setRevealed(false);
     setValues((current) => current.map((v, k) => (k === i ? value : v)));
   };
@@ -204,6 +215,7 @@ export default function ReactionBalancer({ reaction, answer }: Props) {
           onClick={() => {
             setValues(ones);
             setRevealed(false);
+            setTouched(false);
           }}
         >
           Reset

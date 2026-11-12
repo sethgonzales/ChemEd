@@ -4,6 +4,12 @@ import { LEVELS, MOLECULES } from '~/constants/molecules';
 import LewisStructures from '~/pages/lewis-structures';
 import { formatFormula, type Molecule } from '~/utils/lewis';
 
+// record what the page asks Mr. G to say
+const mockSay = jest.fn();
+jest.mock('~/components/guide', () => ({
+  useGuide: () => ({ say: mockSay }),
+}));
+
 const atom = (symbol: string, index = 0) =>
   screen.getAllByRole('button', { name: new RegExp(`^${symbol} atom:`) })[
     index
@@ -979,5 +985,18 @@ describe('Lewis Structures page: layout', () => {
     expect(
       within(stage).getByRole('button', { name: 'Check your work' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('Lewis Structures page: Mr. G', () => {
+  beforeEach(() => mockSay.mockClear());
+
+  it('reacts when the student checks their work', async () => {
+    render(<LewisStructures />);
+    await checkWork();
+    expect(mockSay).toHaveBeenCalledWith(
+      expect.stringMatching(/^Not quite yet/),
+      'hint',
+    );
   });
 });

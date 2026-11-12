@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Container from '~/components/container';
+import { useGuide } from '~/components/guide';
 import Slider from '~/components/slider';
 import Stage from '~/components/stage';
 import { useTheme } from '~/styles/theme-provider';
@@ -17,12 +18,13 @@ import {
   step,
   type Simulation,
 } from '~/utils/states-of-matter';
+import { PHASE_SETTLE_MS, phaseMessage, type Phase } from '~/utils/guide';
 
 const RANGE_STEPS = 7; // number of discrete labels on slider
 
 const KELVIN_OFFSET = 273.15;
 
-function phaseLabel(tempC: number) {
+function phaseLabel(tempC: number): Phase {
   if (tempC < MELT_POINT_C) return 'Solid';
   if (tempC < BOIL_POINT_C) return 'Liquid';
   return 'Gas';
@@ -42,6 +44,19 @@ function phaseHint(tempC: number) {
 export default function StatesOfMatter() {
   const [temperature, setTemperature] = useState(0);
   const { themeName } = useTheme();
+  const { say } = useGuide();
+
+  // Mr. G names a phase change once the slider settles in the new phase
+  const phase = phaseLabel(temperature);
+  const announced = useRef(phase);
+  useEffect(() => {
+    if (phase === announced.current) return;
+    const timer = setTimeout(() => {
+      say(phaseMessage(announced.current, phase), 'tip');
+      announced.current = phase;
+    }, PHASE_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [phase, say]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);

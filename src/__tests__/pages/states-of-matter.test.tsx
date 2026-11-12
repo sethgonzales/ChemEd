@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -7,6 +8,13 @@ import {
 } from '@testing-library/react';
 import { ThemeProvider } from '~/styles/theme-provider';
 import StatesOfMatter from '~/pages/states-of-matter';
+import { PHASE_SETTLE_MS } from '~/utils/guide';
+
+// record what the page asks Mr. G to say
+const mockSay = jest.fn();
+jest.mock('~/components/guide', () => ({
+  useGuide: () => ({ say: mockSay }),
+}));
 
 const ctx = {
   setTransform: jest.fn(),
@@ -116,5 +124,37 @@ describe('States of Matter page', () => {
     renderPage();
     await waitFor(() => expect(ctx.arc).toHaveBeenCalled());
     expect(ctx.fillText).not.toHaveBeenCalled();
+  });
+});
+
+describe('States of Matter page: Mr. G', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const wait = (ms: number) => act(() => jest.advanceTimersByTime(ms));
+
+  it('explains a phase change once the slider settles', () => {
+    renderPage();
+    setTemperature(110);
+    wait(PHASE_SETTLE_MS + 50);
+    expect(mockSay).toHaveBeenCalledWith(
+      expect.stringMatching(/boiling/),
+      'tip',
+    );
+  });
+
+  it('says nothing when the slider passes through and comes back', () => {
+    renderPage();
+    setTemperature(110);
+    setTemperature(50);
+    wait(PHASE_SETTLE_MS * 2);
+    expect(mockSay).not.toHaveBeenCalled();
+  });
+
+  it('stays quiet while the phase stays the same', () => {
+    renderPage();
+    setTemperature(60);
+    wait(PHASE_SETTLE_MS * 2);
+    expect(mockSay).not.toHaveBeenCalled();
   });
 });

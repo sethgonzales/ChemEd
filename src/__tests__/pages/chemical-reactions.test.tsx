@@ -1,6 +1,13 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { CHEER_DELAY_MS, HINT_PAUSE_MS } from '~/utils/guide';
 import userEvent from '@testing-library/user-event';
 import ChemicalReactions from '~/pages/chemical-reactions';
+
+// record what the page asks Mr. G to say
+const mockSay = jest.fn();
+jest.mock('~/components/guide', () => ({
+  useGuide: () => ({ say: mockSay }),
+}));
 
 const panel = () => screen.getByRole('tabpanel');
 const coefficient = (formula: string, index = 0) =>
@@ -198,5 +205,57 @@ describe('Chemical Reactions page: your own equation', () => {
     expect(within(panel()).getByRole('alert')).toHaveTextContent(
       "This equation can't be balanced",
     );
+  });
+});
+
+describe('Chemical Reactions page: Mr. G', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    mockSay.mockClear();
+  });
+  afterEach(() => jest.useRealTimers());
+
+  const moreButton = (formula: string) =>
+    within(panel()).getByRole('button', { name: `More ${formula}` });
+  const wait = (ms: number) => act(() => jest.advanceTimersByTime(ms));
+
+  it('stays quiet until the student changes something', () => {
+    render(<ChemicalReactions />);
+    wait(HINT_PAUSE_MS * 3);
+    expect(mockSay).not.toHaveBeenCalled();
+  });
+
+  it('names an element that is off once the student pauses', () => {
+    render(<ChemicalReactions />);
+    fireEvent.click(moreButton('H₂O'));
+    wait(HINT_PAUSE_MS - 100);
+    expect(mockSay).not.toHaveBeenCalled();
+    wait(200);
+    expect(mockSay).toHaveBeenCalledWith(
+      expect.stringMatching(/Hydrogen is off/),
+      'hint',
+    );
+  });
+
+  it('cheers as soon as the equation balances', () => {
+    render(<ChemicalReactions />);
+    fireEvent.click(moreButton('H₂O'));
+    fireEvent.click(moreButton('H₂'));
+    wait(CHEER_DELAY_MS + 50);
+    expect(mockSay).toHaveBeenCalledTimes(1);
+    expect(mockSay).toHaveBeenCalledWith(
+      expect.stringMatching(/Balanced/),
+      'cheer',
+    );
+  });
+
+  it('stays quiet after Show answer', () => {
+    render(<ChemicalReactions />);
+    fireEvent.click(moreButton('H₂O'));
+    fireEvent.click(
+      within(panel()).getByRole('button', { name: 'Show answer' }),
+    );
+    wait(HINT_PAUSE_MS * 2);
+    expect(mockSay).not.toHaveBeenCalled();
   });
 });

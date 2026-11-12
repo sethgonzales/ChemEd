@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import Button from '~/components/button';
+import { useGuide } from '~/components/guide';
 import Setting from '~/components/setting';
 import Stage from '~/components/stage';
 import LewisCanvas, { pointIn, targetOf } from '~/components/lewis-canvas';
@@ -10,6 +11,7 @@ import LewisToolbar, {
   type ToolItem,
 } from '~/components/lewis-toolbar';
 import { cn } from '~/utils/cn';
+import { checkMessage } from '~/utils/guide';
 import type { Feedback, LewisStructure, Verdict } from '~/utils/lewis';
 import {
   formsReducer,
@@ -73,6 +75,7 @@ export default function LewisBuilder({
   active = true,
 }: Props) {
   const { snap, bars, hints } = settings;
+  const { say } = useGuide();
   const [tool, setTool] = useState<Tool>(initialTool);
   const [checked, setChecked] = useState<FormsState['forms'] | null>(null);
   // first tap of a two-tap curved arrow
@@ -318,7 +321,17 @@ export default function LewisBuilder({
         Clean Up
       </Button>
       <span className="sm:ml-auto">
-        <Button pressed onClick={() => setChecked(state.forms)}>
+        <Button
+          pressed
+          onClick={() => {
+            setChecked(state.forms);
+            const { verdict, feedback } = assess(
+              state.forms.map((f) => f.structure),
+            );
+            const { text, mood } = checkMessage(verdict, feedback);
+            say(text, mood);
+          }}
+        >
           Check your work
         </Button>
       </span>
