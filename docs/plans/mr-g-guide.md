@@ -1,6 +1,6 @@
 # Mr. G — the in-app guide
 
-Status: **approved** (11 Nov 2026) — see Decisions
+Status: **done** (11 Nov 2026) — see Decisions
 
 Mr. G is an 8-bit version of Seth who lives in the bottom corner of every page on desktop. He wanders a little, gives tips on how to use the page, cheers students on, and explains mistakes in the simulations.
 
@@ -63,8 +63,8 @@ Mr. G is an 8-bit version of Seth who lives in the bottom corner of every page o
 1. **Sprite:** the pixel map, palette and animation frames for Mr. G, reviewed by Seth from screenshots before anything else.
 2. **Guide shell:** the provider, the bubble, placement, desktop only, hiding, wandering and reduced motion.
 3. **Page tips** (done): welcome and on-click tips for Home, Periodic Table, States of Matter, Lewis Structures and Chemical Reactions. The tips live in `src/constants/guide-tips.ts`. He introduces himself once per browser tab, welcomes you to each page once, and clicking him cycles through that page's tips.
-4. **Simulation events** (done): balancing hints and cheers, Lewis _Check your work_ hints and cheers, States of Matter phase changes ("It's melting!"). Cheers come half a second after the change, balancing hints wait for a 3-second pause, and phase changes wait for the slider to settle. The pages still show their full feedback for now; shortening it on desktop (decision 3) is left for phase 5.
-5. **Polish:** the throttling rules, nudges when stuck, and a final review.
+4. **Simulation events** (done): balancing hints and cheers, Lewis _Check your work_ hints and cheers, States of Matter phase changes ("It's melting!"). Cheers come half a second after the change, balancing hints wait for a 3-second pause, and phase changes wait for the slider to settle.
+5. **Polish** (done): unprompted hints, phase tips and nudges are spaced at least two minutes apart, while answers to what a student does always come through. He nudges once after a minute stuck (an unbalanced equation, or drawing without checking). While he's on screen, the Lewis feedback box keeps only whole-structure problems and points to the red atoms; phones keep the full list.
 
 ## Decisions (11 Nov 2026)
 

@@ -77,7 +77,7 @@ export default function LewisBuilder({
   active = true,
 }: Props) {
   const { snap, bars, hints } = settings;
-  const { say } = useGuide();
+  const { say, visible: guideShowing } = useGuide();
   const [tool, setTool] = useState<Tool>(initialTool);
   const [checked, setChecked] = useState<FormsState['forms'] | null>(null);
   // first tap of a two-tap curved arrow
@@ -394,11 +394,22 @@ export default function LewisBuilder({
           {VERDICT_LABEL[result.verdict] && (
             <p className="font-bold">{VERDICT_LABEL[result.verdict]}</p>
           )}
+          {/* with Mr. G on screen, per-atom details live on the red atoms and
+              in his bubble; only problems with the whole structure stay here */}
           <ul className="space-y-1">
-            {result.feedback.map((f, i) => (
-              <li key={i}>{f.message}</li>
-            ))}
+            {result.feedback
+              .filter((f) => !guideShowing || f.atom === undefined)
+              .map((f, i) => (
+                <li key={i}>{f.message}</li>
+              ))}
           </ul>
+          {guideShowing && problems.size > 0 && (
+            <p>
+              {problems.size === 1
+                ? 'Hover the red atom to see what it needs.'
+                : 'Hover the red atoms to see what each one needs.'}
+            </p>
+          )}
         </div>
       )}
 

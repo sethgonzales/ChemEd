@@ -13,7 +13,7 @@
   - [ ] **8-bit avatar builder** for logged-in students: body/gender, skin tone, eyes, hair, facial features, clothing.
     - Accessories unlock through **achievements** earned in the simulations (balancing reactions, Lewis quizzes, and any future simulation).
     - Signed-out visitors can try the builder first (saved only in their browser); signing in keeps it and starts earning unlocks.
-  - [ ] **Mr. G, the in-app guide**: an 8-bit Seth (light blue lab coat, goggles) in the bottom corner on desktop, giving tips, hints and encouragement. Doesn't need Firebase. ([plan](docs/plans/mr-g-guide.md))
+  - [x] **Mr. G, the in-app guide**: an 8-bit Seth (light blue lab coat, goggles) in the bottom corner on desktop, giving tips, hints and encouragement. Doesn't need Firebase. ([plan](docs/plans/mr-g-guide.md))
 
 ## Simulations
 

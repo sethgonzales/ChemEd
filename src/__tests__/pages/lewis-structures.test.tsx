@@ -7,8 +7,9 @@ import { formatFormula, type Molecule } from '~/utils/lewis';
 
 // record what the page asks Mr. G to say
 const mockSay = jest.fn();
+let mockVisible = false; // Mr. G on screen (desktop); off, like a phone, by default
 jest.mock('~/components/guide', () => ({
-  useGuide: () => ({ say: mockSay }),
+  useGuide: () => ({ say: mockSay, visible: mockVisible }),
 }));
 
 const atom = (symbol: string, index = 0) =>
@@ -991,6 +992,23 @@ describe('Lewis Structures page: layout', () => {
 
 describe('Lewis Structures page: Mr. G', () => {
   beforeEach(() => mockSay.mockClear());
+  afterEach(() => {
+    mockVisible = false;
+  });
+
+  it('keeps the feedback box short while he is on screen', async () => {
+    mockVisible = true;
+    render(<LewisStructures />);
+    drag(tool('Add O'), drawing());
+    const feedback = await checkWork();
+    expect(feedback).toHaveTextContent(/hover the red atom/i);
+    expect(feedback).not.toHaveTextContent('O has 0 electrons around it');
+    // he passes on the details instead
+    expect(mockSay).toHaveBeenCalledWith(
+      expect.stringContaining('It needs 8'),
+      'hint',
+    );
+  });
 
   describe('nudges', () => {
     beforeEach(() => jest.useFakeTimers());
