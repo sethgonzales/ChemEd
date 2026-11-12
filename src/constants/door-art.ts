@@ -73,14 +73,14 @@ export const DOOR_ART = {
       s: '#78350f',
     },
   },
-  // water as a constellation: atoms as gems, bonds as threads, lone pairs as sparks
+  // water as a constellation: atoms as gems, bonds as threads, and its lone pairs
   lewis: {
     rows: [
       '........................',
       '........................',
-      '.......w........w.......',
       '........................',
-      '........W.W..W.W........',
+      '........................',
+      '........e.e..e.e........', // oxygen's two lone pairs
       '........................',
       '...........BB...........',
       '..........BWBB..........',
@@ -98,8 +98,8 @@ export const DOOR_ART = {
     palette: {
       B: '#3b82f6', // atom gems
       b: '#1d4ed8',
-      W: '#ffffff', // highlights and lone-pair sparks
-      w: '#bfdbfe',
+      W: '#ffffff', // highlights
+      e: '#ffffff', // lone-pair electrons
       Y: '#93c5fd', // bonds
     },
   },

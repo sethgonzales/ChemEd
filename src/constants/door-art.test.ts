@@ -13,4 +13,12 @@ describe('door art', () => {
       }
     },
   );
+
+  it('draws water with exactly two lone pairs on oxygen: four electron dots', () => {
+    const dots = DOOR_ART.lewis.rows
+      .join('')
+      .split('')
+      .filter((p) => p === 'e');
+    expect(dots).toHaveLength(4);
+  });
 });
