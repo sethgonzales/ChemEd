@@ -9,6 +9,7 @@ import {
   electronCount,
   formatConfiguration,
   groundState,
+  ionSymbol,
   ionConfiguration,
   isException,
   newArrows,
@@ -418,5 +419,15 @@ describe('Build mode', () => {
         message: 'I can’t read that notation. Write it like 1s2 2s2 2p4.',
       });
     });
+  });
+});
+
+describe('ionSymbol', () => {
+  it('writes the charge as a superscript, with the number left off for ±1', () => {
+    expect(ionSymbol('Fe', 2)).toBe('Fe²⁺');
+    expect(ionSymbol('Na', 1)).toBe('Na⁺');
+    expect(ionSymbol('Cl', -1)).toBe('Cl⁻');
+    expect(ionSymbol('O', -2)).toBe('O²⁻');
+    expect(ionSymbol('C', 0)).toBe('C');
   });
 });

@@ -401,3 +401,10 @@ export function visibleRows(diagram: Diagram): Diagram {
   const highest = diagram.findLastIndex((r) => r.boxes.some((s) => s.length));
   return diagram.slice(0, Math.max(MIN_ROWS, highest + 1 + ROWS_AHEAD));
 }
+
+/** An ion written with its charge raised: Fe²⁺, Na⁺, Cl⁻, O²⁻ */
+export function ionSymbol(symbol: string, charge: number) {
+  if (!charge) return symbol;
+  const size = Math.abs(charge) === 1 ? '' : superscript(Math.abs(charge));
+  return `${symbol}${size}${charge > 0 ? '⁺' : '⁻'}`;
+}

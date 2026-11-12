@@ -1,6 +1,6 @@
 # Electron Configurations — plan
 
-Status: **in progress** (12 Nov 2026): phases 1–6 built, see Decisions
+Status: **done** (12 Nov 2026): phases 1–7 built, see Decisions
 
 Students see how electrons fill an atom's orbitals, then fill them in themselves. The page opens the sealed Electron Configurations door on the home map.
 
@@ -60,7 +60,7 @@ Data: every element already has a ground-state `electronConfiguration` (includin
 4. **Shell view** (done): `ShellDiagram` and Orbitals / Shells tabs above the diagram; the drawing fits its shells (at least four), so heavy atoms fill it too.
 5. **Build** (done): pick on the periodic table (before or after drawing), tap-to-cycle boxes, typed notation, `checkDiagram` (count, Aufbau, Hund, subshell, notation), Check / Show answer / Clear.
 6. **Mr. G** (done): tips for Explore and Build; after Check he cheers (with the treasure sound), passes on the first problem, or asks which element it is; one nudge after a minute of drawing without checking.
-7. **Ions:** a charge control beside the picked element (e.g. Fe with 2+), checked against `ionConfiguration`.
+7. **Ions** (done): a − / + charge control under the table (3− to 3+, never removing every electron, back to 0 on a new pick), checked against `ionConfiguration`; a Mr. G tip explains why Fe²⁺ loses 4s first.
 
 ## Decisions (12 Nov 2026)
 

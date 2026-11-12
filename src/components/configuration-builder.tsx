@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { IconMinus, IconPlus } from '@tabler/icons-react';
 import Button from '~/components/button';
 import { useGuide } from '~/components/guide';
 import OrbitalDiagram from '~/components/orbital-diagram';
@@ -14,6 +15,8 @@ import {
   emptyDiagram,
   formatConfiguration,
   groundState,
+  ionConfiguration,
+  ionSymbol,
   orbitalDiagram,
   parseConfiguration,
   visibleRows,
@@ -24,21 +27,35 @@ import { useGuideNudge } from '~/utils/use-guide-message';
 
 const PICKER_MIN_WIDTH = 280; // px; fits a phone
 const LAST_SUBSHELL = '7p'; // every row any element needs; only some are shown
+const MAX_CHARGE = 3; // school ions run from 3− (N³⁻) to 3+ (Al³⁺, Fe³⁺)
 
 // what Check found, or that no element is picked yet
 type Feedback = { correct: boolean; problems: Problem[] } | 'pick';
 
+// "0", "2+", "1−", as chemists say a charge
+const chargeText = (charge: number) =>
+  charge === 0 ? '0' : `${Math.abs(charge)}${charge > 0 ? '+' : '−'}`;
+
 /**
  * Students pick an element on the periodic table (before or after drawing),
- * draw its orbital diagram by tapping boxes, type its notation, and check.
+ * optionally make it an ion, draw its orbital diagram by tapping boxes, type
+ * its notation, and check.
  */
 export default function ConfigurationBuilder() {
   const [element, setElement] = useState<IElementData | null>(null);
+  const [charge, setCharge] = useState(0);
   const [diagram, setDiagram] = useState(() => emptyDiagram(LAST_SUBSHELL));
   const [typed, setTyped] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
-  const target = element && groundState(element.atomicNumber);
+  const z = element?.atomicNumber ?? 0;
+  const target =
+    element && (charge ? ionConfiguration(z, charge) : groundState(z));
+  // a neutral atom goes by its name, an ion by its symbol and charge
+  const label =
+    element && (charge ? ionSymbol(element.symbol, charge) : element.name);
+  // never take away every electron (H⁺ has none to draw)
+  const maxCharge = Math.min(MAX_CHARGE, z - 1);
   const preview = parseConfiguration(typed);
 
   const { say, visible: guideShowing } = useGuide();
@@ -54,20 +71,20 @@ export default function ConfigurationBuilder() {
     setStarted(true);
   };
   // picking keeps the drawing, so students can draw first and pick after;
-  // clicking the picked element again unpicks it
+  // clicking the picked element again unpicks it. Either way it's neutral.
   const pick = (el: IElementData) =>
-    edit(() =>
-      setElement((now) => (now?.atomicNumber === el.atomicNumber ? null : el)),
-    );
+    edit(() => {
+      setElement((now) => (now?.atomicNumber === el.atomicNumber ? null : el));
+      setCharge(0);
+    });
+  const changeCharge = (by: number) => edit(() => setCharge((c) => c + by));
   const check = () => {
     const result =
-      element && target
-        ? checkDiagram(target, diagram, typed, element.name)
-        : 'pick';
+      label && target ? checkDiagram(target, diagram, typed, label) : 'pick';
     setFeedback(result);
     setChecked(true);
     // a cheer also plays the treasure sound
-    const { text, mood } = configurationMessage(result, element?.name ?? null);
+    const { text, mood } = configurationMessage(result, label);
     say(text, mood);
   };
   const showAnswer = () => {
@@ -94,23 +111,46 @@ export default function ConfigurationBuilder() {
       : [];
 
   // like Explore, the parts join the page card's grid on desktop: the table
-  // on the left, the diagram on the right from the top of the card
+  // and charge on the left, the diagram on the right from the top of the card
   return (
     <>
-      <div className="w-full">
+      <div className="w-full flex flex-col gap-4">
         <PeriodicGrid
           selected={element}
           onSelect={pick}
           compact
           minWidth={PICKER_MIN_WIDTH}
         />
+        <div
+          role="group"
+          aria-label="Charge"
+          className="flex items-center justify-center gap-2"
+        >
+          <Button
+            onClick={() => changeCharge(-1)}
+            disabled={!element || charge <= -MAX_CHARGE}
+          >
+            <IconMinus size={18} aria-hidden="true" />
+            <span className="sr-only">Lower the charge</span>
+          </Button>
+          <span aria-live="polite" className="min-w-28 text-center text-sm">
+            Charge: <span className="font-bold">{chargeText(charge)}</span>
+          </span>
+          <Button
+            onClick={() => changeCharge(1)}
+            disabled={!element || charge >= maxCharge}
+          >
+            <IconPlus size={18} aria-hidden="true" />
+            <span className="sr-only">Raise the charge</span>
+          </Button>
+        </div>
       </div>
 
       <div className={cn(BESIDE_HEADER, 'flex flex-col gap-4')}>
         <Stage label="Your diagram">
           <h3 className="font-pixel text-xl">
-            {element
-              ? `Draw ${element.name}: ${electronsLabel(element.atomicNumber)}`
+            {label
+              ? `Draw ${label}: ${electronsLabel(z - charge)}`
               : 'Pick an element, or start drawing'}
           </h3>
           <p className="text-sm text-white/60">
@@ -155,7 +195,7 @@ export default function ConfigurationBuilder() {
               {feedback === 'pick' ? (
                 'Pick the element you drew on the periodic table first.'
               ) : feedback.correct ? (
-                `Correct! That’s ${element?.name}’s configuration.`
+                `Correct! That’s ${label}’s configuration.`
               ) : (
                 <ul className="space-y-1">
                   {/* with Mr. G on screen, row problems are his to explain;

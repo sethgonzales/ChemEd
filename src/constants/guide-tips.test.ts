@@ -30,3 +30,12 @@ describe('Electron Configurations tips', () => {
     expect(tips.some((t) => /Build/.test(t))).toBe(true);
   });
 });
+
+describe('Electron Configurations ion tip', () => {
+  it('explains which electrons an ion loses first', () => {
+    const tips = PAGE_TIPS['/electron-configurations'];
+    expect(tips.some((t) => /4s.*before.*3d/.test(t) && /ion/i.test(t))).toBe(
+      true,
+    );
+  });
+});

@@ -281,3 +281,72 @@ describe('Electron Configurations page: Build', () => {
     expect(status()).toHaveTextContent(/^Correct!/);
   });
 });
+
+describe('Electron Configurations page: Build with ions', () => {
+  const status = () => screen.getByRole('status');
+  const notation = () => screen.getByRole('textbox', { name: 'Notation' });
+
+  async function pickIron() {
+    render(<ElectronConfigurations />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Build' }));
+    await userEvent.click(button('Iron'));
+  }
+
+  it('waits for an element before the charge can change', async () => {
+    render(<ElectronConfigurations />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Build' }));
+    expect(button('Raise the charge')).toBeDisabled();
+    expect(button('Lower the charge')).toBeDisabled();
+  });
+
+  it('builds Fe²⁺, which loses its 4s electrons before 3d', async () => {
+    await pickIron();
+    await userEvent.click(button('Raise the charge'));
+    await userEvent.click(button('Raise the charge'));
+    expect(screen.getByText('Draw Fe²⁺: 24 electrons')).toBeInTheDocument();
+
+    await userEvent.click(button('Show answer'));
+    expect(notation()).toHaveValue('1s2 2s2 2p6 3s2 3p6 3d6');
+    await userEvent.click(button('Check'));
+    expect(status()).toHaveTextContent('Correct! That’s Fe²⁺’s configuration.');
+  });
+
+  it('marks a neutral iron drawing wrong for Fe²⁺', async () => {
+    await pickIron();
+    await userEvent.click(button('Show answer'));
+    await userEvent.click(button('Raise the charge'));
+    await userEvent.click(button('Raise the charge'));
+    await userEvent.click(button('Check'));
+    expect(status()).toHaveTextContent(
+      'Fe²⁺ has 24 electrons; you’ve placed 26.',
+    );
+  });
+
+  it('makes anions like nitride, and stops at ±3', async () => {
+    render(<ElectronConfigurations />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Build' }));
+    await userEvent.click(button('Nitrogen'));
+    for (let i = 0; i < 3; i++)
+      await userEvent.click(button('Lower the charge'));
+    expect(screen.getByText('Draw N³⁻: 10 electrons')).toBeInTheDocument();
+    expect(button('Lower the charge')).toBeDisabled();
+    for (let i = 0; i < 6; i++)
+      await userEvent.click(button('Raise the charge'));
+    expect(screen.getByText('Draw N³⁺: 4 electrons')).toBeInTheDocument();
+    expect(button('Raise the charge')).toBeDisabled();
+  });
+
+  it('goes back to a neutral atom when another element is picked', async () => {
+    await pickIron();
+    await userEvent.click(button('Raise the charge'));
+    await userEvent.click(button('Sodium'));
+    expect(screen.getByText('Draw Sodium: 11 electrons')).toBeInTheDocument();
+  });
+
+  it('never removes more electrons than hydrogen has', async () => {
+    render(<ElectronConfigurations />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Build' }));
+    await userEvent.click(button('Hydrogen'));
+    expect(button('Raise the charge')).toBeDisabled();
+  });
+});

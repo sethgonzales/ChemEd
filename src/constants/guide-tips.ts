@@ -32,6 +32,7 @@ export const PAGE_TIPS: Record<string, string[]> = {
     'Electrons fill the lowest-energy orbitals first. That’s why 4s fills before 3d.',
     'Hund’s rule: in p, d and f, electrons take an empty box each before they pair up.',
     'Two electrons in one box always spin opposite ways, one ↑ and one ↓. That’s the Pauli principle.',
+    'Making an ion? Positive ions lose electrons from the outermost shell first, so Fe²⁺ loses its 4s electrons before any 3d.',
     'Try Cr and Cu: they break the pattern, because half-full and full d subshells are extra stable.',
   ],
   '/chemical-reactions': [
