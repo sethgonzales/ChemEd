@@ -41,8 +41,12 @@ export default function ConfigurationBuilder() {
     change();
     setFeedback(null);
   };
-  // picking keeps the drawing, so students can draw first and pick after
-  const pick = (el: IElementData) => edit(() => setElement(el));
+  // picking keeps the drawing, so students can draw first and pick after;
+  // clicking the picked element again unpicks it
+  const pick = (el: IElementData) =>
+    edit(() =>
+      setElement((now) => (now?.atomicNumber === el.atomicNumber ? null : el)),
+    );
   const check = () =>
     setFeedback(
       element && target

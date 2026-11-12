@@ -151,6 +151,18 @@ describe('Electron Configurations page: Build', () => {
     expect(status()).toHaveTextContent(/^Correct!/);
   });
 
+  it('unpicks the element when it is clicked again, keeping the drawing', async () => {
+    await startBuild();
+    await userEvent.click(button('Carbon'));
+    await tap('1s box 1: empty');
+    await userEvent.click(button('Carbon'));
+    expect(button('Carbon')).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      screen.getByText('Pick an element, or start drawing'),
+    ).toBeInTheDocument();
+    expect(box('1s box 1: up')).toBeInTheDocument();
+    expect(button('Show answer')).toBeDisabled();
+  });
   it('cycles a box: up, then up and down, then empty', async () => {
     await startBuild();
     await tap('1s box 1: empty');
