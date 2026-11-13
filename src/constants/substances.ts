@@ -48,8 +48,8 @@ export const SUBSTANCES: Substance[] = [
     boilC: 356.73,
     fusionKJ: 2.29,
     vaporizationKJ: 59.11,
-    // liquid at 25 °C; the vapour is single atoms, so Cp = 5/2 R. The solid
-    // borrows the liquid's value (an estimate, as for ethanol).
-    heatCapacity: { solid: 27.98, liquid: 27.98, gas: (5 / 2) * R },
+    // solid at its melting point, 234.29 K (NIST-JANAF); liquid at 25 °C; the
+    // vapour is single atoms, so Cp = 5/2 R
+    heatCapacity: { solid: 28.485, liquid: 27.98, gas: (5 / 2) * R },
   },
 ];

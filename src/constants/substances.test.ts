@@ -33,6 +33,10 @@ describe('SUBSTANCES', () => {
     expect(byId('mercury').heatCapacity.gas).toBeCloseTo((5 / 2) * 8.314, 2);
   });
 
+  it('gives solid mercury its own Cp at the melting point (NIST-JANAF)', () => {
+    expect(byId('mercury').heatCapacity.solid).toBeCloseTo(28.485, 3);
+  });
+
   it('takes far more energy to boil than to melt, for every substance', () => {
     for (const s of SUBSTANCES) {
       expect(s.vaporizationKJ).toBeGreaterThan(s.fusionKJ);
