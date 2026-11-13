@@ -1,5 +1,7 @@
 // Pixel art for each simulation's chamber door on the home page. Rows of
-// palette letters, like Mr. G; '.' is transparent.
+// palette letters, like Mr. G; '.' is transparent. Art fits within
+// ART_WIDTH × ART_HEIGHT and scales to fill its archway, so art with no empty
+// border draws bigger.
 
 export const ART_WIDTH = 24;
 export const ART_HEIGHT = 18;
@@ -7,35 +9,31 @@ export const ART_HEIGHT = 18;
 export type DoorArt = { rows: string[]; palette: Record<string, string> };
 
 export const DOOR_ART = {
-  // a wall of element tiles like runes, one glowing
+  // the periodic table itself, one pixel per element, with iron glowing
   periodic: {
     rows: [
-      '........................',
-      '........................',
-      'TTTTT.TTTTT.TTTTT.TTTTT.',
-      'TLLLT.TLLLT.TLLLT.TLLLT.',
-      'TTLTT.TTLTT.TTLTT.TTLTT.',
-      'ttttt.ttttt.ttttt.ttttt.',
-      '...........Y.....Y......',
-      'TTTTT.TTTTT.GGGGG.TTTTT.',
-      'TLLLT.TLLLT.GYYYG.TLLLT.',
-      'TTLTT.TTLTT.GGYGG.TTLTT.',
-      'ttttt.ttttt.ggggg.ttttt.',
-      '.................Y......',
-      'TTTTT.TTTTT.TTTTT.TTTTT.',
-      'TLLLT.TLLLT.TLLLT.TLLLT.',
-      'TTLTT.TTLTT.TTLTT.TTLTT.',
-      'ttttt.ttttt.ttttt.ttttt.',
-      '........................',
-      '........................',
+      'S................s',
+      'sS......Y...pPpPpP',
+      'Ss.....Y....PpPpPp',
+      'sSdDdDdGdDdDpPpPpP',
+      'SsDdDdDdDdDdPpPpPp',
+      'sSdDdDdDdDdDpPpPpP',
+      'SsDdDdDdDdDdPpPpPp',
+      '..................',
+      '..FfFfFfFfFfFfFf..',
+      '..fFfFfFfFfFfFfF..',
     ],
     palette: {
-      T: '#14b8a6', // tile
-      L: '#99f6e4', // rune
-      t: '#0f766e', // tile shadow
+      S: '#ef4444', // s-block, checkered so the tiles read apart
+      s: '#dc2626',
+      P: '#d97706', // p-block
+      p: '#b45309',
+      D: '#3b82f6', // d-block
+      d: '#2563eb',
+      F: '#16a34a', // f-block
+      f: '#15803d',
       G: '#facc15', // the glowing tile
-      Y: '#fef9c3', // its rune and sparkles
-      g: '#a16207',
+      Y: '#fef9c3', // its sparkles
     },
   },
   // ice, liquid and gas in jars on a shelf
@@ -163,35 +161,43 @@ export const DOOR_ART = {
       E: '#fdf4ff', // electrons, as beads on the rings
     },
   },
-  // a burette drips into a flask that is turning pink
+  // a burette in a stand’s clamp drips into an Erlenmeyer flask on a stirrer;
+  // pink swirls where the drops land, as at the endpoint
   titrations: {
     rows: [
-      '..........KGGK..........',
-      '..........KGLK..........',
-      '..........KGLK..........',
-      '..........KGLK..........',
-      '..........KGLK..........',
-      '...........KK...........',
-      '...........KK...........',
-      '........................',
-      '...........D............',
-      '........................',
-      '...........D............',
-      '..........KGGK..........',
-      '.........KGLLGK.........',
-      '........KGPPPPGK........',
-      '.......KGPPPpPPGK.......',
-      '......KGPPpPPPPPGK......',
-      '......KKKKKKKKKKKK......',
-      '........................',
+      '...R......BEEB..........',
+      '...R......BLmB..........',
+      '...RAAAAAABLLB..........',
+      '...R......BLmB..........',
+      '...R......BLLB..........',
+      '...R.......BB...........',
+      '...R.....CCBBCC.........',
+      '...R.......BB...........',
+      '...R.......D............',
+      '...R.....FFEEFF.........',
+      '...R......FEEF..........',
+      '...R.....FEEEEF.........',
+      '...R.....FLLLLF.........',
+      '...R....FLLPPLLF........',
+      '...R....FLPPPLLF........',
+      '...R...FLLLWWLLLF.......',
+      '...R...FFFFFFFFFF.......',
+      '.RRRRR.TTTTTTTTgT.......',
     ],
     palette: {
-      K: '#111827',
-      G: '#cbd5e1', // glass
-      L: '#94a3b8',
-      D: '#f9a8d4', // drops
-      P: '#ec4899', // pink: the end point
-      p: '#f9a8d4',
+      R: '#64748b', // stand and clamp
+      A: '#94a3b8',
+      B: '#e2e8f0', // burette glass
+      C: '#f8fafc', // stopcock
+      E: '#334155', // empty glass
+      L: '#7dd3fc', // titrant and the pale solution
+      m: '#f8fafc', // scale marks
+      D: '#7dd3fc', // a drop
+      F: '#e2e8f0', // flask glass
+      P: '#ec4899', // pink: nearly at the endpoint
+      W: '#ffffff', // stir bar
+      T: '#475569', // stirrer
+      g: '#4ade80', // its light
     },
   },
 } satisfies Record<string, DoorArt>;
