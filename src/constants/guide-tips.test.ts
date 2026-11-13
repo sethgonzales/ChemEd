@@ -5,7 +5,7 @@ const PAGES = [
   '/periodic-table',
   '/states-of-matter',
   '/lewis-structures',
-  '/chemical-reactions',
+  '/reaction-balancing',
   '/electron-configurations',
 ];
 
@@ -21,6 +21,10 @@ describe('Mr. G page tips', () => {
 
   it('has general tips for pages without their own', () => {
     expect(GENERAL_TIPS.length).toBeGreaterThan(0);
+  });
+
+  it('leaves unbuilt Chemical Reactions to the general tips', () => {
+    expect(PAGE_TIPS['/chemical-reactions']).toBeUndefined();
   });
 });
 

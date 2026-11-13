@@ -6,14 +6,15 @@ import { SIMULATIONS } from './index';
 const root = path.resolve(__dirname, '../..');
 
 describe('SIMULATIONS', () => {
-  it('lists the six simulations in display order', () => {
+  it('lists the simulations in display order, unbuilt ones last', () => {
     expect(SIMULATIONS.map((s) => s.title)).toEqual([
       'Periodic Table',
       'States of Matter',
       'Lewis Structures',
       'Electron Configurations',
-      'Chemical Reactions',
+      'Reaction Balancing',
       'Titrations',
+      'Chemical Reactions',
     ]);
   });
 
@@ -29,7 +30,9 @@ describe('SIMULATIONS', () => {
     expect(new Set(colors).size).toBe(colors.length);
   });
 
-  it('has every simulation built, so no door is sealed', () => {
-    expect(SIMULATIONS.filter((s) => !s.ready).map((s) => s.title)).toEqual([]);
+  it('seals Chemical Reactions while its reaction types are built', () => {
+    expect(SIMULATIONS.filter((s) => !s.ready).map((s) => s.title)).toEqual([
+      'Chemical Reactions',
+    ]);
   });
 });

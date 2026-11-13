@@ -13,9 +13,10 @@ Everything works on phones (touch input, narrow screens) and by keyboard.
 | Periodic Table          | Built       | Pick any element to see its details; colours show each block. Works with arrow keys.                                 |
 | States of Matter        | Built       | Heat or cool a substance and watch its particles change phase, with a °C / K readout.                                |
 | Lewis Structures        | Built       | Draw structures (atoms, bonds, lone pairs, charges, resonance forms with curved arrows), check them, or take a quiz. |
-| Chemical Reactions      | Built       | Balance equations on a balance-beam scale: practice levels, or type your own equation.                               |
+| Reaction Balancing      | Built       | Balance equations on a balance-beam scale: practice levels, or type your own equation.                               |
 | Electron Configurations | Built       | Explore any element's orbitals and Bohr shells, then draw atoms and ions yourself and check them.                    |
-| Titrations              | Coming soon | Sealed door on the home page.                                                                                        |
+| Titrations              | Built       | Titrate acids and bases with three indicators and a live pH curve, then find an unknown concentration.               |
+| Chemical Reactions      | Coming soon | Types of chemical reactions. Sealed door on the home page.                                                           |
 
 ## Getting started
 

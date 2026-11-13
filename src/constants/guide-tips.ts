@@ -35,7 +35,7 @@ export const PAGE_TIPS: Record<string, string[]> = {
     'Making an ion? Positive ions lose electrons from the outermost shell first, so Fe²⁺ loses its 4s electrons before any 3d.',
     'Try Cr and Cu: they break the pattern, because half-full and full d subshells are extra stable.',
   ],
-  '/chemical-reactions': [
+  '/reaction-balancing': [
     'Use + and − to change the coefficients, or type a number. Never change the formulas themselves.',
     'The seesaw tips toward the side with more atoms. Match every element and it levels out.',
     'Start with an element that’s in only one molecule on each side. Save H and O for last.',

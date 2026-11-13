@@ -38,10 +38,10 @@ export const SIMULATIONS: Simulation[] = [
     ready: true,
   },
   {
-    title: 'Chemical Reactions',
-    path: '/chemical-reactions',
-    art: 'reactions',
-    color: '#f59e0b', // amber
+    title: 'Reaction Balancing',
+    path: '/reaction-balancing',
+    art: 'balancing',
+    color: '#ec4899', // pink
     ready: true,
   },
   {
@@ -50,5 +50,12 @@ export const SIMULATIONS: Simulation[] = [
     art: 'titrations',
     color: '#ef4444', // red
     ready: true,
+  },
+  {
+    title: 'Chemical Reactions', // types of reactions, still being built
+    path: '/chemical-reactions',
+    art: 'reactions',
+    color: '#f59e0b', // amber
+    ready: false,
   },
 ];

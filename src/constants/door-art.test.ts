@@ -108,3 +108,26 @@ describe('titrations door', () => {
     expect(rows.some((row) => row.includes('R'))).toBe(true); // stand rod
   });
 });
+
+describe('balancing door', () => {
+  const rows = DOOR_ART.balancing.rows;
+  const beam = rows
+    .map((row, y) => ({ y, s: span(row, 'B') }))
+    .find((r) => r.s)!;
+  const centre = (beam.s!.left + beam.s!.right) / 2;
+
+  it('draws a level beam, balanced on a pivot under its middle', () => {
+    expect(beam.s!.count).toBe(beam.s!.right - beam.s!.left + 1); // unbroken
+    const pivot = span(rows[beam.y + 1], 'T');
+    expect(pivot).not.toBeNull();
+    expect((pivot!.left + pivot!.right) / 2).toBe(centre);
+  });
+
+  it('is a mirror image, with molecules in a pan at each end', () => {
+    for (const row of rows) {
+      const shape = row.replace(/[^.]/g, '#'); // molecules may differ in colour
+      expect(shape).toBe([...shape].reverse().join(''));
+    }
+    expect(rows.join('')).toMatch(/[MN]/); // atoms in the pans
+  });
+});

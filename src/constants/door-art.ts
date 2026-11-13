@@ -133,6 +133,32 @@ export const DOOR_ART = {
       P: '#374151', // cauldron
     },
   },
+  // a level balance: 2 H₂ + O₂ in one pan, 2 H₂O in the other, the same atoms
+  balancing: {
+    rows: [
+      '...........KK...........',
+      '...........KK...........',
+      '..BBBBBBBBBBBBBBBBBBBB..',
+      '..C.......TTTT.......C..',
+      '.C.C......TTTT......C.C.',
+      'C...C.....TTTT.....C...C',
+      'CNNMC.....TTTT.....CNMNC',
+      'CNNMC.....TTTT.....CNMNC',
+      'PPPPP.....TTTT.....PPPPP',
+      '.PPP......TTTT......PPP.',
+      '.........TTTTTT.........',
+      '.......TTTTTTTTTT.......',
+    ],
+    palette: {
+      K: '#fde68a', // the pointer, upright when level
+      B: '#fbbf24', // brass beam
+      T: '#d97706', // its stand
+      C: '#9ca3af', // chains
+      P: '#fbbf24', // pans
+      N: '#f8fafc', // hydrogen, white as in CPK colours
+      M: '#ef4444', // oxygen, red
+    },
+  },
   // a carbon atom: the nucleus with 2 electrons on its inner ring and 4 on the outer
   electrons: {
     rows: [

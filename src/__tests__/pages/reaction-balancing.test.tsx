@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { CHEER_DELAY_MS, HINT_PAUSE_MS, NUDGE_AFTER_MS } from '~/utils/guide';
 import userEvent from '@testing-library/user-event';
-import ChemicalReactions from '~/pages/chemical-reactions';
+import ReactionBalancing from '~/pages/reaction-balancing';
 
 // record what the page asks Mr. G to say
 const mockSay = jest.fn();
@@ -30,11 +30,11 @@ async function choose(picker: RegExp, option: string) {
   await userEvent.click(within(panel()).getByRole('button', { name: option }));
 }
 
-describe('Chemical Reactions page: balancing practice', () => {
+describe('Reaction Balancing page: balancing practice', () => {
   it('starts with an unbalanced equation and every coefficient at 1', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     expect(
-      screen.getByRole('heading', { name: 'Chemical Reactions' }),
+      screen.getByRole('heading', { name: 'Reaction Balancing' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -54,14 +54,14 @@ describe('Chemical Reactions page: balancing practice', () => {
   });
 
   it('tallies each element on both sides', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     expect(tallyRow('H')).toHaveTextContent('2');
     expect(tallyRow('H')).toHaveTextContent('Balanced');
     expect(tallyRow('O')).toHaveTextContent('Not balanced');
   });
 
   it('lists the atom count under the seesaw, mirroring its sides', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     // seesaw and counts share one card
     const card = within(panel()).getByRole('region', { name: 'Balance' });
     expect(
@@ -81,7 +81,7 @@ describe('Chemical Reactions page: balancing practice', () => {
   });
 
   it('tips the seesaw toward the side with more atoms', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     // 1 H₂ + 1 O₂ (4 atoms) against 1 H₂O (3 atoms)
     expect(seesaw()).toHaveAccessibleName(
       'Seesaw tips toward the reactants: 4 atoms on the reactant side, 3 on the product side',
@@ -89,7 +89,7 @@ describe('Chemical Reactions page: balancing practice', () => {
   });
 
   it('puts one chip on the seesaw for every molecule', async () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     const molecules = (formula: string) =>
       within(seesaw()).getAllByText(formula, { selector: '[data-molecule]' });
     expect(molecules('H₂')).toHaveLength(1);
@@ -98,7 +98,7 @@ describe('Chemical Reactions page: balancing practice', () => {
   });
 
   it('says balanced once every element matches, and levels the scale', async () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     await increase('H₂');
     await increase('H₂O');
     expect(status()).toHaveTextContent('Balanced!');
@@ -107,7 +107,7 @@ describe('Chemical Reactions page: balancing practice', () => {
   });
 
   it('nudges toward the smallest whole numbers', async () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     for (const [f, n] of [
       ['H₂', '4'],
       ['O₂', '2'],
@@ -122,7 +122,7 @@ describe('Chemical Reactions page: balancing practice', () => {
   });
 
   it('never lets a coefficient go below 1', async () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     await userEvent.click(
       within(panel()).getByRole('button', { name: 'Fewer H₂' }),
     );
@@ -130,7 +130,7 @@ describe('Chemical Reactions page: balancing practice', () => {
   });
 
   it('shows the answer, and resets', async () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     await userEvent.click(
       within(panel()).getByRole('button', { name: 'Show answer' }),
     );
@@ -146,7 +146,7 @@ describe('Chemical Reactions page: balancing practice', () => {
   });
 
   it('switches reactions from the level and reaction menus', async () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     await choose(/^Choose a level/, 'Level 2: Combustion');
     await choose(/^Choose a reaction/, 'Burning propane');
     expect(within(panel()).getByTestId('equation')).toHaveTextContent(
@@ -155,9 +155,9 @@ describe('Chemical Reactions page: balancing practice', () => {
   });
 });
 
-describe('Chemical Reactions page: your own equation', () => {
+describe('Reaction Balancing page: your own equation', () => {
   function ownEquation() {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     fireEvent.click(screen.getByRole('tab', { name: 'Your own equation' }));
   }
 
@@ -208,7 +208,7 @@ describe('Chemical Reactions page: your own equation', () => {
   });
 });
 
-describe('Chemical Reactions page: Mr. G', () => {
+describe('Reaction Balancing page: Mr. G', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockSay.mockClear();
@@ -220,13 +220,13 @@ describe('Chemical Reactions page: Mr. G', () => {
   const wait = (ms: number) => act(() => jest.advanceTimersByTime(ms));
 
   it('stays quiet until the student changes something', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     wait(HINT_PAUSE_MS * 3);
     expect(mockSay).not.toHaveBeenCalled();
   });
 
   it('names an element that is off once the student pauses', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     fireEvent.click(moreButton('H₂O'));
     wait(HINT_PAUSE_MS - 100);
     expect(mockSay).not.toHaveBeenCalled();
@@ -239,7 +239,7 @@ describe('Chemical Reactions page: Mr. G', () => {
   });
 
   it('cheers as soon as the equation balances', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     fireEvent.click(moreButton('H₂O'));
     fireEvent.click(moreButton('H₂'));
     wait(CHEER_DELAY_MS + 50);
@@ -255,7 +255,7 @@ describe('Chemical Reactions page: Mr. G', () => {
     mockSay.mock.calls.filter(([, mood]) => mood === 'nudge');
 
   it('nudges once if the student is stuck for a minute', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     fireEvent.click(moreButton('H₂O'));
     wait(NUDGE_AFTER_MS + 50);
     expect(mockSay).toHaveBeenCalledWith(expect.any(String), 'nudge', {
@@ -266,7 +266,7 @@ describe('Chemical Reactions page: Mr. G', () => {
   });
 
   it('does not nudge once the equation is balanced', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     fireEvent.click(moreButton('H₂O'));
     fireEvent.click(moreButton('H₂'));
     wait(NUDGE_AFTER_MS * 2);
@@ -274,7 +274,7 @@ describe('Chemical Reactions page: Mr. G', () => {
   });
 
   it('stays quiet after Show answer', () => {
-    render(<ChemicalReactions />);
+    render(<ReactionBalancing />);
     fireEvent.click(moreButton('H₂O'));
     fireEvent.click(
       within(panel()).getByRole('button', { name: 'Show answer' }),

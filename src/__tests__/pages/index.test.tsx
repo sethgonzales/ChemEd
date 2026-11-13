@@ -32,4 +32,20 @@ describe('Home page', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Titrations' }));
     expect(push).toHaveBeenCalledWith('/titrations');
   });
+
+  it('opens Reaction Balancing behind its own door', async () => {
+    render(<Home />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Reaction Balancing' }),
+    );
+    expect(push).toHaveBeenCalledWith('/reaction-balancing');
+  });
+
+  it('keeps the Chemical Reactions door sealed for now', async () => {
+    render(<Home />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Chemical Reactions (coming soon)' }),
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
 });

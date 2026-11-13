@@ -66,7 +66,7 @@ function renderGuide(page?: string) {
 }
 
 const LEWIS = PAGE_TIPS['/lewis-structures'];
-const REACTIONS = PAGE_TIPS['/chemical-reactions'];
+const REACTIONS = PAGE_TIPS['/reaction-balancing'];
 const waitForWelcome = () =>
   act(() => jest.advanceTimersByTime(WELCOME_DELAY_MS + 50));
 const closeBubble = () =>
@@ -124,7 +124,7 @@ describe('Mr. G guide', () => {
     closeBubble();
 
     rerender(
-      <GuideProvider page="/chemical-reactions">
+      <GuideProvider page="/reaction-balancing">
         <Page />
       </GuideProvider>,
     );
