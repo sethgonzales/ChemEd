@@ -1,6 +1,6 @@
 # Electrochemistry — plan
 
-Status: **planned** (13 Nov 2026). Decisions below; built after the fact sweep, which sets up the sources line.
+Status: **phase 1 done** (13 Nov 2026): data and engine. Decisions below.
 
 Students build cells from two half-cells, close the circuit and watch what happens at three scales: the **bench** (voltmeter, bulb, electrodes thinning or plating), the **particles** (a zoom into an electrode surface where atoms give up electrons and ions move through the solution and salt bridge), and the **numbers** (E°cell, then the Nernst equation as concentrations change).
 
@@ -84,3 +84,8 @@ Behaviour tests: the Daniell cell reads 1.10 V; swapping the electrodes picks th
 2. **Nernst equation included**, at AP / first-year college level: concentration sliders for each half-cell, with E = E° − (RT/nF) ln Q shown worked.
 3. **Mix and match**: Zn | Cu (Daniell) is the default, but the point is to swap any metal and any solution in either half-cell and see when a cell works and when it doesn't. A metal in a solution of a different, more easily reduced ion reacts directly in the beaker (e.g. Zn in Cu²⁺ plates copper onto the zinc and gives no useful current); a cell with the same couple on both sides at equal concentrations reads 0 V; without the wire or the salt bridge nothing flows. The engine models each half-cell as an electrode metal plus a solution ion, so mismatches are possible and explained.
 4. **Predict mode is built here**, in the Galvanic tab.
+5. **E° source** (phase 1): no single primary table was reachable (the CRC chapter is paywalled, and LibreTexts mixes older Bard/Milazzo values such as Cl₂ 1.396 V). Values are taken exactly as listed on Wikipedia's "Standard electrode potential (data page)", which credits each row to the CRC (Vanýsek), Atkins or Bard. So Cu is 0.337 V (Bard) and Fe −0.44 V, and Zn | Cu gives 1.10 V.
+6. **Solutions are nitrates**, so every ion stays dissolved (lead and silver sulfates are insoluble). The salt bridge is KNO₃.
+7. **Mismatched half-cells** (phase 1): a metal in a more easily reduced metal's ions "reacts in the beaker" (e.g. Zn in Cu²⁺), so no current goes through the wire; a metal in ions it can't displace "has no potential set by E°" (e.g. Cu in Zn²⁺), so the cell is not predictable from the table. Both read 0 V.
+8. **Running down** (phase 1): 0.1 L per beaker and 10 Ω in the circuit. A Daniell cell holds most of its voltage until the Cu²⁺ is used up, then goes **flat** (its true equilibrium, at about 10⁻³⁷ M Cu²⁺, is out of reach). A concentration cell runs down smoothly to 0 V as the two sides even out.
+9. **Electrolysis minimum voltages** are left for phase 4, once they're sourced.

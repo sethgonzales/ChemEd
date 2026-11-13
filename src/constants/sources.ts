@@ -15,6 +15,24 @@ export interface Source {
 const WIKIPEDIA = { author: 'Wikipedia contributors', publisher: 'Wikipedia' };
 
 const ALL = {
+  electrodePotentials: {
+    topic:
+      'Standard reduction potentials, E° (25 °C, 1 M); the page credits each value to the CRC Handbook, Atkins or Bard et al.',
+    ...WIKIPEDIA,
+    year: 2026,
+    title: 'Standard electrode potential (data page)',
+    url: 'https://en.wikipedia.org/wiki/Standard_electrode_potential_(data_page)',
+    accessed: '2026-11-13',
+  },
+  codata: {
+    topic: 'The Faraday constant F and the gas constant R',
+    author: 'Tiesinga, E., Mohr, P. J., Newell, D. B. and Taylor, B. N.',
+    year: 2021,
+    title:
+      'CODATA recommended values of the fundamental physical constants: 2018',
+    publisher: 'Reviews of Modern Physics 93, 025010',
+    url: 'https://doi.org/10.1103/RevModPhys.93.025010',
+  },
   ciaawWeights: {
     topic: 'Atomic masses',
     author:
