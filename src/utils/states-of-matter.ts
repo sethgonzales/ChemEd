@@ -1,3 +1,6 @@
+import type { Substance } from '~/constants/substances';
+import type { Phase } from '~/utils/guide';
+
 export type Vec = { x: number; y: number };
 
 export type Particle = {
@@ -387,4 +390,84 @@ export function step(sim: Simulation, tempC: number, dt: number) {
     p.pos.y += p.vel.y * dt;
     bounceOffWalls(p, w, h, params.restitution, params.floorRestitutionMult);
   }
+}
+
+/**
+ * Substances. The physics above is tuned on water's scale (melts at 0, boils
+ * at 100); other substances are mapped onto it by their own melting and
+ * boiling points, so each changes phase at its real temperatures.
+ */
+const LIQUID_RANGE = BOIL_POINT_C - MELT_POINT_C;
+const RANGE_MARGIN = (MELT_POINT_C - TEMP_MIN_C) / LIQUID_RANGE; // either side, as a fraction of the liquid range
+const BAND_FRACTION = MELT_BAND_C / LIQUID_RANGE;
+
+const span = (s: Substance) => s.boilC - s.meltC;
+
+/** The slider's range for a substance, in whole °C */
+export function temperatureRange(s: Substance) {
+  const margin = span(s) * RANGE_MARGIN;
+  return {
+    min: Math.round(s.meltC - margin),
+    max: Math.round(s.boilC + margin),
+  };
+}
+
+/** A substance's temperature on the water scale the physics runs on */
+export const toModelTemp = (s: Substance, tempC: number) =>
+  MELT_POINT_C + ((tempC - s.meltC) / span(s)) * LIQUID_RANGE;
+
+export function phaseOf(s: Substance, tempC: number): Phase {
+  if (tempC < s.meltC) return 'Solid';
+  if (tempC < s.boilC) return 'Liquid';
+  return 'Gas';
+}
+
+// inside a transition band the particles are partway between phases
+export function phaseHint(s: Substance, tempC: number) {
+  const band = span(s) * BAND_FRACTION;
+  if (Math.abs(tempC - s.meltC) <= band) return 'Near the melting point';
+  if (Math.abs(tempC - s.boilC) <= band) return 'Near the boiling point';
+  return null;
+}
+
+export type CurvePoint = { q: number; t: number }; // kJ/mol added, °C
+
+/**
+ * Temperature against heat added to one mole, from the bottom of the range:
+ * slopes of 1/Cp within each phase, flat while it melts and boils.
+ */
+export function heatingCurve(s: Substance): CurvePoint[] {
+  const { min, max } = temperatureRange(s);
+  const { solid, liquid, gas } = s.heatCapacity;
+  const kJ = (cp: number, dt: number) => (cp * dt) / 1000;
+
+  const melting = kJ(solid, s.meltC - min);
+  const melted = melting + s.fusionKJ;
+  const boiling = melted + kJ(liquid, s.boilC - s.meltC);
+  const boiled = boiling + s.vaporizationKJ;
+  return [
+    { q: 0, t: min },
+    { q: melting, t: s.meltC },
+    { q: melted, t: s.meltC },
+    { q: boiling, t: s.boilC },
+    { q: boiled, t: s.boilC },
+    { q: boiled + kJ(gas, max - s.boilC), t: max },
+  ];
+}
+
+/** Where a temperature sits on the heating curve; mid-plateau at a phase change */
+export function heatAt(s: Substance, tempC: number) {
+  const curve = heatingCurve(s);
+  const t = clamp(tempC, curve[0].t, curve[curve.length - 1].t);
+  // a plateau first, since the slope below it ends at the same temperature
+  const plateau = [1, 3].find((i) => curve[i].t === t);
+  if (plateau) return (curve[plateau].q + curve[plateau + 1].q) / 2;
+  for (let i = 1; i < curve.length; i++) {
+    const a = curve[i - 1];
+    const b = curve[i];
+    if (a.t !== b.t && t <= b.t) {
+      return lerp(a.q, b.q, (t - a.t) / (b.t - a.t));
+    }
+  }
+  return curve[curve.length - 1].q;
 }

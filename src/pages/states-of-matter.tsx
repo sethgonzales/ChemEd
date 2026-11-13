@@ -1,21 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import Container from '~/components/container';
+import Dropdown, { DropdownItem } from '~/components/dropdown';
 import { useGuide } from '~/components/guide';
+import HeatingCurve from '~/components/heating-curve';
+import Setting from '~/components/setting';
 import Slider from '~/components/slider';
 import Stage from '~/components/stage';
+import { SUBSTANCES, type Substance } from '~/constants/substances';
 import { useTheme } from '~/styles/theme-provider';
 import {
-  BOIL_BAND_C,
-  BOIL_POINT_C,
-  MELT_BAND_C,
   DT_MAX,
-  MELT_POINT_C,
-  TEMP_MAX_C,
-  TEMP_MIN_C,
   clamp,
   createSimulation,
+  phaseHint,
+  phaseOf,
   resizeSimulation,
   step,
+  temperatureRange,
+  toModelTemp,
   type Simulation,
 } from '~/utils/states-of-matter';
 import { PHASE_SETTLE_MS, phaseMessage, type Phase } from '~/utils/guide';
@@ -35,33 +37,27 @@ const PARTICLES: Record<Phase, string> = {
 };
 
 // the picture in words, for screen readers
-const describeParticles = (tempC: number) =>
-  `${phaseLabel(tempC)} at ${tempC} °C: particles ${PARTICLES[phaseLabel(tempC)]}`;
-
-function phaseLabel(tempC: number): Phase {
-  if (tempC < MELT_POINT_C) return 'Solid';
-  if (tempC < BOIL_POINT_C) return 'Liquid';
-  return 'Gas';
-}
-
-// inside a transition band the particles are partway between phases
-function phaseHint(tempC: number) {
-  if (Math.abs(tempC - MELT_POINT_C) <= MELT_BAND_C) {
-    return 'Near the melting point';
-  }
-  if (Math.abs(tempC - BOIL_POINT_C) <= BOIL_BAND_C) {
-    return 'Near the boiling point';
-  }
-  return null;
-}
+const describeParticles = (s: Substance, tempC: number) =>
+  `${s.name}: ${phaseOf(s, tempC)} at ${tempC} °C: particles ${PARTICLES[phaseOf(s, tempC)]}`;
 
 export default function StatesOfMatter() {
+  const [substance, setSubstance] = useState(SUBSTANCES[0]);
   const [temperature, setTemperature] = useState(0);
+  const [showCurve, setShowCurve] = useState(true);
   const { themeName } = useTheme();
   const { say } = useGuide();
+  const range = temperatureRange(substance);
+
+  // the thermometer keeps its reading, pulled into the new substance's range
+  const chooseSubstance = (s: Substance) => {
+    const { min, max } = temperatureRange(s);
+    setSubstance(s);
+    setTemperature((t) => clamp(t, min, max));
+  };
 
   // Mr. G names a phase change once the slider settles in the new phase
-  const phase = phaseLabel(temperature);
+  const phase = phaseOf(substance, temperature);
+  const hint = phaseHint(substance, temperature);
   const announced = useRef(phase);
   useEffect(() => {
     if (phase === announced.current) return;
@@ -75,8 +71,10 @@ export default function StatesOfMatter() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
-  // read by the animation loop, so changing them doesn't restart it
-  const temperatureRef = useRef(temperature);
+  // read by the animation loop, so changing them doesn't restart it.
+  // The physics runs on the water scale it was tuned on.
+  const modelTemp = toModelTemp(substance, temperature);
+  const temperatureRef = useRef(modelTemp);
   const colorRef = useRef('#000');
   const simRef = useRef<Simulation | null>(null);
 
@@ -86,9 +84,9 @@ export default function StatesOfMatter() {
   const redrawRef = useRef(true);
 
   useEffect(() => {
-    temperatureRef.current = temperature;
+    temperatureRef.current = modelTemp;
     redrawRef.current = true;
-  }, [temperature]);
+  }, [modelTemp]);
 
   useEffect(() => {
     reducedRef.current = reducedMotion;
@@ -177,7 +175,25 @@ export default function StatesOfMatter() {
       backHref="/"
       header="States of Matter"
       description="Heat or cool the substance and watch how its particles move."
+      className="gap-4"
     >
+      <div className="w-full max-w-2xl mx-auto">
+        <Dropdown
+          label={`Substance: ${substance.name} (${substance.formula})`}
+          className="w-full sm:w-64"
+          menuClassName="w-64"
+        >
+          {SUBSTANCES.map((s) => (
+            <DropdownItem
+              key={s.id}
+              selected={s.id === substance.id}
+              onSelect={() => chooseSubstance(s)}
+            >
+              {s.name} ({s.formula})
+            </DropdownItem>
+          ))}
+        </Dropdown>
+      </div>
       <Stage
         label="Particle model"
         className="w-full max-w-2xl mx-auto"
@@ -188,11 +204,9 @@ export default function StatesOfMatter() {
               className="flex flex-col items-start gap-1"
             >
               <span className="px-3 py-1 pixel-control bg-secondary-500 text-text-secondary font-pixel">
-                {phaseLabel(temperature)}
+                {phase}
               </span>
-              {phaseHint(temperature) && (
-                <span className="text-xs">{phaseHint(temperature)}</span>
-              )}
+              {hint && <span className="text-xs">{hint}</span>}
             </div>
             <div data-testid="temperature" className="text-right leading-tight">
               <span className="block text-3xl font-bold">{temperature} °C</span>
@@ -207,8 +221,8 @@ export default function StatesOfMatter() {
             label="Temperature"
             value={temperature}
             onChange={setTemperature}
-            min={TEMP_MIN_C}
-            max={TEMP_MAX_C}
+            min={range.min}
+            max={range.max}
             rangeSteps={RANGE_STEPS}
             // cold to hot
             sliderThumb="bg-linear-to-r from-sky-400 via-amber-300 to-rose-500"
@@ -222,7 +236,7 @@ export default function StatesOfMatter() {
           <canvas
             ref={canvasRef}
             role="img"
-            aria-label={describeParticles(temperature)}
+            aria-label={describeParticles(substance, temperature)}
             className="block"
           />
         </div>
@@ -232,7 +246,15 @@ export default function StatesOfMatter() {
             updates when you change the temperature.
           </p>
         )}
+        {showCurve && (
+          <HeatingCurve substance={substance} temperature={temperature} />
+        )}
       </Stage>
+      <div className="w-full max-w-2xl mx-auto">
+        <Setting checked={showCurve} onChange={setShowCurve}>
+          Show heating curve
+        </Setting>
+      </div>
     </Container>
   );
 }

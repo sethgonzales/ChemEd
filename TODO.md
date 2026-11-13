@@ -14,10 +14,11 @@
 
 ## Improvements
 
-- [ ] Periodic Table: more colour modes (metal/nonmetal, electronegativity, atomic radius) and search
-- [ ] States of Matter: heating curve, choice of substance
+- [x] Periodic Table: more colour modes (metal/nonmetal, electronegativity, atomic radius) and search
+- [x] States of Matter: heating curve, choice of substance (water, ethanol, mercury)
+  - [ ] Find sourced solid heat capacities for ethanol and mercury near their melting points; both borrow the liquid's value for now (`src/constants/substances.ts`)
 - [ ] Chemical Reactions: more activities beside balancing (e.g. reaction types), as tabs
-- [ ] Migrate `next lint` (deprecated) to the ESLint CLI
+- [x] Migrate `next lint` (deprecated) to the ESLint CLI
 
 ## Dungeon look ([plan](docs/plans/dungeon-theme.md))
 

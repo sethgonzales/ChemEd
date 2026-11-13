@@ -6,6 +6,7 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '~/styles/theme-provider';
 import StatesOfMatter from '~/pages/states-of-matter';
 import { PHASE_SETTLE_MS } from '~/utils/guide';
@@ -206,5 +207,79 @@ describe('States of Matter page: accessibility', () => {
       renderPage();
       expect(screen.getByText(/reduced motion/i)).toBeInTheDocument();
     });
+  });
+});
+
+describe('States of Matter page: substances', () => {
+  const slider = () => screen.getByRole('slider', { name: 'Temperature' });
+  const readout = () => within(stage()).getByTestId('temperature');
+  const pick = async (name: string) => {
+    await userEvent.click(screen.getByRole('button', { name: /^Substance:/ }));
+    await userEvent.click(
+      screen.getByRole('button', { name: new RegExp(name) }),
+    );
+  };
+
+  it('starts with water', () => {
+    renderPage();
+    expect(
+      screen.getByRole('button', { name: 'Substance: Water (H₂O)' }),
+    ).toBeInTheDocument();
+  });
+
+  it('melts and boils ethanol at its own temperatures', async () => {
+    renderPage();
+    await pick('Ethanol');
+    expect(slider()).toHaveAttribute('min', '-162');
+    expect(slider()).toHaveAttribute('max', '127');
+    setTemperature(90);
+    expect(phase()).toHaveTextContent('Gas'); // water would still be liquid
+    setTemperature(-120);
+    expect(phase()).toHaveTextContent('Solid');
+  });
+
+  it('keeps the thermometer reading when the substance changes', async () => {
+    renderPage();
+    setTemperature(20);
+    await pick('Mercury');
+    expect(readout()).toHaveTextContent('20 °C');
+    expect(phase()).toHaveTextContent('Liquid');
+  });
+
+  it('pulls the reading into the new range if it falls outside', async () => {
+    renderPage();
+    await pick('Mercury');
+    setTemperature(400);
+    await pick('Water');
+    expect(readout()).toHaveTextContent('125 °C');
+    expect(slider()).toHaveValue('125');
+  });
+});
+
+describe('States of Matter page: heating curve', () => {
+  const curve = () => screen.queryByRole('img', { name: /heating curve/i });
+
+  it('shows the heating curve, with the plateaus and where the substance is now', () => {
+    renderPage();
+    expect(curve()).toHaveAccessibleName(
+      /water.*holds at 0 °C while it melts.*holds at 100 °C while it boils.*0 °C/i,
+    );
+    setTemperature(50);
+    expect(curve()).toHaveAccessibleName(/50 °C/);
+  });
+
+  it('follows the chosen substance', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /^Substance:/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Mercury/ }));
+    expect(curve()).toHaveAccessibleName(/mercury.*356.73 °C while it boils/i);
+  });
+
+  it('can be hidden', async () => {
+    renderPage();
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Show heating curve' }),
+    );
+    expect(curve()).not.toBeInTheDocument();
   });
 });

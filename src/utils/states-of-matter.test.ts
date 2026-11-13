@@ -1,8 +1,15 @@
+import { SUBSTANCES } from '~/constants/substances';
 import {
   createSimulation,
   getParams,
+  heatAt,
+  heatingCurve,
+  phaseHint,
+  phaseOf,
   resizeSimulation,
   step,
+  temperatureRange,
+  toModelTemp,
   type Simulation,
 } from './states-of-matter';
 
@@ -220,5 +227,85 @@ describe('simulation', () => {
       expect(p.anchor.y).toBeLessThanOrEqual(200 - p.r);
     }
     expect(meanLatticeOffset(sim)).toBeLessThan(3);
+  });
+});
+
+describe('substances', () => {
+  const water = SUBSTANCES.find((s) => s.id === 'water')!;
+  const ethanol = SUBSTANCES.find((s) => s.id === 'ethanol')!;
+  const mercury = SUBSTANCES.find((s) => s.id === 'mercury')!;
+
+  it('keeps water on the −25 to 125 °C range the model was tuned on', () => {
+    expect(temperatureRange(water)).toEqual({ min: -25, max: 125 });
+    expect(toModelTemp(water, 37)).toBe(37);
+  });
+
+  it('gives each substance a range around its own melting and boiling points', () => {
+    for (const s of SUBSTANCES) {
+      const { min, max } = temperatureRange(s);
+      expect(min).toBeLessThan(s.meltC);
+      expect(max).toBeGreaterThan(s.boilC);
+      expect(min).toBeGreaterThan(-273.15); // nothing below absolute zero
+    }
+  });
+
+  it('melts and boils each substance at its own temperatures', () => {
+    expect(toModelTemp(ethanol, ethanol.meltC)).toBeCloseTo(0);
+    expect(toModelTemp(ethanol, ethanol.boilC)).toBeCloseTo(100);
+    expect(phaseOf(ethanol, 20)).toBe('Liquid');
+    expect(phaseOf(ethanol, 90)).toBe('Gas');
+    expect(phaseOf(water, 90)).toBe('Liquid');
+    expect(phaseOf(mercury, -50)).toBe('Solid');
+    expect(phaseOf(mercury, 20)).toBe('Liquid');
+  });
+
+  it('notes when a temperature is near a phase change', () => {
+    expect(phaseHint(water, 98)).toBe('Near the boiling point');
+    expect(phaseHint(water, 50)).toBeNull();
+    expect(phaseHint(mercury, -35)).toBe('Near the melting point');
+    expect(phaseHint(mercury, 340)).toBe('Near the boiling point');
+  });
+
+  it('turns mercury at room temperature into a flowing liquid, not a solid', () => {
+    const sim = createSimulation(W, H);
+    run(sim, toModelTemp(mercury, 20), 4);
+    // a liquid has left its lattice sites far behind
+    expect(meanLatticeOffset(sim)).toBeGreaterThan(10);
+  });
+});
+
+describe('heatingCurve', () => {
+  const water = SUBSTANCES.find((s) => s.id === 'water')!;
+
+  it('holds the temperature flat while it melts and while it boils', () => {
+    for (const s of SUBSTANCES) {
+      const curve = heatingCurve(s);
+      const flats = curve
+        .slice(1)
+        .map((p, i) => [curve[i], p])
+        .filter(([a, b]) => a.t === b.t);
+      expect(flats.map(([a]) => a.t)).toEqual([s.meltC, s.boilC]);
+      // each plateau is as long as the energy the phase change needs
+      expect(flats[0][1].q - flats[0][0].q).toBeCloseTo(s.fusionKJ);
+      expect(flats[1][1].q - flats[1][0].q).toBeCloseTo(s.vaporizationKJ);
+    }
+  });
+
+  it('only ever climbs as heat is added', () => {
+    const curve = heatingCurve(water);
+    for (let i = 1; i < curve.length; i++) {
+      expect(curve[i].q).toBeGreaterThanOrEqual(curve[i - 1].q);
+      expect(curve[i].t).toBeGreaterThanOrEqual(curve[i - 1].t);
+    }
+    expect(curve[0]).toEqual({ q: 0, t: -25 });
+    expect(curve[curve.length - 1].t).toBe(125);
+  });
+
+  it('places a temperature on the curve, mid-plateau at the phase change itself', () => {
+    const curve = heatingCurve(water);
+    expect(heatAt(water, -25)).toBe(0);
+    expect(heatAt(water, 50)).toBeGreaterThan(heatAt(water, 0));
+    expect(heatAt(water, 100)).toBeCloseTo((curve[3].q + curve[4].q) / 2);
+    expect(heatAt(water, 125)).toBeCloseTo(curve[curve.length - 1].q);
   });
 });
