@@ -1,8 +1,21 @@
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { cn } from '~/utils/cn';
 import { PIXEL_CONTROL } from '~/utils/pixel';
 
-interface Props {
+// pointer and key events, for buttons that act while held (see useHold)
+type HoldEvents = Pick<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  | 'onPointerDown'
+  | 'onPointerUp'
+  | 'onPointerLeave'
+  | 'onPointerCancel'
+  | 'onKeyDown'
+  | 'onKeyUp'
+  | 'onBlur'
+  | 'onContextMenu'
+>;
+
+interface Props extends HoldEvents {
   onClick?: () => void;
   type?: 'button' | 'submit'; // submit for buttons that send a form
   children: ReactNode;
@@ -16,6 +29,7 @@ export default function Button({
   pressed,
   disabled,
   type = 'button',
+  ...events
 }: Props) {
   return (
     <button
@@ -23,6 +37,7 @@ export default function Button({
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
+      {...events}
       className={cn(
         PIXEL_CONTROL,
         'px-3 pt-2 pb-2.5 text-base cursor-pointer',
