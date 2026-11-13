@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Button from '~/components/button';
 import Container from '~/components/container';
+import { ELECTRONEGATIVITY_SOURCE } from '~/constants/electronegativity';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
 import ElementPicker from '~/components/element-picker';
 import LewisBuilder, { type Settings } from '~/components/lewis-builder';
@@ -270,6 +271,7 @@ export default function LewisStructures() {
     <Container
       backHref="/"
       header="Lewis Structures"
+      sources={[ELECTRONEGATIVITY_SOURCE]}
       description="Draw Lewis structures with atoms, bonds and electrons, then check your work."
       className="gap-4"
     >

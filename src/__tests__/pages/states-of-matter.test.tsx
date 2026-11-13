@@ -283,3 +283,13 @@ describe('States of Matter page: heating curve', () => {
     expect(curve()).not.toBeInTheDocument();
   });
 });
+
+describe('StatesOfMatter sources', () => {
+  it('cites where its facts come from, at the bottom', () => {
+    renderPage();
+    const sources = screen.getByRole('region', { name: 'Sources' });
+    expect(sources).toHaveTextContent('NIST Chemistry WebBook');
+    expect(sources).toHaveTextContent('NIST-JANAF');
+    expect(sources).toHaveTextContent('Water (data page)');
+  });
+});

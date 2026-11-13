@@ -8,6 +8,7 @@ import {
 import { COVALENT_RADIUS } from '~/constants/covalent-radius';
 import { ELECTRONEGATIVITY } from '~/constants/electronegativity';
 import { ELEMENTS } from '~/constants/elements';
+import type { SourceId } from '~/constants/sources';
 import type { IElementData } from '~/types';
 
 export type Direction = 'left' | 'right' | 'up' | 'down';
@@ -15,6 +16,8 @@ export type ColorMode = 'block' | 'category' | 'electronegativity' | 'radius';
 export type Category = 'metal' | 'metalloid' | 'nonmetal' | 'unknown';
 
 // the staircase; At is usually drawn on it in school tables
+// where the metalloid line falls is a convention; this follows the cited list
+export const CATEGORY_SOURCE: SourceId = 'metalloids';
 const METALLOIDS = new Set(['B', 'Si', 'Ge', 'As', 'Sb', 'Te', 'At']);
 // prettier-ignore
 const NONMETALS = new Set([

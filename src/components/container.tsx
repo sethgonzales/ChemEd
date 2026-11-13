@@ -1,6 +1,8 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { IconChevronLeft } from '@tabler/icons-react';
+import Sources from '~/components/sources';
+import type { SourceId } from '~/constants/sources';
 import { cn } from '~/utils/cn';
 
 interface Props {
@@ -8,11 +10,12 @@ interface Props {
   header?: string;
   description?: string; // one line under the header saying what to do
   backHref?: string; // where the back arrow goes
+  sources?: SourceId[]; // where the page's facts come from, cited at the bottom
   className?: string;
 }
 
 export default function Container(props: Props) {
-  const { children, header, description, backHref, className } = props;
+  const { children, header, description, backHref, sources, className } = props;
 
   return (
     <div
@@ -41,6 +44,7 @@ export default function Container(props: Props) {
         </div>
       )}
       {children}
+      {sources && <Sources ids={sources} />}
     </div>
   );
 }

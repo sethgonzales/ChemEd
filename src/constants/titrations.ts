@@ -1,4 +1,7 @@
+import type { SourceId } from '~/constants/sources';
+
 export const KW = 1e-14; // water's ion product at 25 °C
+export const KW_SOURCE: SourceId = 'kw';
 
 export const ANALYTE_VOLUME = 25; // mL in the flask
 export const TITRANT_CONCENTRATION = 0.1; // M
@@ -16,9 +19,9 @@ export interface Analyte {
   pKas: number[];
   protons: number; // given up (acid) or taken up (base) per formula unit
   labConcentration: number; // M, in the Lab tab
+  source?: SourceId; // for its pKa values; none for strong acids and bases
 }
 
-// pKa values from Wikipedia's infoboxes (25 °C)
 export const ANALYTES: Analyte[] = [
   {
     id: 'hcl',
@@ -35,6 +38,7 @@ export const ANALYTES: Analyte[] = [
     formula: 'CH₃COOH',
     kind: 'acid',
     pKas: [4.756],
+    source: 'aceticAcid',
     protons: 1,
     labConcentration: 0.1,
   },
@@ -44,6 +48,7 @@ export const ANALYTES: Analyte[] = [
     formula: 'H₃PO₄',
     kind: 'acid',
     pKas: [2.14, 7.2, 12.37],
+    source: 'phosphoricAcid',
     protons: 3,
     // half strength, so both visible jumps (12.5 and 25 mL) fit the burette
     labConcentration: 0.05,
@@ -62,7 +67,8 @@ export const ANALYTES: Analyte[] = [
     name: 'Ammonia',
     formula: 'NH₃',
     kind: 'base',
-    pKas: [9.24],
+    pKas: [9.25],
+    source: 'ammonium',
     protons: 1,
     labConcentration: 0.1,
   },
@@ -79,7 +85,8 @@ export interface Indicator {
   colorNames: string[]; // one per colour; a two-colour indicator is "pale" between
 }
 
-// transition ranges from Wikipedia's "pH indicator" table
+export const INDICATOR_SOURCE: SourceId = 'indicators';
+
 export const INDICATORS: Indicator[] = [
   {
     id: 'methyl-orange',

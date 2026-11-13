@@ -41,7 +41,7 @@ Bug fixes start with a test that reproduces the bug.
 - Tunable simulation values are named constants at the top of their module, with units in a comment (e.g. `// px/s^2`).
 - Use the `~/` import alias for `src/`.
 - Keep changes scoped to the task; mention unrelated issues rather than fixing them silently.
-- Scientific content (element data, constants, configurations) must be accurate — double-check values you add or change.
+- **Every fact must be checked and cited before it goes in the app.** Any real-world value or property (element data, constants, configurations, pKa, E°, phase data and so on) is checked against an authoritative source first: IUPAC, NIST, CRC or a peer-reviewed paper, or a Wikipedia page that cites one. Its source is added to `src/constants/sources.ts`, referenced next to the data, and listed in the page's Sources footer. Never add an uncited value, or an estimate that isn't labelled as one.
 - Every simulation must work on a phone: touch input, narrow screens, no horizontal page scroll.
 - Accessibility: interactive elements need accessible names, and controls must work by keyboard.
 

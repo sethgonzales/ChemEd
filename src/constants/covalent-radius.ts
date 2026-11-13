@@ -1,3 +1,7 @@
+import type { SourceId } from '~/constants/sources';
+
+export const COVALENT_RADIUS_SOURCE: SourceId = 'cordero';
+
 /**
  * Single-bond covalent radii in pm (Cordero et al., Dalton Trans. 2008),
  * the one source that covers H to Cm, noble gases included. C is sp3; Mn, Fe

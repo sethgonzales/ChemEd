@@ -8,7 +8,7 @@ import PeriodicGrid, { blockColor } from '~/components/periodic-grid';
 import ShellDiagram from '~/components/shell-diagram';
 import Stage from '~/components/stage';
 import Tabs from '~/components/tabs';
-import { ELEMENTS } from '~/constants/elements';
+import { CONFIGURATION_SOURCE, ELEMENTS } from '~/constants/elements';
 import { BESIDE_HEADER, SPLIT_CARD, SPLIT_PANEL } from '~/constants/layout';
 import type { IElementData } from '~/types';
 import {
@@ -198,6 +198,7 @@ export default function ElectronConfigurations() {
     <Container
       backHref="/"
       header="Electron Configurations"
+      sources={[CONFIGURATION_SOURCE]}
       description="See how electrons fill an atom’s orbitals, then fill them in yourself."
       className={SPLIT_CARD}
     >

@@ -64,3 +64,9 @@ describe('ELECTRONEGATIVITY across the whole table', () => {
     }
   });
 });
+
+describe('ELECTRONEGATIVITY, checked against the cited data page', () => {
+  it('gives curium 1.3, as tabulated', () => {
+    expect(ELECTRONEGATIVITY.Cm).toBe(1.3);
+  });
+});

@@ -221,3 +221,15 @@ describe('Periodic Table page: search', () => {
     });
   });
 });
+
+describe('PeriodicTable sources', () => {
+  it('cites where its facts come from, at the bottom', () => {
+    render(<PeriodicTable />);
+    const sources = screen.getByRole('region', { name: 'Sources' });
+    expect(sources).toHaveTextContent('CIAAW');
+    expect(sources).toHaveTextContent('NIST Atomic Spectra Database');
+    expect(sources).toHaveTextContent('Electronegativities of the elements');
+    expect(sources).toHaveTextContent('Covalent radii revisited');
+    expect(sources).toHaveTextContent('Metalloid');
+  });
+});

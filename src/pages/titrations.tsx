@@ -9,6 +9,8 @@ import TitrationBench, {
 import TitrationUnknown from '~/components/titration-unknown';
 import {
   ANALYTES,
+  INDICATOR_SOURCE,
+  KW_SOURCE,
   INDICATORS,
   TITRANT_CONCENTRATION,
   titrantFor,
@@ -99,6 +101,11 @@ export default function Titrations() {
     <Container
       backHref="/"
       header="Titrations"
+      sources={[
+        ...ANALYTES.flatMap((a) => (a.source ? [a.source] : [])),
+        INDICATOR_SOURCE,
+        KW_SOURCE,
+      ]}
       description="Add titrant from the burette and watch the indicator and pH change."
       className="gap-4"
     >

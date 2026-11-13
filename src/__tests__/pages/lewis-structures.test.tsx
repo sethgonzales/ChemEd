@@ -1046,3 +1046,11 @@ describe('Lewis Structures page: Mr. G', () => {
     );
   });
 });
+
+describe('LewisStructures sources', () => {
+  it('cites where its facts come from, at the bottom', () => {
+    render(<LewisStructures />);
+    const sources = screen.getByRole('region', { name: 'Sources' });
+    expect(sources).toHaveTextContent('Electronegativities of the elements');
+  });
+});

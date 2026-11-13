@@ -33,7 +33,7 @@ Students add titrant from a burette to a flask of acid or base, one drop or one 
 | CH₃COOH (acetic acid) | weak acid | pKa 4.756 | Buffer region; pH = pKa at half-equivalence; equivalence above 7 |
 | H₃PO₄ (phosphoric acid) | triprotic acid | pKa 2.14, 7.20, 12.37 | Two visible jumps; the third proton is too weak to show a jump |
 | NaOH | strong base | — | The mirror image of HCl, titrated with HCl |
-| NH₃ (ammonia) | weak base | pKa(NH₄⁺) 9.24 | Equivalence below 7 |
+| NH₃ (ammonia) | weak base | pKa(NH₄⁺) 9.25 | Equivalence below 7 |
 
 Indicators, by colour change and transition range (Wikipedia, "pH indicator"):
 
@@ -47,7 +47,7 @@ Kw = 1.0 × 10⁻¹⁴ (25 °C). Data tests check these values and that every pK
 
 ## Engine — `src/utils/titrations.ts` (pure, test-first)
 
-- `solutionPH(mix)`: pH from the **charge balance** [H⁺] + [Na⁺] = [OH⁻] + [Cl⁻] + Σ(charge of each weak-acid species), solved by bisection on pH. Every case uses the same code: strong, weak, polyprotic, and weak bases (treated as NH₄⁺ with pKa 9.24). No buffer approximations, so it holds at the start, at equivalence, and past it.
+- `solutionPH(mix)`: pH from the **charge balance** [H⁺] + [Na⁺] = [OH⁻] + [Cl⁻] + Σ(charge of each weak-acid species), solved by bisection on pH. Every case uses the same code: strong, weak, polyprotic, and weak bases (treated as NH₄⁺ with pKa 9.25). No buffer approximations, so it holds at the start, at equivalence, and past it.
 - `mixAt(analyte, concentration, titrantVolume)`: the amounts and the dilution after a given volume of titrant.
 - `equivalenceVolumes(analyte, concentration)`: one per proton (moles × protons ÷ titrant concentration), flagged when the jump is too small to see.
 - `indicatorColor(indicator, pH)`: blends the low and high colours across the transition range. Phenolphthalein's low colour is transparent.

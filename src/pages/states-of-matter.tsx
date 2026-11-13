@@ -174,6 +174,7 @@ export default function StatesOfMatter() {
     <Container
       backHref="/"
       header="States of Matter"
+      sources={SUBSTANCES.flatMap((s) => s.sources)}
       description="Heat or cool the substance and watch how its particles move."
       className="gap-4"
     >

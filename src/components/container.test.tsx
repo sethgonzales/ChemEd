@@ -63,3 +63,25 @@ describe('Container', () => {
     });
   });
 });
+
+describe('Container sources', () => {
+  it('cites its sources at the bottom', () => {
+    render(
+      <Container header="Periodic Table" sources={['cordero']}>
+        <p>content</p>
+      </Container>,
+    );
+    const region = screen.getByRole('region', { name: 'Sources' });
+    expect(region).toHaveTextContent('Cordero');
+    expect(screen.getByText('content').compareDocumentPosition(region)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it('shows no sources section when a page states no facts', () => {
+    render(<Container header="Reaction Balancing">content</Container>);
+    expect(
+      screen.queryByRole('region', { name: 'Sources' }),
+    ).not.toBeInTheDocument();
+  });
+});

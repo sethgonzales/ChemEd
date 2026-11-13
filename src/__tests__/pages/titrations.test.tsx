@@ -466,3 +466,15 @@ describe('Titrations page: stirring', () => {
     expect(within(panel()).getByTestId('stir-bar')).toBeInTheDocument();
   });
 });
+
+describe('Titrations sources', () => {
+  it('cites where its facts come from, at the bottom', () => {
+    render(<Titrations />);
+    const sources = screen.getByRole('region', { name: 'Sources' });
+    expect(sources).toHaveTextContent('pH indicator');
+    expect(sources).toHaveTextContent('Acetic acid');
+    expect(sources).toHaveTextContent('Phosphoric acid');
+    expect(sources).toHaveTextContent('Ammonium');
+    expect(sources).toHaveTextContent('Self-ionization of water');
+  });
+});

@@ -24,7 +24,7 @@ describe('ANALYTES', () => {
   it('uses real pKa values at 25 °C', () => {
     expect(byId('acetic').pKas).toEqual([4.756]);
     expect(byId('phosphoric').pKas).toEqual([2.14, 7.2, 12.37]);
-    expect(byId('ammonia').pKas).toEqual([9.24]); // of NH₄⁺
+    expect(byId('ammonia').pKas).toEqual([9.25]); // of NH₄⁺ (Wikipedia, "Ammonium")
     expect(byId('hcl').pKas).toEqual([]); // strong: fully dissociated
     expect(byId('naoh').pKas).toEqual([]);
   });

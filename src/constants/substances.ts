@@ -1,3 +1,5 @@
+import type { SourceId } from '~/constants/sources';
+
 export interface Substance {
   id: string;
   name: string;
@@ -7,13 +9,14 @@ export interface Substance {
   fusionKJ: number; // ΔH of fusion, kJ/mol
   vaporizationKJ: number; // ΔH of vaporisation at the boiling point, kJ/mol
   heatCapacity: { solid: number; liquid: number; gas: number }; // Cp, J/(mol·K)
+  sources: SourceId[]; // where these values come from
 }
 
 const R = 8.314; // J/(mol·K)
 
 /**
- * Substances to heat and cool. Phase-change values from NIST and Wikipedia's
- * data pages; heat capacities are near each phase change.
+ * Substances to heat and cool, each citing its sources. Heat capacities are
+ * near each phase change.
  */
 export const SUBSTANCES: Substance[] = [
   {
@@ -26,6 +29,7 @@ export const SUBSTANCES: Substance[] = [
     vaporizationKJ: 40.68,
     // ice at −2.2 °C, water at 25 °C, steam at 100 °C
     heatCapacity: { solid: 37.84, liquid: 75.28, gas: 36.5 },
+    sources: ['waterData'],
   },
   {
     id: 'ethanol',
@@ -39,6 +43,7 @@ export const SUBSTANCES: Substance[] = [
     // found, so it borrows the liquid's: an estimate that only tilts the
     // short solid stretch of the heating curve.
     heatCapacity: { solid: 112.4, liquid: 112.4, gas: 78.28 },
+    sources: ['ethanolWebBook', 'ethanolData'],
   },
   {
     id: 'mercury',
@@ -51,5 +56,6 @@ export const SUBSTANCES: Substance[] = [
     // solid at its melting point, 234.29 K (NIST-JANAF); liquid at 25 °C; the
     // vapour is single atoms, so Cp = 5/2 R
     heatCapacity: { solid: 28.485, liquid: 27.98, gas: (5 / 2) * R },
+    sources: ['mercury', 'janafMercury'],
   },
 ];

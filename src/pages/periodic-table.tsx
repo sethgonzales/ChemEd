@@ -9,12 +9,23 @@ import {
   NO_DATA_COLOR,
   TREND_STOPS,
 } from '~/constants/blocks';
-import { COVALENT_RADIUS } from '~/constants/covalent-radius';
-import { ELECTRONEGATIVITY } from '~/constants/electronegativity';
-import { ELEMENTS } from '~/constants/elements';
+import {
+  COVALENT_RADIUS,
+  COVALENT_RADIUS_SOURCE,
+} from '~/constants/covalent-radius';
+import {
+  ELECTRONEGATIVITY,
+  ELECTRONEGATIVITY_SOURCE,
+} from '~/constants/electronegativity';
+import {
+  ATOMIC_MASS_SOURCES,
+  CONFIGURATION_SOURCE,
+  ELEMENTS,
+} from '~/constants/elements';
 import { IElementData } from '~/types';
 import { formatAtomicMass } from '~/utils';
 import {
+  CATEGORY_SOURCE,
   elementCategory,
   elementColor,
   searchElements,
@@ -204,6 +215,13 @@ export default function PeriodicTable() {
     <Container
       backHref="/"
       header="Periodic Table"
+      sources={[
+        ...ATOMIC_MASS_SOURCES,
+        CONFIGURATION_SOURCE,
+        ELECTRONEGATIVITY_SOURCE,
+        COVALENT_RADIUS_SOURCE,
+        CATEGORY_SOURCE,
+      ]}
       description="Click any element to see its details, or search for one. Colour the table to see its patterns."
       className="gap-4"
     >

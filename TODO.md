@@ -20,7 +20,7 @@
   - [x] Solid mercury's heat capacity at its melting point (NIST-JANAF, 28.485 J/(mol·K))
   - [ ] Solid ethanol's heat capacity near 159 K: still borrows the liquid's value. Sources: Haida, Suga & Seki, J. Chem. Thermodyn. 9 (1977) 1133, or Kelley, JACS 51 (1929) 779 (both paywalled) (`src/constants/substances.ts`)
 - [x] Migrate `next lint` (deprecated) to the ESLint CLI
-- [ ] **Fact sweep and in-app citations**: audit every real-world value the app states (element data, electronegativity, radii, substances, pKa and indicator ranges, E° values, molecule data, constants) and give each a source. Show the sources subtly on each page, e.g. a small "Sources" line at the bottom, so ChemEd models how to represent and cite data. Store a source with each data set in `src/constants/` so the citation can't drift from the value.
+- [x] **Fact sweep and in-app citations** (13 Nov 2026): every value checked against IUPAC, NIST, Cordero et al. or the cited Wikipedia pages; fixes: 19 atomic masses to IUPAC 2024 abridged values (e.g. Zr 91.222, Ar 39.95), Tc [97], Sg [267], Hs [271], Cm electronegativity 1.3, NH₄⁺ pKa 9.25. Sources live in `src/constants/sources.ts` and show in each page’s Sources footer. Was: audit every real-world value the app states (element data, electronegativity, radii, substances, pKa and indicator ranges, E° values, molecule data, constants) and give each a source. Show the sources subtly on each page, e.g. a small "Sources" line at the bottom, so ChemEd models how to represent and cite data. Store a source with each data set in `src/constants/` so the citation can't drift from the value.
 
 ## Dungeon look ([plan](docs/plans/dungeon-theme.md))
 

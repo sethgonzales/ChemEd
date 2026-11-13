@@ -1,3 +1,7 @@
+import type { SourceId } from '~/constants/sources';
+
+export const ELECTRONEGATIVITY_SOURCE: SourceId = 'paulingEN';
+
 /**
  * Pauling electronegativities (CRC Handbook values, as tabulated on
  * Wikipedia's electronegativity data page). He, Ne, Ar, Rn, Pm, Eu and Yb have
@@ -25,5 +29,5 @@ export const ELECTRONEGATIVITY: Record<string, number> = {
   Tl: 1.62, Pb: 2.33, Bi: 2.02, Po: 2.0, At: 2.2,
   Ra: 0.9,
   Ac: 1.1, Th: 1.3, Pa: 1.5, U: 1.38, Np: 1.36, Pu: 1.28, Am: 1.3,
-  Cm: 1.28, Bk: 1.3, Cf: 1.3, Es: 1.3, Fm: 1.3, Md: 1.3, No: 1.3, Lr: 1.3,
+  Cm: 1.3, Bk: 1.3, Cf: 1.3, Es: 1.3, Fm: 1.3, Md: 1.3, No: 1.3, Lr: 1.3,
 };

@@ -59,6 +59,24 @@ describe('ELEMENTS', () => {
     expect(bySymbol.Og).toMatchObject({ atomicNumber: 118, group: 18 });
   });
 
+  const mass = (s: string) => ELEMENTS.find((e) => e.symbol === s)?.atomicMass;
+
+  it('uses IUPAC’s current abridged standard atomic weights', () => {
+    expect(mass('H')).toBe(1.008);
+    expect(mass('He')).toBe(4.0026);
+    expect(mass('Na')).toBe(22.99);
+    expect(mass('Ar')).toBe(39.95); // an interval since 2017; this is its abridged value
+    expect(mass('Zr')).toBe(91.222); // revised in 2024 from 91.224
+    expect(mass('U')).toBe(238.03);
+  });
+
+  it('gives the mass number of the most stable isotope where IUPAC gives no weight', () => {
+    expect(mass('Tc')).toBe(97);
+    expect(mass('Sg')).toBe(267);
+    expect(mass('Hs')).toBe(271);
+    expect(mass('Og')).toBe(294);
+  });
+
   it('uses the anomalous configurations for Cr and Cu', () => {
     const config = (s: string) =>
       ELEMENTS.find((e) => e.symbol === s)?.electronConfiguration;

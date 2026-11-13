@@ -350,3 +350,11 @@ describe('Electron Configurations page: Build with ions', () => {
     expect(button('Raise the charge')).toBeDisabled();
   });
 });
+
+describe('ElectronConfigurations sources', () => {
+  it('cites where its facts come from, at the bottom', () => {
+    render(<ElectronConfigurations />);
+    const sources = screen.getByRole('region', { name: 'Sources' });
+    expect(sources).toHaveTextContent('NIST Atomic Spectra Database');
+  });
+});

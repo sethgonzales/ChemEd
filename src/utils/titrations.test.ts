@@ -57,10 +57,10 @@ describe('phAfter: bases titrated with HCl', () => {
     expect(phAfter(analyte('naoh'), C, 25)).toBeCloseTo(7.0, 2);
   });
 
-  it('takes ammonia through pKa 9.24 to an acidic equivalence point', () => {
+  it('takes ammonia through pKa 9.25 to an acidic equivalence point', () => {
     const nh3 = analyte('ammonia');
     expect(phAfter(nh3, C, 0)).toBeCloseTo(11.12, 1);
-    expect(phAfter(nh3, C, 12.5)).toBeCloseTo(9.24, 1);
+    expect(phAfter(nh3, C, 12.5)).toBeCloseTo(9.25, 1);
     expect(phAfter(nh3, C, 25)).toBeCloseTo(5.28, 1);
   });
 });
@@ -187,7 +187,7 @@ describe('halfEquivalences', () => {
 
   it('marks where pH = pKa for weak acids and bases', () => {
     expect(half('acetic', C)).toEqual([[12.5, 4.756]]);
-    expect(half('ammonia', C)).toEqual([[12.5, 9.24]]);
+    expect(half('ammonia', C)).toEqual([[12.5, 9.25]]);
   });
 
   it('has none for strong acids and bases', () => {
