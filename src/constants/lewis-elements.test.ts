@@ -18,11 +18,17 @@ describe('Lewis element palettes', () => {
     ]);
   });
 
-  it('can draw every main-group element we have electronegativity for', () => {
-    expect(DRAWABLE_ELEMENTS.map((e) => e.symbol).sort()).toEqual(
-      Object.keys(ELECTRONEGATIVITY).sort(),
-    );
+  it('can draw the main-group elements of periods 1–5 with an electronegativity', () => {
+    // prettier-ignore
+    expect(DRAWABLE_ELEMENTS.map((e) => e.symbol)).toEqual([
+      'H',
+      'Li', 'Be', 'B', 'C', 'N', 'O', 'F',
+      'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl',
+      'K', 'Ca', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr',
+      'Rb', 'Sr', 'In', 'Sn', 'Sb', 'Te', 'I', 'Xe',
+    ]);
     for (const { symbol } of DRAWABLE_ELEMENTS) {
+      expect(ELECTRONEGATIVITY[symbol]).toBeGreaterThan(0);
       expect(valenceElectrons(symbol)).not.toBeNull();
     }
   });

@@ -16,9 +16,12 @@ export const COMMON_ELEMENTS = [
 ];
 
 /**
- * Elements the builder can check: main-group elements with an
+ * Elements the builder can check: main-group elements of periods 1–5 with an
  * electronegativity, which formal charge and δ grading rely on.
  */
 export const DRAWABLE_ELEMENTS = ELEMENTS.filter(
-  (e) => e.symbol in ELECTRONEGATIVITY,
+  (e) =>
+    (e.block === 's' || e.block === 'p') &&
+    e.period <= 5 &&
+    e.symbol in ELECTRONEGATIVITY,
 );
