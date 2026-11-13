@@ -5,20 +5,22 @@
 - [x] **Periodic Table**: the shared design, element details, block colours, arrow-key navigation
 - [x] **States of Matter**: heat or cool and watch the particles, with a °C / K readout and a described, reduced-motion-friendly canvas
 - [x] **Lewis Structures**: Draw and Quiz modes; toolbar builder with drag and drop; charge/δ marks and ion brackets; snapping and Clean Up; resonance forms with curved arrows ([plan](docs/plans/lewis-structures-next.md))
-- [x] **Chemical Reactions**, currently the Reaction Balancing activity: practice levels, your own equation, Show answer, and a balance-beam scale that only levels when every element matches ([plan](docs/plans/reaction-balancing.md))
+- [x] **Reaction Balancing** (split out of Chemical Reactions, 13 Nov 2026): practice levels, your own equation, Show answer, and a balance-beam scale that only levels when every element matches ([plan](docs/plans/reaction-balancing.md))
 - [x] **Electron Configurations**: Explore (mini periodic table, orbital diagram with drop-in electrons, Bohr shell view, notation, exceptions) and Build (pick an element and charge, tap boxes to draw the diagram, type the notation, Check), with Mr. G's tips, hints and cheers ([plan](docs/plans/electron-configurations.md))
 - [x] **Titrations**: Lab (strong, weak and polyprotic acids and bases; three indicators; burette with drops, a stream and fading colour swirls; a stirred flask; a burette close-up for reading the meniscus to 0.01 mL; live pH curve with equivalence and pKa markers) and Unknown (find a hidden concentration, with feedback on endpoint and calculation) ([plan](docs/plans/titrations.md))
+- [ ] **Chemical Reactions**: types of chemical reactions (synthesis, decomposition, single and double replacement, combustion, and so on). Sealed on the home page until built; the page points to Reaction Balancing meanwhile.
 - [ ] **Ore mining game**: dig down through a 2D cross-section of the Earth's layers with your sprite, finding ores at the depths and settings where they really occur. Each ore you collect earns coins relative to its worth, and a card pops up saying what it's made of, where it's found, what it's used for, and other facts.
 - [ ] **Dungeon quest game**: a step-by-step dungeon crawl that strings the quizzes together as levels. Each level opens with a wall of story text setting up a chemistry problem to solve or something to rescue. Each ends with a chemistry-themed boss, beaten by answering a question on a topic from one of the simulations or from general chemistry.
-- [ ] **Electrochemistry**: interactive animations of different kinds of cells to test, with zoom into particle representations of how atoms and electrons move during the redox reaction inside each cell
+- [ ] **Electrochemistry**: interactive animations of different kinds of cells to test, with zoom into particle representations of how atoms and electrons move during the redox reaction inside each cell ([plan](docs/plans/electrochemistry.md), open questions to answer)
 
 ## Improvements
 
 - [x] Periodic Table: more colour modes (metal/nonmetal, electronegativity, atomic radius) and search
 - [x] States of Matter: heating curve, choice of substance (water, ethanol, mercury)
-  - [ ] Find sourced solid heat capacities for ethanol and mercury near their melting points; both borrow the liquid's value for now (`src/constants/substances.ts`)
-- [ ] Chemical Reactions: more activities beside balancing (e.g. reaction types), as tabs
+  - [x] Solid mercury's heat capacity at its melting point (NIST-JANAF, 28.485 J/(mol·K))
+  - [ ] Solid ethanol's heat capacity near 159 K: still borrows the liquid's value. Sources: Haida, Suga & Seki, J. Chem. Thermodyn. 9 (1977) 1133, or Kelley, JACS 51 (1929) 779 (both paywalled) (`src/constants/substances.ts`)
 - [x] Migrate `next lint` (deprecated) to the ESLint CLI
+- [ ] **Fact sweep and in-app citations**: audit every real-world value the app states (element data, electronegativity, radii, substances, pKa and indicator ranges, E° values, molecule data, constants) and give each a source. Show the sources subtly on each page, e.g. a small "Sources" line at the bottom, so ChemEd models how to represent and cite data. Store a source with each data set in `src/constants/` so the citation can't drift from the value.
 
 ## Dungeon look ([plan](docs/plans/dungeon-theme.md))
 
