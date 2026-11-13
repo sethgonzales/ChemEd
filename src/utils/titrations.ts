@@ -1,6 +1,7 @@
 import { colord } from 'colord';
 import {
   ANALYTE_VOLUME,
+  ANALYTES,
   BURETTE_CAPACITY,
   KW,
   TITRANT_CONCENTRATION,
@@ -164,4 +165,48 @@ export function halfEquivalences(analyte: Analyte, concentration: number) {
         Math.abs(phAfter(analyte, concentration, volume) - pKa) <=
           HALF_EQUIVALENCE_TOLERANCE,
     );
+}
+
+// Unknown tab: monoprotic analytes only, so the mole ratio is always 1:1
+const UNKNOWN_MIN = 0.05; // M
+const UNKNOWN_SPAN = 0.1; // M, so up to 0.150
+
+export function newUnknown(random = Math.random) {
+  const choices = ANALYTES.filter((a) => a.protons === 1);
+  const analyte = choices[Math.floor(random() * choices.length)];
+  const concentration =
+    Math.round((UNKNOWN_MIN + random() * UNKNOWN_SPAN) * 1000) / 1000;
+  return { analyte, concentration };
+}
+
+/** The concentration a burette reading gives, at a 1:1 mole ratio */
+export const concentrationFrom = (volume: number) =>
+  (TITRANT_CONCENTRATION * volume) / ANALYTE_VOLUME;
+
+/**
+ * Why an answer is right or wrong: if it fits the student's own reading,
+ * the maths was fine and the endpoint was off (an indicator that changed
+ * too early or late); otherwise the calculation was.
+ */
+export function unknownFeedback(
+  answer: number,
+  volume: number,
+  actual: number,
+): 'correct' | 'early' | 'late' | 'calculation' {
+  if (checkAnswer(answer, actual)) return 'correct';
+  const fromReading = concentrationFrom(volume);
+  if (checkAnswer(answer, fromReading)) {
+    return fromReading < actual ? 'early' : 'late';
+  }
+  return 'calculation';
+}
+
+/** What "Mark equivalence points" shows: visible jumps within the burette */
+export function curveMarkers(analyte: Analyte, concentration: number) {
+  return {
+    equivalences: equivalenceVolumes(analyte, concentration)
+      .filter((e) => e.visible && e.volume <= BURETTE_CAPACITY)
+      .map((e) => e.volume),
+    halves: halfEquivalences(analyte, concentration),
+  };
 }

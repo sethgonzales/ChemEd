@@ -2,12 +2,15 @@ import { ANALYTES, INDICATORS } from '~/constants/titrations';
 import {
   addTitrant,
   checkAnswer,
+  concentrationFrom,
   curvePoints,
   equivalenceVolumes,
   halfEquivalences,
   indicatorColor,
   indicatorColorName,
+  newUnknown,
   phAfter,
+  unknownFeedback,
 } from './titrations';
 
 const analyte = (id: string) => ANALYTES.find((a) => a.id === id)!;
@@ -194,5 +197,46 @@ describe('halfEquivalences', () => {
   it('skips phosphoric acid’s first and third protons, where pH isn’t the pKa', () => {
     // the first is too strong (pH 2.3, not 2.14) and the third too weak
     expect(half('phosphoric', 0.05)).toEqual([[18.75, 7.2]]);
+  });
+});
+
+describe('newUnknown', () => {
+  it('picks a monoprotic analyte at 0.050–0.150 M, to three decimals', () => {
+    const rolls = [0.3, 0.37]; // second analyte; 0.05 + 0.37 × 0.1
+    const unknown = newUnknown(() => rolls.shift()!);
+    expect(unknown.analyte.id).toBe('acetic');
+    expect(unknown.concentration).toBe(0.087);
+  });
+
+  it('never picks phosphoric acid, and stays in range', () => {
+    for (const r of [0, 0.25, 0.5, 0.75, 0.999]) {
+      const { analyte: a, concentration } = newUnknown(() => r);
+      expect(a.protons).toBe(1);
+      expect(concentration).toBeGreaterThanOrEqual(0.05);
+      expect(concentration).toBeLessThanOrEqual(0.15);
+    }
+  });
+});
+
+describe('unknownFeedback', () => {
+  // 0.0870 M: equivalence at 21.75 mL of 0.100 M titrant
+  const actual = 0.087;
+
+  it('is correct within 2%', () => {
+    expect(unknownFeedback(0.0871, 21.75, actual)).toBe('correct');
+  });
+
+  it('blames the endpoint when the maths fits a reading taken too early or late', () => {
+    // 15.00 mL → 0.100 × 15.00 ÷ 25.00 = 0.0600 M
+    expect(unknownFeedback(0.06, 15, actual)).toBe('early');
+    expect(unknownFeedback(0.12, 30, actual)).toBe('late');
+  });
+
+  it('blames the calculation when the answer doesn’t fit the reading', () => {
+    expect(unknownFeedback(0.5, 21.75, actual)).toBe('calculation');
+  });
+
+  it('works the concentration out from a burette reading', () => {
+    expect(concentrationFrom(21.75)).toBeCloseTo(0.087, 6);
   });
 });

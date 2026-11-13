@@ -1,10 +1,12 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Titrations from '~/pages/titrations';
 
+// both tabs stay mounted, so look inside the one showing
+const panel = () => screen.getByRole('tabpanel');
 const button = (name: string | RegExp) => screen.getByRole('button', { name });
-const ph = () => screen.getByTestId('ph');
-const volume = () => screen.getByTestId('volume');
+const ph = () => within(panel()).getByTestId('ph');
+const volume = () => within(panel()).getByTestId('volume');
 const pick = async (menu: RegExp, option: RegExp) => {
   await userEvent.click(button(menu));
   await userEvent.click(button(option));
@@ -172,5 +174,102 @@ describe('Titrations page: pH curve', () => {
       screen.getByRole('checkbox', { name: 'Show pH curve' }),
     );
     expect(curve()).not.toBeInTheDocument();
+  });
+});
+
+describe('Titrations page: Unknown', () => {
+  // the unknown: acetic acid at 0.0870 M, equivalence at 21.75 mL
+  beforeEach(() => {
+    const rolls = [0.3, 0.37];
+    jest
+      .spyOn(Math, 'random')
+      .mockImplementation(() => (rolls.length ? rolls.shift()! : 0.5));
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  const openUnknown = async () => {
+    render(<Titrations />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Unknown' }));
+  };
+  const answer = () =>
+    screen.getByRole('textbox', { name: 'Concentration (M)' });
+  const titrateTo = (mL: number) => {
+    for (let i = 0; i < Math.floor(mL); i++)
+      fireEvent.click(button('Add 1 mL'));
+    const drops = Math.round((mL - Math.floor(mL)) / 0.05);
+    for (let i = 0; i < drops; i++) fireEvent.click(button('Add drop'));
+  };
+
+  it('starts in the Lab, with an Unknown tab beside it', () => {
+    render(<Titrations />);
+    expect(screen.getByRole('tab', { name: 'Lab' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('tab', { name: 'Unknown' })).toBeInTheDocument();
+  });
+
+  it('names the analyte but hides its concentration, the pH meter and the curve', async () => {
+    await openUnknown();
+    expect(
+      within(panel()).getByText(/25.00 mL of acetic acid \(CH₃COOH\)/i),
+    ).toBeInTheDocument();
+    expect(
+      within(panel()).getByText(/concentration unknown/i),
+    ).toBeInTheDocument();
+    expect(within(panel()).queryByTestId('ph')).not.toBeInTheDocument();
+    expect(
+      within(panel()).queryByRole('img', { name: /pH curve/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('accepts a concentration worked out from a good endpoint', async () => {
+    await openUnknown();
+    titrateTo(21.75);
+    await userEvent.type(answer(), '0.087');
+    await userEvent.click(button('Check'));
+    expect(within(panel()).getByText(/correct/i)).toBeInTheDocument();
+    // then reveals the curve, with the true equivalence point marked
+    expect(
+      within(panel()).getByRole('img', { name: /pH curve/i }),
+    ).toHaveAccessibleName(/equivalence point at 21.75 mL/i);
+  });
+
+  it('says the endpoint came too early when the maths fits the reading', async () => {
+    await openUnknown();
+    titrateTo(15);
+    await userEvent.type(answer(), '0.06');
+    await userEvent.click(button('Check'));
+    expect(within(panel()).getByText(/too early/i)).toBeInTheDocument();
+    expect(within(panel()).getByText(/0.0870 M/)).toBeInTheDocument();
+  });
+
+  it('points to the calculation when the answer doesn’t fit the reading', async () => {
+    await openUnknown();
+    titrateTo(21.75);
+    await userEvent.type(answer(), '0.5');
+    await userEvent.click(button('Check'));
+    expect(
+      within(panel()).getByText(/check your calculation/i),
+    ).toBeInTheDocument();
+  });
+
+  it('ends the round on Check, until a new unknown', async () => {
+    await openUnknown();
+    titrateTo(21.75);
+    await userEvent.type(answer(), '0.087');
+    await userEvent.click(button('Check'));
+    expect(button('Add 1 mL')).toBeDisabled();
+    expect(answer()).toBeDisabled();
+
+    await userEvent.click(button('New unknown'));
+    expect(volume()).toHaveTextContent('0.00 mL');
+    expect(answer()).toHaveValue('');
+    expect(button('Add 1 mL')).toBeEnabled();
+  });
+
+  it('needs an answer before Check', async () => {
+    await openUnknown();
+    expect(button('Check')).toBeDisabled();
   });
 });

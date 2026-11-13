@@ -1,6 +1,6 @@
 # Titrations — plan
 
-Status: **in progress** (12 Nov 2026): phases 1–3 built. See Decisions.
+Status: **in progress** (12 Nov 2026): phases 1–4 built. See Decisions.
 
 Students add titrant from a burette to a flask of acid or base, one drop or one millilitre at a time, and watch three things change together: the indicator's colour, the pH reading, and a pH curve plotting itself point by point. A second tab hides the analyte's concentration, and students titrate to find it.
 
@@ -82,3 +82,4 @@ Behaviour tests rather than constants: HCl's equivalence pH ≈ 7.00; acetic aci
 4. **Defaults** (change if wanted): 25.00 mL of analyte, 0.100 M titrant, a 0.05 mL drop, ±2% tolerance for the Unknown answer, and unknowns between 0.050 and 0.150 M.
 5. **Phosphoric acid at 0.050 M** in the Lab (found while building): at 0.100 M its second equivalence point needs 50 mL, a whole burette. At half strength the equivalence points fall at 12.5, 25 and 37.5 mL. Pour runs at 1.5 mL/s.
 6. **pH curve** (phase 3): it's calculated, not recorded, so it plots the engine's pH every 0.1 mL up to the volume added. The indicator's range is always shaded on it. "pH = pKa" markers only appear where pH is within 0.1 of the pKa at half-equivalence, which leaves out H₃PO₄'s first and third protons.
+7. **Unknown tab** (phase 4): only the monoprotic analytes (HCl, acetic acid, NaOH, NH₃), so the mole ratio is always 1:1. H₃PO₄ stays in the Lab. The first round is rolled after the page loads, so the static HTML and the browser match. Check ends the round. Feedback tells three cases apart: correct; maths that fits the student's own reading but an endpoint that came too early or too late (the indicator lesson); and a calculation slip, shown worked from their reading. Check is the main action there, so Pour is a plain button. The indicator choice carries between tabs.

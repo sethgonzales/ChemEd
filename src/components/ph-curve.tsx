@@ -48,11 +48,16 @@ interface Props {
   points: Point[]; // from the start to now
   indicator: Indicator;
   markers: CurveMarkers | null; // null hides them
+  current?: Point; // where the dot sits, if not at the end (a revealed curve)
 }
 
 /** pH against volume of titrant, with the indicator's range shaded */
-export default function PhCurve({ points, indicator, markers }: Props) {
-  const current = points[points.length - 1];
+export default function PhCurve({
+  points,
+  indicator,
+  markers,
+  current = points[points.length - 1],
+}: Props) {
   const x = (volume: number) =>
     PAD.left + (volume / BURETTE_CAPACITY) * (WIDTH - PAD.left - PAD.right);
   const y = (pH: number) =>
