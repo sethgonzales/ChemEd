@@ -10,6 +10,8 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // build output, which `next lint` used to skip for us
+  { ignores: ['.next/', 'out/', '.flowbite-react/', 'next-env.d.ts'] },
   ...compat.config({
     extends: [
       'next',
