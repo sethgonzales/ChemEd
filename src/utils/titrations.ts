@@ -129,3 +129,39 @@ export function indicatorColorName(indicator: Indicator, pH: number) {
 /** The volume added after running `amount` mL more from the burette */
 export const addTitrant = (volume: number, amount: number) =>
   Math.round(Math.min(BURETTE_CAPACITY, volume + amount) * 100) / 100;
+
+const CURVE_STEP = 0.1; // mL between plotted points
+// pH within this of the pKa at half-equivalence counts as "pH = pKa"; a strong
+// first proton (H₃PO₄'s) or one weaker than water (its third) misses it
+const HALF_EQUIVALENCE_TOLERANCE = 0.1;
+
+/** pH every 0.1 mL from the start to the volume added so far */
+export function curvePoints(
+  analyte: Analyte,
+  concentration: number,
+  upTo: number,
+) {
+  const points: { volume: number; pH: number }[] = [];
+  for (let i = 0; i * CURVE_STEP < upTo - 1e-9; i++) {
+    const volume = Math.round(i * CURVE_STEP * 100) / 100;
+    points.push({ volume, pH: phAfter(analyte, concentration, volume) });
+  }
+  points.push({ volume: upTo, pH: phAfter(analyte, concentration, upTo) });
+  return points;
+}
+
+/**
+ * Halfway to each equivalence point, half the weak acid (or base) is
+ * neutralised, so the buffer's pH equals its pKa. Only where that holds.
+ */
+export function halfEquivalences(analyte: Analyte, concentration: number) {
+  const perProton = (concentration * ANALYTE_VOLUME) / TITRANT_CONCENTRATION;
+  return analyte.pKas
+    .map((pKa, i) => ({ volume: perProton * (i + 0.5), pKa }))
+    .filter(
+      ({ volume, pKa }) =>
+        volume <= BURETTE_CAPACITY &&
+        Math.abs(phAfter(analyte, concentration, volume) - pKa) <=
+          HALF_EQUIVALENCE_TOLERANCE,
+    );
+}

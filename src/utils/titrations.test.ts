@@ -2,7 +2,9 @@ import { ANALYTES, INDICATORS } from '~/constants/titrations';
 import {
   addTitrant,
   checkAnswer,
+  curvePoints,
   equivalenceVolumes,
+  halfEquivalences,
   indicatorColor,
   indicatorColorName,
   phAfter,
@@ -158,5 +160,39 @@ describe('addTitrant', () => {
   it('stops when the burette is empty', () => {
     expect(addTitrant(49.5, 1)).toBe(50);
     expect(addTitrant(50, 0.05)).toBe(50);
+  });
+});
+
+describe('curvePoints', () => {
+  it('plots pH every 0.1 mL from the start to the volume added so far', () => {
+    const points = curvePoints(analyte('hcl'), C, 2.05);
+    expect(points[0]).toEqual({ volume: 0, pH: phAfter(analyte('hcl'), C, 0) });
+    expect(points[1].volume).toBeCloseTo(0.1);
+    expect(points[points.length - 1].volume).toBe(2.05); // ends where we are
+    expect(points).toHaveLength(22);
+  });
+
+  it('is a single point before any titrant goes in', () => {
+    expect(curvePoints(analyte('hcl'), C, 0)).toHaveLength(1);
+  });
+});
+
+describe('halfEquivalences', () => {
+  const half = (id: string, c: number) =>
+    halfEquivalences(analyte(id), c).map(({ volume, pKa }) => [volume, pKa]);
+
+  it('marks where pH = pKa for weak acids and bases', () => {
+    expect(half('acetic', C)).toEqual([[12.5, 4.756]]);
+    expect(half('ammonia', C)).toEqual([[12.5, 9.24]]);
+  });
+
+  it('has none for strong acids and bases', () => {
+    expect(half('hcl', C)).toEqual([]);
+    expect(half('naoh', C)).toEqual([]);
+  });
+
+  it('skips phosphoric acid’s first and third protons, where pH isn’t the pKa', () => {
+    // the first is too strong (pH 2.3, not 2.14) and the third too weak
+    expect(half('phosphoric', 0.05)).toEqual([[18.75, 7.2]]);
   });
 });

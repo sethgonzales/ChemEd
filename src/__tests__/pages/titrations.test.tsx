@@ -120,3 +120,57 @@ describe('Titrations page: pouring', () => {
     expect(volume()).toHaveTextContent('1.50 mL');
   });
 });
+
+describe('Titrations page: pH curve', () => {
+  const curve = () => screen.queryByRole('img', { name: /pH curve/i });
+
+  it('plots the curve as titrant goes in', async () => {
+    render(<Titrations />);
+    expect(curve()).toHaveAccessibleName(/pH 1.00 after 0.00 mL/);
+    await userEvent.click(button('Add 1 mL'));
+    // 2.4 mmol of HCl left in 26 mL
+    expect(curve()).toHaveAccessibleName(/pH 1.03 after 1.00 mL/);
+  });
+
+  it('shades the indicator’s colour change on the curve', async () => {
+    render(<Titrations />);
+    expect(curve()).toHaveAccessibleName(
+      /phenolphthalein changes colour from pH 8.3 to 10/i,
+    );
+    await pick(/^Indicator:/, /Methyl orange/);
+    expect(curve()).toHaveAccessibleName(
+      /methyl orange changes colour from pH 3.1 to 4.4/i,
+    );
+  });
+
+  it('can mark the equivalence and half-equivalence points', async () => {
+    render(<Titrations />);
+    await pick(/^Analyte:/, /Acetic acid/);
+    expect(curve()).not.toHaveAccessibleName(/equivalence/i);
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Mark equivalence points' }),
+    );
+    expect(curve()).toHaveAccessibleName(/equivalence point at 25.00 mL/i);
+    expect(curve()).toHaveAccessibleName(/pH = pKa = 4.76 at 12.50 mL/);
+  });
+
+  it('marks both of phosphoric acid’s jumps, but not the third proton', async () => {
+    render(<Titrations />);
+    await pick(/^Analyte:/, /Phosphoric acid/);
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Mark equivalence points' }),
+    );
+    expect(curve()).toHaveAccessibleName(
+      /equivalence points at 12.50 and 25.00 mL/i,
+    );
+    expect(curve()).not.toHaveAccessibleName(/37.50/);
+  });
+
+  it('can be hidden', async () => {
+    render(<Titrations />);
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Show pH curve' }),
+    );
+    expect(curve()).not.toBeInTheDocument();
+  });
+});

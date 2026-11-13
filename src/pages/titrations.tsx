@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Button from '~/components/button';
 import Container from '~/components/container';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
+import PhCurve from '~/components/ph-curve';
+import Setting from '~/components/setting';
 import Stage from '~/components/stage';
 import TitrationApparatus from '~/components/titration-apparatus';
 import {
@@ -16,6 +18,9 @@ import {
 } from '~/constants/titrations';
 import {
   addTitrant,
+  curvePoints,
+  equivalenceVolumes,
+  halfEquivalences,
   indicatorColor,
   indicatorColorName,
   phAfter,
@@ -30,6 +35,8 @@ export default function Titrations() {
     INDICATORS.find((i) => i.id === 'phenolphthalein')!,
   );
   const [volume, setVolume] = useState(0);
+  const [showCurve, setShowCurve] = useState(true);
+  const [showMarkers, setShowMarkers] = useState(false);
 
   const add = (amount: number) => setVolume((v) => addTitrant(v, amount));
   const pour = useHold(
@@ -46,8 +53,17 @@ export default function Titrations() {
     setVolume(0); // a fresh flask and a full burette
   };
 
-  const pH = phAfter(analyte, analyte.labConcentration, volume);
+  const concentration = analyte.labConcentration;
+  const pH = phAfter(analyte, concentration, volume);
   const colorName = indicatorColorName(indicator, pH);
+  const markers = showMarkers
+    ? {
+        equivalences: equivalenceVolumes(analyte, concentration)
+          .filter((e) => e.visible && e.volume <= BURETTE_CAPACITY)
+          .map((e) => e.volume),
+        halves: halfEquivalences(analyte, concentration),
+      }
+    : null;
 
   return (
     <Container
@@ -130,18 +146,38 @@ export default function Titrations() {
           </div>
         }
       >
-        <div className="flex justify-center pixel-control bg-primary-800 p-3">
-          <TitrationApparatus
-            volume={volume}
-            color={indicatorColor(indicator, pH)}
-            colorName={colorName}
-          />
+        {/* apparatus and curve side by side, stacked on a phone */}
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="md:w-2/5 flex justify-center pixel-control bg-primary-800 p-3">
+            <TitrationApparatus
+              volume={volume}
+              color={indicatorColor(indicator, pH)}
+              colorName={colorName}
+            />
+          </div>
+          {showCurve && (
+            <div className="md:flex-1 md:min-w-0 flex items-center justify-center pixel-control bg-primary-800 p-3">
+              <PhCurve
+                points={curvePoints(analyte, concentration, volume)}
+                indicator={indicator}
+                markers={markers}
+              />
+            </div>
+          )}
         </div>
         <p role="status" className="sr-only">
           pH {pH.toFixed(2)} after {volume.toFixed(2)} mL; the flask is{' '}
           {colorName}
         </p>
       </Stage>
+      <div className="flex flex-col sm:flex-row gap-x-6 gap-y-2">
+        <Setting checked={showCurve} onChange={setShowCurve}>
+          Show pH curve
+        </Setting>
+        <Setting checked={showMarkers} onChange={setShowMarkers}>
+          Mark equivalence points
+        </Setting>
+      </div>
     </Container>
   );
 }
