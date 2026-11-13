@@ -1,11 +1,13 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   type Dispatch,
   type SetStateAction,
 } from 'react';
 import Button from '~/components/button';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
+import { useGuide } from '~/components/guide';
 import PhCurve, { type CurveMarkers } from '~/components/ph-curve';
 import Stage from '~/components/stage';
 import TitrationApparatus from '~/components/titration-apparatus';
@@ -23,10 +25,16 @@ import {
   indicatorColor,
   indicatorColorName,
   phAfter,
+  swirl,
 } from '~/utils/titrations';
+import { useDrips } from '~/utils/use-drips';
 import { useHold } from '~/utils/use-hold';
 
 const MILLILITRE = 1; // mL added by "Add 1 mL"
+const MILLILITRE_DROPS = 4; // drops drawn for "Add 1 mL" (a real one is ~20)
+
+const ENDPOINT_TIP =
+  'The indicator changed colour: that’s the endpoint. Stop and read the burette!';
 
 /** The indicator picker both tabs use */
 export function IndicatorDropdown({
@@ -62,6 +70,7 @@ interface Props {
   volume: number; // mL added
   setVolume: Dispatch<SetStateAction<number>>;
   showPH: boolean; // the Unknown tab hides the meter until the answer is in
+  showVolume?: boolean; // …and the readout, so students read the burette
   curve: { markers: CurveMarkers | null; upTo?: number } | null; // null hides it
   locked?: boolean; // the round is over: no more titrant
   pourAccent?: boolean; // Pour is the main action, unless the page has another
@@ -75,6 +84,7 @@ export default function TitrationBench({
   volume,
   setVolume,
   showPH,
+  showVolume = true,
   curve,
   locked = false,
   pourAccent = true,
@@ -93,9 +103,33 @@ export default function TitrationBench({
     if (stopped) stop();
   }, [stopped, stop]);
 
+  const { drops, flashes, drip } = useDrips();
+  const pouring = pour.holding && !stopped;
+
   const pH = phAfter(analyte, concentration, volume);
   const colorName = indicatorColorName(indicator, pH);
+  // the colour titrant flashes where it lands, near a colour change
+  const swirlAt = (v: number) => swirl(analyte, concentration, indicator, v);
   const upTo = Math.max(volume, curve?.upTo ?? 0);
+
+  // Mr. G names the endpoint the first time titrant changes the colour; a
+  // fresh flask (back to 0 mL) re-arms him. Switching indicator doesn't count.
+  const { say } = useGuide();
+  const startColor = indicatorColorName(
+    indicator,
+    phAfter(analyte, concentration, 0),
+  );
+  const announced = useRef(false);
+  const lastVolume = useRef(volume);
+  useEffect(() => {
+    if (volume === 0) announced.current = false;
+    const added = volume > lastVolume.current;
+    lastVolume.current = volume;
+    if (added && !announced.current && colorName !== startColor) {
+      announced.current = true;
+      say(ENDPOINT_TIP, 'tip', { unprompted: true });
+    }
+  }, [volume, colorName, startColor, say]);
 
   return (
     <Stage
@@ -110,23 +144,37 @@ export default function TitrationBench({
               </span>
             </div>
           )}
-          <div
-            data-testid="volume"
-            className="ml-auto text-right leading-tight"
-          >
-            <span className="block text-sm text-white/70">Added</span>
-            <span className="block text-2xl sm:text-3xl font-bold whitespace-nowrap">
-              {volume.toFixed(2)} mL
-            </span>
-          </div>
+          {showVolume && (
+            <div
+              data-testid="volume"
+              className="ml-auto text-right leading-tight"
+            >
+              <span className="block text-sm text-white/70">Added</span>
+              <span className="block text-2xl sm:text-3xl font-bold whitespace-nowrap">
+                {volume.toFixed(2)} mL
+              </span>
+            </div>
+          )}
         </div>
       }
       footer={
         <div className="flex flex-wrap items-center gap-2">
-          <Button disabled={stopped} onClick={() => add(DROP_VOLUME)}>
+          <Button
+            disabled={stopped}
+            onClick={() => {
+              add(DROP_VOLUME);
+              drip(1, swirlAt(addTitrant(volume, DROP_VOLUME)));
+            }}
+          >
             Add drop
           </Button>
-          <Button disabled={stopped} onClick={() => add(MILLILITRE)}>
+          <Button
+            disabled={stopped}
+            onClick={() => {
+              add(MILLILITRE);
+              drip(MILLILITRE_DROPS, swirlAt(addTitrant(volume, MILLILITRE)));
+            }}
+          >
             Add 1 mL
           </Button>
           <Button pressed={pourAccent} disabled={stopped} {...pour.events}>
@@ -150,6 +198,10 @@ export default function TitrationBench({
             volume={volume}
             color={indicatorColor(indicator, pH)}
             colorName={colorName}
+            drops={drops}
+            pouring={pouring}
+            flashes={flashes}
+            pourSwirl={pouring ? swirlAt(volume) : null}
           />
         </div>
         {curve && (

@@ -2,6 +2,13 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Titrations from '~/pages/titrations';
 
+// record what the page asks Mr. G to say
+const mockSay = jest.fn();
+jest.mock('~/components/guide', () => ({
+  useGuide: () => ({ say: mockSay, visible: false }),
+}));
+beforeEach(() => mockSay.mockClear());
+
 // both tabs stay mounted, so look inside the one showing
 const panel = () => screen.getByRole('tabpanel');
 const button = (name: string | RegExp) => screen.getByRole('button', { name });
@@ -209,7 +216,7 @@ describe('Titrations page: Unknown', () => {
     expect(screen.getByRole('tab', { name: 'Unknown' })).toBeInTheDocument();
   });
 
-  it('names the analyte but hides its concentration, the pH meter and the curve', async () => {
+  it('names the analyte but hides its concentration and the pH meter', async () => {
     await openUnknown();
     expect(
       within(panel()).getByText(/25.00 mL of acetic acid \(CH₃COOH\)/i),
@@ -218,9 +225,14 @@ describe('Titrations page: Unknown', () => {
       within(panel()).getByText(/concentration unknown/i),
     ).toBeInTheDocument();
     expect(within(panel()).queryByTestId('ph')).not.toBeInTheDocument();
-    expect(
-      within(panel()).queryByRole('img', { name: /pH curve/i }),
-    ).not.toBeInTheDocument();
+  });
+
+  it('draws the curve while titrating, without giving away the equivalence point', async () => {
+    await openUnknown();
+    titrateTo(10);
+    const curve = within(panel()).getByRole('img', { name: /pH curve/i });
+    expect(curve).toHaveAccessibleName(/after 10.00 mL/);
+    expect(curve).not.toHaveAccessibleName(/equivalence/i);
   });
 
   it('accepts a concentration worked out from a good endpoint', async () => {
@@ -263,13 +275,194 @@ describe('Titrations page: Unknown', () => {
     expect(answer()).toBeDisabled();
 
     await userEvent.click(button('New unknown'));
-    expect(volume()).toHaveTextContent('0.00 mL');
+    expect(
+      within(panel()).getByRole('img', { name: /flask/ }),
+    ).toHaveAccessibleName(/burette reads 0.00 mL/i);
     expect(answer()).toHaveValue('');
     expect(button('Add 1 mL')).toBeEnabled();
+  });
+
+  it('hides the volume readout until Check, so students read the burette', async () => {
+    await openUnknown();
+    titrateTo(21.75);
+    expect(within(panel()).queryByTestId('volume')).not.toBeInTheDocument();
+    await userEvent.type(answer(), '0.087');
+    await userEvent.click(button('Check'));
+    expect(volume()).toHaveTextContent('21.75 mL');
   });
 
   it('needs an answer before Check', async () => {
     await openUnknown();
     expect(button('Check')).toBeDisabled();
+  });
+});
+
+describe('Titrations page: drips and pouring', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+  const wait = (ms: number) => act(() => jest.advanceTimersByTime(ms));
+  const drops = () => within(panel()).queryAllByTestId('drop');
+  const stream = () => within(panel()).queryByTestId('stream');
+
+  it('lets a drop fall from the burette, then clears it', () => {
+    render(<Titrations />);
+    expect(drops()).toHaveLength(0);
+    fireEvent.click(button('Add drop'));
+    expect(drops()).toHaveLength(1);
+    wait(2000);
+    expect(drops()).toHaveLength(0);
+  });
+
+  it('runs a burst of drops for a millilitre', () => {
+    render(<Titrations />);
+    fireEvent.click(button('Add 1 mL'));
+    expect(drops().length).toBeGreaterThan(1);
+  });
+
+  it('shows a stream only while Pour is held', () => {
+    render(<Titrations />);
+    expect(stream()).not.toBeInTheDocument();
+    fireEvent.pointerDown(button('Pour'));
+    wait(100);
+    expect(stream()).toBeInTheDocument();
+    fireEvent.pointerUp(button('Pour'));
+    expect(stream()).not.toBeInTheDocument();
+  });
+});
+
+describe('Titrations page: Mr. G', () => {
+  it('points out the endpoint at the first colour change', async () => {
+    render(<Titrations />);
+    // at 25 mL the pH is 7.00, still colourless for phenolphthalein
+    for (let i = 0; i < 25; i++) fireEvent.click(button('Add 1 mL'));
+    expect(mockSay).not.toHaveBeenCalled();
+    fireEvent.click(button('Add 1 mL')); // 26 mL: pink
+    expect(mockSay).toHaveBeenCalledWith(
+      expect.stringMatching(/endpoint/),
+      'tip',
+      { unprompted: true },
+    );
+    fireEvent.click(button('Add 1 mL'));
+    expect(mockSay).toHaveBeenCalledTimes(1); // once per flask
+  });
+
+  describe('in the Unknown', () => {
+    beforeEach(() => {
+      const rolls = [0.3, 0.37]; // acetic acid, 0.0870 M
+      jest
+        .spyOn(Math, 'random')
+        .mockImplementation(() => (rolls.length ? rolls.shift()! : 0.5));
+    });
+    afterEach(() => jest.restoreAllMocks());
+
+    const submit = async (value: string) => {
+      render(<Titrations />);
+      await userEvent.click(screen.getByRole('tab', { name: 'Unknown' }));
+      for (let i = 0; i < 21; i++) fireEvent.click(button('Add 1 mL'));
+      for (let i = 0; i < 15; i++) fireEvent.click(button('Add drop'));
+      mockSay.mockClear();
+      await userEvent.type(
+        screen.getByRole('textbox', { name: 'Concentration (M)' }),
+        value,
+      );
+      await userEvent.click(button('Check'));
+    };
+
+    it('cheers a correct answer (which plays the treasure sound)', async () => {
+      await submit('0.087');
+      expect(mockSay).toHaveBeenCalledWith(
+        expect.stringMatching(/correct/i),
+        'cheer',
+      );
+    });
+
+    it('gives a hint for a wrong one', async () => {
+      await submit('0.5');
+      expect(mockSay).toHaveBeenCalledWith(
+        expect.stringMatching(/moles/i),
+        'hint',
+      );
+    });
+  });
+});
+
+describe('Titrations page: colour swirls', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+  const wait = (ms: number) => act(() => jest.advanceTimersByTime(ms));
+  const swirls = () => within(panel()).queryAllByTestId('swirl');
+
+  it('makes no swirl far from the endpoint', () => {
+    render(<Titrations />);
+    for (let i = 0; i < 10; i++) fireEvent.click(button('Add 1 mL'));
+    wait(5000);
+    fireEvent.click(button('Add drop'));
+    expect(swirls()).toHaveLength(0);
+  });
+
+  it('swirls pink where a drop lands near the endpoint, then fades it', () => {
+    render(<Titrations />);
+    for (let i = 0; i < 24; i++) fireEvent.click(button('Add 1 mL'));
+    wait(5000);
+    fireEvent.click(button('Add drop'));
+    expect(swirls()).toHaveLength(1);
+    wait(5000);
+    expect(swirls()).toHaveLength(0);
+  });
+
+  it('swirls under the stream while pouring near the endpoint', () => {
+    render(<Titrations />);
+    for (let i = 0; i < 24; i++) fireEvent.click(button('Add 1 mL'));
+    wait(5000);
+    fireEvent.pointerDown(button('Pour'));
+    wait(100);
+    expect(swirls()).toHaveLength(1);
+    fireEvent.pointerUp(button('Pour'));
+  });
+});
+
+describe('Titrations page: burette close-up', () => {
+  const zoom = () =>
+    within(panel()).getByRole('button', { name: 'Zoom in on the burette' });
+  const closeUp = () =>
+    within(panel()).queryByRole('img', { name: /close-up of the burette/i });
+
+  it('opens a close-up of the scale around the reading when the burette is clicked', () => {
+    render(<Titrations />);
+    for (let i = 0; i < 24; i++) fireEvent.click(button('Add 1 mL'));
+    expect(closeUp()).toBeNull();
+    fireEvent.click(zoom());
+    expect(zoom()).toHaveAttribute('aria-expanded', 'true');
+    expect(closeUp()).toHaveAccessibleName(
+      'Close-up of the burette from 23.00 to 25.00 mL. Read the bottom of the meniscus.',
+    );
+  });
+
+  it('follows the level as titrant goes in', () => {
+    render(<Titrations />);
+    fireEvent.click(zoom());
+    for (let i = 0; i < 10; i++) fireEvent.click(button('Add 1 mL'));
+    expect(closeUp()).toHaveAccessibleName(/from 9.00 to 11.00 mL/);
+  });
+
+  it('closes with the burette again or with Escape', () => {
+    render(<Titrations />);
+    fireEvent.click(zoom());
+    fireEvent.click(zoom());
+    expect(closeUp()).toBeNull();
+    fireEvent.click(zoom());
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(closeUp()).toBeNull();
+    expect(zoom()).toHaveAttribute('aria-expanded', 'false');
+  });
+});
+
+describe('Titrations page: stirring', () => {
+  it('stirs the flask on a magnetic stirrer, as titrations should be', () => {
+    render(<Titrations />);
+    expect(
+      within(panel()).getByRole('img', { name: /flask/ }),
+    ).toHaveAccessibleName(/stirred by a stir bar/);
+    expect(within(panel()).getByTestId('stir-bar')).toBeInTheDocument();
   });
 });

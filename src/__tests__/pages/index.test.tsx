@@ -26,11 +26,10 @@ describe('Home page', () => {
     expect(push).toHaveBeenCalledWith('/periodic-table');
   });
 
-  it('keeps sealed doors closed', async () => {
+  // sealed doors are covered in card.test.tsx
+  it('opens the Titrations door now it’s built', async () => {
     render(<Home />);
-    await userEvent.click(
-      screen.getByRole('button', { name: 'Titrations (coming soon)' }),
-    );
-    expect(push).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Titrations' }));
+    expect(push).toHaveBeenCalledWith('/titrations');
   });
 });

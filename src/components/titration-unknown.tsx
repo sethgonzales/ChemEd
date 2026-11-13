@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import Button from '~/components/button';
+import { useGuide } from '~/components/guide';
 import TitrationBench, {
   IndicatorDropdown,
 } from '~/components/titration-bench';
@@ -19,6 +20,15 @@ import {
 
 // mL shown past the equivalence point when the curve is revealed
 const REVEAL_PAST = 5;
+
+// Mr. G's nudge after a wrong answer, by what went wrong
+const HINTS = {
+  early:
+    'Your maths fits your reading, so the endpoint was off. Did the colour change inside the steep jump?',
+  late: 'Your maths fits your reading, but you went past the equivalence point. Slow to drops near the colour change.',
+  calculation:
+    'Moles of titrant = M × L. At 1:1 that’s the moles in the flask, so divide by 0.02500 L.',
+};
 
 type Round = ReturnType<typeof newUnknown>;
 type Result = { verdict: ReturnType<typeof unknownFeedback>; text: string };
@@ -54,6 +64,7 @@ export default function TitrationUnknown({
   const [volume, setVolume] = useState(0);
   const [answer, setAnswer] = useState('');
   const [result, setResult] = useState<Result | null>(null);
+  const { say } = useGuide();
   useEffect(() => setRound(newUnknown()), []);
 
   if (!round) return null;
@@ -61,7 +72,11 @@ export default function TitrationUnknown({
 
   const check = (e: FormEvent) => {
     e.preventDefault();
-    setResult(feedback(parseFloat(answer), volume, round));
+    const result = feedback(parseFloat(answer), volume, round);
+    setResult(result);
+    // a cheer also plays the treasure sound
+    if (result.verdict === 'correct') say(result.text, 'cheer');
+    else say(HINTS[result.verdict], 'hint');
   };
   const next = () => {
     setRound(newUnknown());
@@ -89,10 +104,12 @@ export default function TitrationUnknown({
         volume={volume}
         setVolume={setVolume}
         showPH={!!result}
+        showVolume={!!result}
+        // the curve draws as they go; the markers would give the answer away
         curve={
           result
             ? { markers, upTo: markers.equivalences[0] + REVEAL_PAST }
-            : null
+            : { markers: null }
         }
         locked={!!result}
         pourAccent={false}

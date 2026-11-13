@@ -49,6 +49,6 @@ export const SIMULATIONS: Simulation[] = [
     path: '/titrations',
     art: 'titrations',
     color: '#ef4444', // red
-    ready: false,
+    ready: true,
   },
 ];

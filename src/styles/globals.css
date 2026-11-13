@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @plugin "flowbite-react/plugin/tailwindcss";
 @source "../../.flowbite-react/class-list.json";
 
@@ -17,21 +17,40 @@
 
   /* 8-bit corners, in 4px steps: two steps for panels, one for controls */
   --pixel-corners-2: polygon(
-    0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0,
-    calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px,
-    calc(100% - 4px) 8px, 100% 8px,
-    100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px),
-    calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px),
+    0 8px,
+    4px 8px,
+    4px 4px,
+    8px 4px,
+    8px 0,
+    calc(100% - 8px) 0,
+    calc(100% - 8px) 4px,
+    calc(100% - 4px) 4px,
+    calc(100% - 4px) 8px,
+    100% 8px,
+    100% calc(100% - 8px),
+    calc(100% - 4px) calc(100% - 8px),
+    calc(100% - 4px) calc(100% - 4px),
+    calc(100% - 8px) calc(100% - 4px),
     calc(100% - 8px) 100%,
-    8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px),
+    8px 100%,
+    8px calc(100% - 4px),
+    4px calc(100% - 4px),
+    4px calc(100% - 8px),
     0 calc(100% - 8px)
   );
   --pixel-corners-1: polygon(
-    0 4px, 4px 4px, 4px 0,
-    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
-    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px),
+    0 4px,
+    4px 4px,
+    4px 0,
+    calc(100% - 4px) 0,
+    calc(100% - 4px) 4px,
+    100% 4px,
+    100% calc(100% - 4px),
+    calc(100% - 4px) calc(100% - 4px),
     calc(100% - 4px) 100%,
-    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+    4px 100%,
+    4px calc(100% - 4px),
+    0 calc(100% - 4px)
   );
 }
 
@@ -45,7 +64,7 @@
   isolation: isolate;
   &::before,
   &::after {
-    content: "";
+    content: '';
     position: absolute;
     z-index: -1;
     pointer-events: none;
@@ -78,28 +97,56 @@
     linear-gradient(to top, var(--door) 0 4px, transparent 4px),
     color-mix(in srgb, var(--door) 28%, #0c0a09);
   clip-path: polygon(
-    0 40px, 4px 40px, 4px 28px, 8px 28px, 8px 20px, 12px 20px, 12px 12px,
-    20px 12px, 20px 8px, 28px 8px, 28px 4px, 40px 4px, 40px 0,
-    calc(100% - 40px) 0, calc(100% - 40px) 4px, calc(100% - 28px) 4px,
-    calc(100% - 28px) 8px, calc(100% - 20px) 8px, calc(100% - 20px) 12px,
-    calc(100% - 12px) 12px, calc(100% - 12px) 20px, calc(100% - 8px) 20px,
-    calc(100% - 8px) 28px, calc(100% - 4px) 28px, calc(100% - 4px) 40px,
-    100% 40px, 100% 100%, 0 100%
+    0 40px,
+    4px 40px,
+    4px 28px,
+    8px 28px,
+    8px 20px,
+    12px 20px,
+    12px 12px,
+    20px 12px,
+    20px 8px,
+    28px 8px,
+    28px 4px,
+    40px 4px,
+    40px 0,
+    calc(100% - 40px) 0,
+    calc(100% - 40px) 4px,
+    calc(100% - 28px) 4px,
+    calc(100% - 28px) 8px,
+    calc(100% - 20px) 8px,
+    calc(100% - 20px) 12px,
+    calc(100% - 12px) 12px,
+    calc(100% - 12px) 20px,
+    calc(100% - 8px) 20px,
+    calc(100% - 8px) 28px,
+    calc(100% - 4px) 28px,
+    calc(100% - 4px) 40px,
+    100% 40px,
+    100% 100%,
+    0 100%
   );
 }
 
 /* Torchlight round an open door on hover or keyboard focus; flickers unless motion is reduced */
 @keyframes torch-flicker {
-  0%, 100% { filter: drop-shadow(0 0 10px rgb(251 146 60 / 0.7)); }
-  35% { filter: drop-shadow(0 0 16px rgb(251 191 36 / 0.85)); }
-  70% { filter: drop-shadow(0 0 7px rgb(249 115 22 / 0.6)); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgb(251 146 60 / 0.7));
+  }
+  35% {
+    filter: drop-shadow(0 0 16px rgb(251 191 36 / 0.85));
+  }
+  70% {
+    filter: drop-shadow(0 0 7px rgb(249 115 22 / 0.6));
+  }
 }
 @utility torchlight {
-  &:is(:hover, :focus-visible):not([aria-disabled="true"]) {
+  &:is(:hover, :focus-visible):not([aria-disabled='true']) {
     filter: drop-shadow(0 0 12px rgb(251 146 60 / 0.75));
   }
   @media (prefers-reduced-motion: no-preference) {
-    &:is(:hover, :focus-visible):not([aria-disabled="true"]) {
+    &:is(:hover, :focus-visible):not([aria-disabled='true']) {
       animation: torch-flicker 1.2s steps(3) infinite;
     }
   }
@@ -111,7 +158,8 @@
   height: 40px;
   background: var(--color-secondary-500);
   /* a wide, seeded-random pattern of drips, so the repeat is hard to spot */
-  mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2096%2010%27%20width%3D%27384%27%20height%3D%2740%27%20shape-rendering%3D%27crispEdges%27%20fill%3D%27white%27%3E%3Crect%20x%3D%270%27%20y%3D%270%27%20width%3D%2796%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%270%27%20y%3D%271%27%20width%3D%2796%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%270%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%275%27%20y%3D%272%27%20width%3D%276%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2712%27%20y%3D%272%27%20width%3D%2713%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2726%27%20y%3D%272%27%20width%3D%276%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2733%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2737%27%20y%3D%272%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2739%27%20y%3D%272%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2746%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2750%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2753%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2758%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2764%27%20y%3D%272%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2768%27%20y%3D%272%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2770%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2775%27%20y%3D%272%27%20width%3D%2710%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2786%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2791%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2795%27%20y%3D%272%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%271%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2713%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2719%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2724%27%20y%3D%273%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2727%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2737%27%20y%3D%273%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2746%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2750%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2754%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2759%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2770%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2776%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%273%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2791%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2719%27%20y%3D%274%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2724%27%20y%3D%274%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2737%27%20y%3D%274%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%274%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2746%27%20y%3D%274%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2750%27%20y%3D%274%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2754%27%20y%3D%274%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2759%27%20y%3D%274%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%274%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2719%27%20y%3D%275%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2724%27%20y%3D%275%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%275%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2759%27%20y%3D%275%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%275%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2718%27%20y%3D%276%27%20width%3D%278%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2740%27%20y%3D%276%27%20width%3D%275%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2758%27%20y%3D%276%27%20width%3D%275%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%276%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2719%27%20y%3D%277%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%277%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2759%27%20y%3D%277%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%277%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2786%27%20y%3D%278%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3C%2Fsvg%3E") repeat-x;
+  mask: url('data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2096%2010%27%20width%3D%27384%27%20height%3D%2740%27%20shape-rendering%3D%27crispEdges%27%20fill%3D%27white%27%3E%3Crect%20x%3D%270%27%20y%3D%270%27%20width%3D%2796%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%270%27%20y%3D%271%27%20width%3D%2796%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%270%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%275%27%20y%3D%272%27%20width%3D%276%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2712%27%20y%3D%272%27%20width%3D%2713%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2726%27%20y%3D%272%27%20width%3D%276%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2733%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2737%27%20y%3D%272%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2739%27%20y%3D%272%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2746%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2750%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2753%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2758%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2764%27%20y%3D%272%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2768%27%20y%3D%272%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2770%27%20y%3D%272%27%20width%3D%274%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2775%27%20y%3D%272%27%20width%3D%2710%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2786%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2791%27%20y%3D%272%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2795%27%20y%3D%272%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%271%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2713%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2719%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2724%27%20y%3D%273%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2727%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2737%27%20y%3D%273%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2746%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2750%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2754%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2759%27%20y%3D%273%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2770%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2776%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%273%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2791%27%20y%3D%273%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2719%27%20y%3D%274%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2724%27%20y%3D%274%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2737%27%20y%3D%274%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%274%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2746%27%20y%3D%274%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2750%27%20y%3D%274%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2754%27%20y%3D%274%27%20width%3D%272%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2759%27%20y%3D%274%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%274%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2719%27%20y%3D%275%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2724%27%20y%3D%275%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%275%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2759%27%20y%3D%275%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%275%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2718%27%20y%3D%276%27%20width%3D%278%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2740%27%20y%3D%276%27%20width%3D%275%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2758%27%20y%3D%276%27%20width%3D%275%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%276%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2719%27%20y%3D%277%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2741%27%20y%3D%277%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2759%27%20y%3D%277%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2787%27%20y%3D%277%27%20width%3D%271%27%20height%3D%271%27%2F%3E%3Crect%20x%3D%2786%27%20y%3D%278%27%20width%3D%273%27%20height%3D%271%27%2F%3E%3C%2Fsvg%3E')
+    repeat-x;
   pointer-events: none;
 }
 
@@ -124,7 +172,8 @@
   /* Fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-pixel: var(--font-pixelify), ui-sans-serif, sans-serif; /* headings and buttons */
+  --font-pixel:
+    var(--font-pixelify), ui-sans-serif, sans-serif; /* headings and buttons */
 
   /* Font sizes */
   --font-size-2xs: 0.625rem;
@@ -160,7 +209,6 @@
   --color-secondary-900: var(--secondary-900);
 }
 
-
 body {
   background: var(--color-primary-400);
   color: var(--color-text);
@@ -187,13 +235,113 @@ body {
 }
 /* An electron falling into its orbital box; with reduced motion it just appears */
 @keyframes electron-drop {
-  from { transform: translateY(-2rem); opacity: 0; }
-  60% { transform: translateY(0.15rem); opacity: 1; }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(-2rem);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(0.15rem);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 @utility electron-drop {
   @media (prefers-reduced-motion: no-preference) {
     display: inline-block;
     animation: electron-drop 0.45s ease-out;
+  }
+}
+
+/* Titrant leaving the burette: drops fall (speeding up, like gravity) to the
+   liquid, --fall below the tip; a held tap runs a stream. With reduced
+   motion neither shows, and the level and colour just change in place. */
+@keyframes burette-drop {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(var(--fall));
+  }
+}
+@keyframes burette-stream {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+@utility burette-drop {
+  animation: burette-drop 0.45s ease-in both;
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+}
+@utility burette-stream {
+  animation: burette-stream 0.25s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+}
+
+/* A drop of titrant briefly colours the liquid where it lands, then swirling
+   mixes it in: it grows and fades, peaking at --strength. */
+@keyframes burette-swirl {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  20% {
+    opacity: var(--strength);
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+@utility burette-swirl {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: burette-swirl var(--duration) ease-out both;
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+}
+/* the steady swirl under a running stream */
+@utility burette-swirl-pour {
+  transition: opacity 0.3s;
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+}
+
+/* A magnetic stir bar seen side-on: as it spins it looks to shrink and grow.
+   The flow lines circle the flask. Still under reduced motion. */
+@keyframes stir-bar {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.15);
+  }
+}
+@keyframes stir-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+@utility stir-bar {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: stir-bar 0.4s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@utility stir-flow {
+  animation: stir-flow 0.8s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }

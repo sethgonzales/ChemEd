@@ -29,9 +29,7 @@ describe('SIMULATIONS', () => {
     expect(new Set(colors).size).toBe(colors.length);
   });
 
-  it('seals the simulations that are not built yet', () => {
-    expect(SIMULATIONS.filter((s) => !s.ready).map((s) => s.title)).toEqual([
-      'Titrations',
-    ]);
+  it('has every simulation built, so no door is sealed', () => {
+    expect(SIMULATIONS.filter((s) => !s.ready).map((s) => s.title)).toEqual([]);
   });
 });

@@ -210,3 +210,38 @@ export function curveMarkers(analyte: Analyte, concentration: number) {
     halves: halfEquivalences(analyte, concentration),
   };
 }
+
+const SWIRL_LOOKAHEAD = 1.5; // mL ahead of the burette reading
+const SWIRL_STEP = 0.05; // mL, one drop
+
+/*
+ * Near the endpoint each drop briefly turns the liquid where it lands, until
+ * swirling mixes it in. Returns that flash's colour and how strong it is (0–1,
+ * growing as the lasting colour change gets closer), or null if none is near.
+ */
+export function swirl(
+  analyte: Analyte,
+  concentration: number,
+  indicator: Indicator,
+  volume: number,
+): Swirl | null {
+  const now = indicatorColorName(
+    indicator,
+    phAfter(analyte, concentration, volume),
+  );
+  for (
+    let ahead = SWIRL_STEP;
+    ahead <= SWIRL_LOOKAHEAD + 1e-9;
+    ahead += SWIRL_STEP
+  ) {
+    const pH = phAfter(analyte, concentration, volume + ahead);
+    if (indicatorColorName(indicator, pH) !== now) {
+      // the drop itself is neat titrant, so it flashes the far-end colour
+      const color = indicatorColor(indicator, analyte.kind === 'acid' ? 14 : 0);
+      return { color, strength: 1 - ahead / SWIRL_LOOKAHEAD };
+    }
+  }
+  return null;
+}
+
+export type Swirl = { color: string; strength: number }; // strength 0–1

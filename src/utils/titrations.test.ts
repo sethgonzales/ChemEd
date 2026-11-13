@@ -10,6 +10,7 @@ import {
   indicatorColorName,
   newUnknown,
   phAfter,
+  swirl,
   unknownFeedback,
 } from './titrations';
 
@@ -238,5 +239,40 @@ describe('unknownFeedback', () => {
 
   it('works the concentration out from a burette reading', () => {
     expect(concentrationFrom(21.75)).toBeCloseTo(0.087, 6);
+  });
+});
+
+describe('swirl', () => {
+  const hcl = analyte('hcl');
+  const php = indicator('phenolphthalein');
+
+  it('shows nothing far from the colour change', () => {
+    expect(swirl(hcl, C, php, 10)).toBeNull();
+  });
+
+  it('flashes the colour to come, stronger the closer it is', () => {
+    // phenolphthalein turns pink just past 25 mL
+    const near = swirl(hcl, C, php, 24)!;
+    const nearer = swirl(hcl, C, php, 24.9)!;
+    expect(near.color).toBe(indicatorColor(php, 14));
+    expect(near.strength).toBeGreaterThan(0);
+    expect(nearer.strength).toBeGreaterThan(near.strength);
+    expect(nearer.strength).toBeLessThanOrEqual(1);
+  });
+
+  it('stops once the colour has changed for good', () => {
+    expect(swirl(hcl, C, php, 30)).toBeNull();
+  });
+
+  it('fades the colour away for a base, toward the acid colour', () => {
+    const s = swirl(analyte('naoh'), C, php, 24.5)!;
+    expect(s.color).toBe(indicatorColor(php, 0)); // colourless
+  });
+
+  it('flashes early when the indicator changes before equivalence', () => {
+    // methyl orange turns yellow in acetic acid long before 25 mL
+    expect(
+      swirl(analyte('acetic'), C, indicator('methyl-orange'), 0),
+    ).not.toBeNull();
   });
 });

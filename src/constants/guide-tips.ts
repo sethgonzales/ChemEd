@@ -42,6 +42,14 @@ export const PAGE_TIPS: Record<string, string[]> = {
     'Use the smallest whole numbers you can: 2 H₂ + O₂, not 4 H₂ + 2 O₂.',
     'Try Your own equation to balance any reaction you type in.',
   ],
+  '/titrations': [
+    'Add titrant a drop or a millilitre at a time, or hold Pour. Slow down near the colour change!',
+    'The equivalence point is where moles of titrant equal moles of analyte. The curve is steepest there.',
+    'Pick an indicator that changes colour inside the steep jump, or your endpoint will miss.',
+    'Weak acids buffer: halfway to equivalence, pH = pKa. Turn on Mark equivalence points to see it.',
+    'In Unknown: moles of titrant = M × L. At 1:1, divide by the flask’s 0.02500 L.',
+    'Phosphoric acid gives up its protons one at a time. Look for two jumps.',
+  ],
 };
 
 /** For pages without their own tips */

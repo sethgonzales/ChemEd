@@ -49,8 +49,12 @@ describe('tipsFor', () => {
     expect(tipsFor('/lewis-structures')).toBe(PAGE_TIPS['/lewis-structures']);
   });
 
+  it('has tips for Titrations now it’s built', () => {
+    expect(tipsFor('/titrations')).toBe(PAGE_TIPS['/titrations']);
+  });
+
   it('falls back to general tips', () => {
-    expect(tipsFor('/titrations')).toBe(GENERAL_TIPS);
+    expect(tipsFor('/not-built-yet')).toBe(GENERAL_TIPS);
   });
 });
 
