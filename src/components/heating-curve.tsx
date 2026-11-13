@@ -55,7 +55,8 @@ export default function HeatingCurve({
       role="img"
       aria-label={label(substance, temperature)}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="w-full max-w-md mx-auto h-auto pixel-control bg-primary-800 text-white"
+      // the page frames it, so it can sit beside the particles
+      className="w-full max-w-md h-auto text-white"
     >
       {/* axes */}
       <path

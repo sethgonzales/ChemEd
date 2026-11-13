@@ -177,7 +177,7 @@ export default function StatesOfMatter() {
       description="Heat or cool the substance and watch how its particles move."
       className="gap-4"
     >
-      <div className="w-full max-w-2xl mx-auto">
+      <div className="w-full max-w-4xl mx-auto">
         <Dropdown
           label={`Substance: ${substance.name} (${substance.formula})`}
           className="w-full sm:w-64"
@@ -196,7 +196,7 @@ export default function StatesOfMatter() {
       </div>
       <Stage
         label="Particle model"
-        className="w-full max-w-2xl mx-auto"
+        className="w-full max-w-4xl mx-auto"
         header={
           <div className="flex items-start justify-between gap-4">
             <div
@@ -229,16 +229,24 @@ export default function StatesOfMatter() {
           />
         }
       >
-        <div
-          ref={wrapRef}
-          className="h-64 sm:h-80 w-full pixel-control bg-primary-800 overflow-hidden"
-        >
-          <canvas
-            ref={canvasRef}
-            role="img"
-            aria-label={describeParticles(substance, temperature)}
-            className="block"
-          />
+        {/* particles and heating curve side by side, stacked on a phone */}
+        <div className="flex flex-col md:flex-row gap-3">
+          <div
+            ref={wrapRef}
+            className="h-64 sm:h-80 w-full md:flex-1 md:min-w-0 pixel-control bg-primary-800 overflow-hidden"
+          >
+            <canvas
+              ref={canvasRef}
+              role="img"
+              aria-label={describeParticles(substance, temperature)}
+              className="block"
+            />
+          </div>
+          {showCurve && (
+            <div className="md:flex-1 md:min-w-0 flex items-center justify-center pixel-control bg-primary-800">
+              <HeatingCurve substance={substance} temperature={temperature} />
+            </div>
+          )}
         </div>
         {reducedMotion && (
           <p className="text-xs text-white/80">
@@ -246,11 +254,8 @@ export default function StatesOfMatter() {
             updates when you change the temperature.
           </p>
         )}
-        {showCurve && (
-          <HeatingCurve substance={substance} temperature={temperature} />
-        )}
       </Stage>
-      <div className="w-full max-w-2xl mx-auto">
+      <div className="w-full max-w-4xl mx-auto">
         <Setting checked={showCurve} onChange={setShowCurve}>
           Show heating curve
         </Setting>
