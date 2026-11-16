@@ -125,12 +125,17 @@ export default function GalvanicCell({
           height={ELECTRODE.bottom - ELECTRODE.top}
           fill={metalColor(electrode.id)}
         />
-        {/* beside the electrode, clear of its thickest coat: on the metal it
-            would spill onto the background as the anode thins */}
+        {/* beside the electrode, on the beaker's outer side and clear of its
+            thickest coat: on the metal it would spill onto the background as
+            the anode thins */}
         <text
-          x={ex - (ELECTRODE.width + COAT) / 2 - 3}
+          x={
+            side === 'left'
+              ? ex - (ELECTRODE.width + COAT) / 2 - 3
+              : ex + (ELECTRODE.width + COAT) / 2 + 3
+          }
           y={BEAKER.top + 12}
-          textAnchor="end"
+          textAnchor={side === 'left' ? 'end' : 'start'}
           className="fill-white text-[11px] font-bold"
         >
           {electrode.id}

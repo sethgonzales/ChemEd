@@ -32,10 +32,15 @@ describe('GalvanicCell', () => {
       const left = Number(electrode.getAttribute('x'));
       const right = left + Number(electrode.getAttribute('width'));
       const x = Number(label.getAttribute('x'));
-      // anchored at its end, the text runs leftwards from x, clear of the metal
-      expect(label).toHaveAttribute('text-anchor', 'end');
-      expect(x).toBeLessThan(left);
-      expect(right).toBeGreaterThan(x);
+      if (side === 'left') {
+        // anchored at its end, the text runs leftwards from x, clear of the metal
+        expect(label).toHaveAttribute('text-anchor', 'end');
+        expect(x).toBeLessThan(left);
+      } else {
+        // the right beaker's label sits on its outer side
+        expect(label).toHaveAttribute('text-anchor', 'start');
+        expect(x).toBeGreaterThan(right);
+      }
     }
   });
 });
