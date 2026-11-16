@@ -241,7 +241,7 @@ function Galvanic() {
       </div>
 
       <Stage
-        label="Galvanic cell"
+        label="Voltaic cell"
         header={
           <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
             <span data-testid="voltage" className="font-pixel text-3xl">
@@ -369,7 +369,7 @@ export default function Electrochemistry() {
         label="Kind of cell"
         panelClassName="flex flex-col gap-4"
         tabs={[
-          { id: 'galvanic', label: 'Galvanic', content: <Galvanic /> },
+          { id: 'voltaic', label: 'Voltaic', content: <Galvanic /> },
           {
             id: 'electrolytic',
             label: 'Electrolytic',

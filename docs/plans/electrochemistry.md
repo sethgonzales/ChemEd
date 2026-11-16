@@ -1,6 +1,6 @@
 # Electrochemistry — plan
 
-Status: **done** (16 Nov 2026). Phase 1 (data and engine) on 13 Nov; phases 2 to 5 (Galvanic cell and lens, Electrolytic tab, Mr. G, door, Predict mode) on 16 Nov. The door is open on the home map. Decisions below.
+Status: **done** (16 Nov 2026). The galvanic tab was renamed **Voltaic** on 16 Nov 2026 to match AP Chemistry; the code keeps its `Galvanic*` names. Phase 1 (data and engine) on 13 Nov; phases 2 to 5 (Galvanic cell and lens, Electrolytic tab, Mr. G, door, Predict mode) on 16 Nov. The door is open on the home map. Decisions below.
 
 Students build cells from two half-cells, close the circuit and watch what happens at three scales: the **bench** (voltmeter, bulb, electrodes thinning or plating), the **particles** (a zoom into an electrode surface where atoms give up electrons and ions move through the solution and salt bridge), and the **numbers** (E°cell, then the Nernst equation as concentrations change).
 

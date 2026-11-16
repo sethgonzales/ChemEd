@@ -21,7 +21,19 @@ const volts = () => Number(voltage().textContent!.match(/[\d.]+/)![0]);
 const grams = (id: string) =>
   Number(screen.getByTestId(id).textContent!.match(/[\d.]+/)![0]);
 
-describe('Electrochemistry page: Galvanic cell', () => {
+describe('Electrochemistry page: Voltaic cell', () => {
+  it('calls it a voltaic cell, as AP Chemistry does', () => {
+    render(<Electrochemistry />);
+    expect(screen.getByRole('tab', { name: 'Voltaic' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('region', { name: 'Voltaic cell' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /^Voltaic cell:/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/galvanic/i)).toBeNull();
+  });
+
   it('says what to do in one line', () => {
     render(<Electrochemistry />);
     expect(

@@ -55,7 +55,7 @@ export default function GalvanicCell({
   const anode = reading.anode!;
   const cathode = reading.cathode!;
   const label =
-    `Galvanic cell: ${describe('left')} and ${describe('right')}` +
+    `Voltaic cell: ${describe('left')} and ${describe('right')}` +
     (cell.saltBridge
       ? ', joined by a salt bridge. '
       : ', with no salt bridge. ') +
