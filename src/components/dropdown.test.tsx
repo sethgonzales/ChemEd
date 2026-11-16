@@ -123,4 +123,23 @@ describe('Dropdown', () => {
       '(aq)',
     );
   });
+
+  it('can use the readable font instead of the pixel one', () => {
+    render(
+      <>
+        <Dropdown label="Pixel">
+          <li>Option</li>
+        </Dropdown>
+        <Dropdown label="Plain" readable>
+          <li>Option</li>
+        </Dropdown>
+      </>,
+    );
+    expect(screen.getByRole('button', { name: 'Pixel' })).toHaveClass(
+      'font-pixel',
+    );
+    const plain = screen.getByRole('button', { name: 'Plain' });
+    expect(plain).not.toHaveClass('font-pixel');
+    expect(plain).toHaveClass('font-sans');
+  });
 });

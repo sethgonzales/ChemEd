@@ -99,13 +99,13 @@ function balanceHint(
 
 /**
  * Grade typed products, with a hint for each blank that needs one; once the
- * products and states are right, the coefficients (reactants then products,
- * blank meaning 1) must balance the equation
+ * products and states are right, any coefficients given (reactants then
+ * products, blank meaning 1) must balance the equation
  */
 export function gradeTyped(
   prediction: Prediction,
   answers: Typed[],
-  coefficients: string[] = [],
+  coefficients?: string[], // leave out to skip balancing
 ) {
   const products = answers.map(
     (a) =>
@@ -123,10 +123,10 @@ export function gradeTyped(
       : 'Right formula: now check its state.';
   });
   const counts = [...prediction.reactants, ...answers].map(
-    (_, i) => Number(coefficients[i]) || 1,
+    (_, i) => Number(coefficients?.[i]) || 1,
   );
   const balance =
-    verdict === 'correct' && prediction.products
+    coefficients && verdict === 'correct' && prediction.products
       ? balanceHint(
           prediction.reactants.map((r) => r.formula),
           products.map((p) => p.formula),

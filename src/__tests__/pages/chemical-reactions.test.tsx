@@ -289,6 +289,32 @@ describe('Chemical Reactions: Predict', () => {
     ).toHaveLength(4);
   });
 
+  it('uses the readable font for the state pickers', () => {
+    open();
+    expect(
+      within(predictor()).getByRole('button', {
+        name: 'Product 1 state: not chosen',
+      }),
+    ).not.toHaveClass('font-pixel');
+  });
+
+  it('includes balancing by default, behind a setting', () => {
+    open();
+    const setting = screen.getByRole('checkbox', {
+      name: 'Balance the equation too',
+    });
+    expect(setting).toBeChecked();
+    fireEvent.click(setting);
+    expect(
+      within(equation()).queryAllByRole('textbox', {
+        name: /^Coefficient for/,
+      }),
+    ).toHaveLength(0);
+    writeProducts(); // right products, no coefficients
+    press('Check');
+    expect(status()).toHaveTextContent(/Correct/);
+  });
+
   it('asks for balancing once the products are right', () => {
     open();
     writeProducts();

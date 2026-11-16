@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import BeakerParticles from '~/components/beaker-particles';
 import Button from '~/components/button';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
+import Setting from '~/components/setting';
 import Stage from '~/components/stage';
 import { useScore } from '~/components/use-score';
 import { beaker } from '~/utils/beaker';
@@ -100,6 +101,7 @@ export default function ReactionPredict() {
     hints: (string | null)[];
     balance: string | null;
   } | null>(null);
+  const [balancing, setBalancing] = useState(true);
   // reactants' then products' coefficients
   const [coefficients, setCoefficients] = useState(['', '', '', '']);
   const setCoefficient = (i: number, value: string) =>
@@ -121,7 +123,7 @@ export default function ReactionPredict() {
             hints: [],
             balance: null,
           }
-        : gradeTyped(prediction, answer, coefficients);
+        : gradeTyped(prediction, answer, balancing ? coefficients : undefined);
     setResult(graded);
     record(graded.verdict === 'correct');
   };
@@ -143,8 +145,11 @@ export default function ReactionPredict() {
         header={
           <div className="flex flex-wrap justify-between gap-2 text-sm">
             <span>
-              What do these reactants make? Type each product, pick its state
-              and balance the equation, or call No reaction.
+              What do these reactants make? Type each product
+              {balancing
+                ? ', pick its state and balance the equation'
+                : ' and pick its state'}
+              , or call No reaction.
             </span>
             <span data-testid="predict-score">
               Score: {score.right} of {score.total} · Streak: {score.streak}
@@ -198,12 +203,14 @@ export default function ReactionPredict() {
             <Fragment key={reactant.formula}>
               {i > 0 && <span>{' + '}</span>}
               <span className="inline-flex items-center gap-1">
-                <Coefficient
-                  label={formatFormula(reactant.formula)}
-                  value={coefficients[i]}
-                  disabled={locked}
-                  onChange={(v) => setCoefficient(i, v)}
-                />
+                {balancing && (
+                  <Coefficient
+                    label={formatFormula(reactant.formula)}
+                    value={coefficients[i]}
+                    disabled={locked}
+                    onChange={(v) => setCoefficient(i, v)}
+                  />
+                )}
                 <span>{shown(reactant)}</span>
               </span>
             </Fragment>
@@ -213,14 +220,16 @@ export default function ReactionPredict() {
             <Fragment key={i}>
               {i > 0 && <span>{' + '}</span>}
               <span className="inline-flex items-center gap-1">
-                <Coefficient
-                  label={`product ${i + 1}`}
-                  value={coefficients[prediction.reactants.length + i]}
-                  disabled={locked}
-                  onChange={(v) =>
-                    setCoefficient(prediction.reactants.length + i, v)
-                  }
-                />
+                {balancing && (
+                  <Coefficient
+                    label={`product ${i + 1}`}
+                    value={coefficients[prediction.reactants.length + i]}
+                    disabled={locked}
+                    onChange={(v) =>
+                      setCoefficient(prediction.reactants.length + i, v)
+                    }
+                  />
+                )}
                 <input
                   type="text"
                   aria-label={`Product ${i + 1}`}
@@ -240,6 +249,7 @@ export default function ReactionPredict() {
                 ) : (
                   <Dropdown
                     inline
+                    readable
                     ariaLabel={`Product ${i + 1} state: ${answer.state ? `(${answer.state})` : 'not chosen'}`}
                     label={
                       answer.state ? (
@@ -248,7 +258,7 @@ export default function ReactionPredict() {
                         <span className="opacity-50">(aq)</span>
                       )
                     }
-                    className="text-lg"
+                    className="text-lg py-2"
                     menuClassName="w-36"
                   >
                     {STATES.map(({ id, name }) => (
@@ -293,6 +303,9 @@ export default function ReactionPredict() {
         </Button>
         <Button onClick={next}>Next reactants</Button>
       </div>
+      <Setting checked={balancing} onChange={setBalancing}>
+        Balance the equation too
+      </Setting>
     </div>
   );
 }

@@ -19,6 +19,7 @@ interface Props {
   ariaLabel?: string; // when the button's text alone doesn't say what it picks
   menuClassName?: string;
   inline?: boolean; // sits in a line of text at its own width, even on phones
+  readable?: boolean; // the plain font, for chemistry the pixel font garbles
 }
 
 // lets items close the menu once one is chosen
@@ -66,6 +67,7 @@ export default function Dropdown({
   ariaLabel,
   menuClassName,
   inline = false,
+  readable = false,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -113,6 +115,7 @@ export default function Dropdown({
         }}
         className={cn(
           PIXEL_CONTROL,
+          readable && 'font-sans',
           'text-white bg-primary-700 hover:bg-primary-800 text-sm px-3 pt-2.5 pb-3',
           'inline-flex items-center justify-between gap-2 cursor-pointer truncate',
           className,

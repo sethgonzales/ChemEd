@@ -119,6 +119,12 @@ describe('gradeTyped: balancing with coefficients', () => {
     );
   });
 
+  it('skips balancing when it isn’t part of the task', () => {
+    const graded = gradeTyped(mg, products);
+    expect(graded.verdict).toBe('correct');
+    expect(graded.balance).toBeNull();
+  });
+
   it('asks for the smallest whole numbers', () => {
     const doubled = gradeTyped(mg, products, ['6', '4', '6', '4']);
     expect(doubled.verdict).toBe('unbalanced');
