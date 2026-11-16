@@ -7,6 +7,7 @@ const PAGES = [
   '/lewis-structures',
   '/reaction-balancing',
   '/electron-configurations',
+  '/electrochemistry',
 ];
 
 describe('Mr. G page tips', () => {
@@ -41,5 +42,30 @@ describe('Electron Configurations ion tip', () => {
     expect(tips.some((t) => /4s.*before.*3d/.test(t) && /ion/i.test(t))).toBe(
       true,
     );
+  });
+});
+
+describe('Electrochemistry tips', () => {
+  const tips = () => PAGE_TIPS['/electrochemistry'];
+
+  it('teach An Ox, Red Cat', () => {
+    expect(tips().some((t) => /An Ox, Red Cat/.test(t))).toBe(true);
+  });
+
+  it('explain why the salt bridge is needed', () => {
+    expect(
+      tips().some((t) => /salt bridge/i.test(t) && /charge/i.test(t)),
+    ).toBe(true);
+  });
+
+  it('explain why a cell runs down', () => {
+    expect(tips().some((t) => /runs down/i.test(t) && /Nernst/.test(t))).toBe(
+      true,
+    );
+  });
+
+  it('point to the close-up and the Electrolytic tab', () => {
+    expect(tips().some((t) => /zoom/i.test(t))).toBe(true);
+    expect(tips().some((t) => /Electrolytic/.test(t))).toBe(true);
   });
 });

@@ -6,6 +6,10 @@ import Dropdown, { DropdownItem } from '~/components/dropdown';
 import CellLens from '~/components/cell-lens';
 import GalvanicCell, { type Zoom } from '~/components/galvanic-cell';
 import GalvanicEquations from '~/components/galvanic-equations';
+import GalvanicPrediction, {
+  type Prediction,
+} from '~/components/galvanic-prediction';
+import { useGuide } from '~/components/guide';
 import Setting from '~/components/setting';
 import Slider from '~/components/slider';
 import Stage from '~/components/stage';
@@ -19,6 +23,8 @@ import {
 import { ATOMIC_MASS_SOURCES } from '~/constants/elements';
 import {
   analyzeCell,
+  checkPrediction,
+  newChallenge,
   cellReaction,
   coupleFor,
   electrodeWear,
@@ -144,6 +150,9 @@ function Galvanic() {
   const [showEquations, setShowEquations] = useState(true);
   const [showTable, setShowTable] = useState(false);
   const [fast, setFast] = useState(false);
+  const [predicting, setPredicting] = useState(false);
+  const [prediction, setPrediction] = useState<Prediction | null>(null);
+  const { say } = useGuide();
   const [zoomed, setZoomed] = useState<Zoom | null>(null);
   useEscape(() => setZoomed(null), zoomed !== null);
 
@@ -168,7 +177,41 @@ function Galvanic() {
     setCell(next);
     setTime(0);
     setConnected(false);
+    setPrediction(null);
   };
+
+  // Predict mode: a fresh pair, named by Mr. G, to call before connecting
+  const challenge = () => {
+    const next = newChallenge();
+    refill(next);
+    setSaltBridge(true);
+    const [left, right] = [next.left, next.right].map((h) =>
+      metalName(h.electrode),
+    );
+    say(
+      `${capital(left)} on the left, ${right} on the right. Which is the anode, and what will the voltmeter read?`,
+      'tip',
+    );
+  };
+  const predict = (on: boolean) => {
+    setPredicting(on);
+    if (on) challenge();
+    else setPrediction(null);
+  };
+  const check = (guess: { anode: Side; volts: number }) => {
+    const result = checkPrediction(now, guess);
+    setPrediction(result);
+    setConnected(true); // the meter shows how it went
+    if (result.verdict === 'correct') say(result.text, 'cheer');
+    else
+      say(
+        result.verdict === 'wrong-volts'
+          ? 'E°cell = E°cathode − E°anode, using the reduction potentials straight from the table.'
+          : 'An Ox, Red Cat: oxidation happens at the anode, the metal with the lower E°.',
+        'hint',
+      );
+  };
+  const locked = predicting && !prediction; // the answer stays hidden till checked
   const change = (side: Side) => (patch: Partial<HalfCell>) =>
     refill({ ...start, [side]: { ...start[side], ...patch } });
 
@@ -232,7 +275,7 @@ function Galvanic() {
             <p role="status" className="text-sm">
               {explain(now, reading, connected)}
             </p>
-            {showEquations && reaction && (
+            {showEquations && reaction && !locked && (
               <GalvanicEquations
                 reaction={reaction}
                 eCathode={coupleFor(now[reading.cathode!].electrode).eStandard}
@@ -262,8 +305,27 @@ function Galvanic() {
         )}
       </Stage>
 
+      {predicting &&
+        (reading.status === 'working' || prediction ? (
+          <GalvanicPrediction
+            cell={now}
+            result={prediction}
+            onCheck={check}
+            onNew={challenge}
+          />
+        ) : (
+          <p className="text-sm">
+            Set up two working half-cells, each metal in its own ions, to make a
+            prediction.
+          </p>
+        ))}
+
       <div className="flex flex-wrap gap-2">
-        <Button pressed={connected} onClick={() => setConnected((c) => !c)}>
+        <Button
+          pressed={connected}
+          disabled={locked}
+          onClick={() => setConnected((c) => !c)}
+        >
           Connect
         </Button>
         <Button onClick={() => refill(start)}>Reset</Button>
@@ -281,6 +343,9 @@ function Galvanic() {
         </Setting>
         <Setting checked={fast} onChange={setFast}>
           Run faster
+        </Setting>
+        <Setting checked={predicting} onChange={predict}>
+          Predict before connecting
         </Setting>
       </div>
     </>

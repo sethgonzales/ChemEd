@@ -3,7 +3,12 @@ import {
   GAS_CONSTANT,
   ROOM_TEMPERATURE,
 } from '~/constants/electrochemistry';
-import type { CellReaction } from '~/utils/electrochemistry';
+import {
+  bracketed,
+  formatPotential,
+  tableValue,
+  type CellReaction,
+} from '~/utils/electrochemistry';
 
 const SUPERSCRIPT: Record<string, string> = {
   '-': '⁻',
@@ -20,13 +25,6 @@ export function formatNumber(x: number) {
   return `${mantissa} × 10${power}`;
 }
 
-// E° to two places, as on the AP table, so the worked sums add up on screen
-const toTable = (v: number) => Math.round(v * 100) / 100;
-
-// negatives in brackets, so "0.34 − (−0.76)" reads right
-const signed = (v: number) =>
-  v < 0 ? `(−${Math.abs(v).toFixed(2)})` : v.toFixed(2);
-
 interface Props {
   reaction: CellReaction;
   eCathode: number; // E° of each electrode, V
@@ -40,7 +38,7 @@ export default function GalvanicEquations({
   eAnode,
 }: Props) {
   const rtf = (GAS_CONSTANT * ROOM_TEMPERATURE) / FARADAY; // V
-  const [eC, eA] = [toTable(eCathode), toTable(eAnode)];
+  const [eC, eA] = [tableValue(eCathode), tableValue(eAnode)];
   const e0 = eC - eA;
   const e = e0 - (rtf / reaction.n) * Math.log(reaction.q);
 
@@ -56,7 +54,7 @@ export default function GalvanicEquations({
       </dl>
       <div data-testid="nernst" className="flex flex-col gap-1">
         <p>
-          E°cell = {signed(eC)} − {signed(eA)} = {e0.toFixed(2)} V{' '}
+          E°cell = {formatPotential(eC)} − {bracketed(eA)} = {e0.toFixed(2)} V{' '}
           <span className="text-white/70">(cathode − anode)</span>
         </p>
         <p>

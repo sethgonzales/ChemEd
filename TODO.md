@@ -11,7 +11,7 @@
 - [ ] **Chemical Reactions**: types of chemical reactions (synthesis, decomposition, single and double replacement, combustion, and so on). Sealed on the home page until built; the page points to Reaction Balancing meanwhile.
 - [ ] **Ore mining game**: dig down through a 2D cross-section of the Earth's layers with your sprite, finding ores at the depths and settings where they really occur. Each ore you collect earns coins relative to its worth, and a card pops up saying what it's made of, where it's found, what it's used for, and other facts.
 - [ ] **Dungeon quest game**: a step-by-step dungeon crawl that strings the quizzes together as levels. Each level opens with a wall of story text setting up a chemistry problem to solve or something to rescue. Each ends with a chemistry-themed boss, beaten by answering a question on a topic from one of the simulations or from general chemistry.
-- [ ] **Electrochemistry**: interactive animations of different kinds of cells to test, with zoom into particle representations of how atoms and electrons move during the redox reaction inside each cell ([plan](docs/plans/electrochemistry.md), open questions to answer)
+- [x] **Electrochemistry** (16 Nov 2026): Galvanic (mix-and-match half-cells, Connect, voltmeter and bulb, electrodes thinning and plating, the Nernst equation worked, E° table, Predict mode with Mr. G) with a particle lens on each electrode and the salt bridge, and Electrolytic (water, copper plating, molten NaCl, cited minimum voltages, Faraday's law worked) ([plan](docs/plans/electrochemistry.md))
 
 ## Improvements
 

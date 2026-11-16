@@ -1,6 +1,9 @@
 import { COUPLES } from '~/constants/electrochemistry';
 import {
   analyzeCell,
+  checkPrediction,
+  newChallenge,
+  tableValue,
   cellReaction,
   electrodeWear,
   ELECTROLYSIS,
@@ -334,5 +337,70 @@ describe('formatElapsed', () => {
     expect(formatElapsed(0)).toBe('0 h 0 min');
     expect(formatElapsed(59)).toBe('0 h 0 min');
     expect(formatElapsed(3600 * 2 + 60 * 5 + 30)).toBe('2 h 5 min');
+  });
+});
+
+describe('Predict mode', () => {
+  const seeded = (seed: number) => () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+
+  it('sets two different metals, each in its own ions at 1 M, joined by a salt bridge', () => {
+    const random = seeded(42);
+    const pairs = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const cell = newChallenge(random);
+      expect(cell.left.electrode).not.toBe(cell.right.electrode);
+      for (const h of [cell.left, cell.right]) {
+        expect(h.solution).toBe(h.electrode);
+        expect(h.concentration).toBe(1);
+      }
+      expect(cell.saltBridge).toBe(true);
+      pairs.add(`${cell.left.electrode}|${cell.right.electrode}`);
+    }
+    expect(pairs.size).toBeGreaterThan(10); // not the same few every time
+  });
+
+  it('rounds E° to two places, as the AP table does', () => {
+    expect(tableValue(-0.7618)).toBe(-0.76);
+    expect(tableValue(0.7996)).toBe(0.8);
+  });
+
+  it('marks a right anode and voltage correct', () => {
+    const result = checkPrediction(daniell, { anode: 'left', volts: 1.1 });
+    expect(result.verdict).toBe('correct');
+    expect(result.text).toMatch(/zinc is the anode.*1\.10 V/i);
+  });
+
+  it('allows for rounding either way, within 0.02 V', () => {
+    expect(
+      checkPrediction(daniell, { anode: 'left', volts: 1.12 }).verdict,
+    ).toBe('correct');
+    // Ni | Cu: 0.60 V from the rounded table, 0.594 V exactly
+    const niCu = { ...daniell, left: half('Ni') };
+    for (const volts of [0.6, 0.59])
+      expect(checkPrediction(niCu, { anode: 'left', volts }).verdict).toBe(
+        'correct',
+      );
+  });
+
+  it('explains a wrong anode with the E° that decides it', () => {
+    const result = checkPrediction(daniell, { anode: 'right', volts: 1.1 });
+    expect(result.verdict).toBe('wrong-anode');
+    expect(result.text).toMatch(/lower E°.*zinc.*−0\.76 V/i);
+  });
+
+  it('works the voltage out when it’s wrong', () => {
+    const result = checkPrediction(daniell, { anode: 'left', volts: 0.42 });
+    expect(result.verdict).toBe('wrong-volts');
+    expect(result.text).toMatch(/0\.34 − \(−0\.76\) = 1\.10 V/);
+  });
+
+  it('says both when both are wrong', () => {
+    const result = checkPrediction(daniell, { anode: 'right', volts: -1.1 });
+    expect(result.verdict).toBe('both-wrong');
+    expect(result.text).toMatch(/zinc/i);
+    expect(result.text).toMatch(/1\.10 V/);
   });
 });

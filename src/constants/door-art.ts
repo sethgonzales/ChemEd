@@ -226,6 +226,42 @@ export const DOOR_ART = {
       g: '#4ade80', // its light
     },
   },
+  // a Daniell cell lighting a bulb: zinc and copper, joined by a salt bridge
+  electrochemistry: {
+    rows: [
+      '.........gYYYYg.........',
+      '........g.YYYY.g........',
+      '..........YYYY..........',
+      '.....WWWWWbbbbWWWWW.....',
+      '.....Z............C.....',
+      '.....Z............C.....',
+      '.....Z.SSSSSSSSSS.C.....',
+      '..G..Z.S.G....G.S.C..G..',
+      '..G..Z.S.G....G.S.C..G..',
+      '..GLLZLSLG....GUSUCUUG..',
+      '..GLLZLSLG....GUSUCUUG..',
+      '..GLLZLSLG....GUSUCUUG..',
+      '..GLLZLLLG....GUUUCUUG..',
+      '..GLLZLLLG....GUUUCUUG..',
+      '..GLLZLLLG....GUUUCUUG..',
+      '..GLLLLLLG....GUUUUUUG..',
+      '..GGGGGGGG....GGGGGGGG..',
+      'TTTTTTTTTTTTTTTTTTTTTTTT',
+    ],
+    palette: {
+      Y: '#facc15', // the lit bulb
+      g: '#fef08a', // its glow
+      b: '#94a3b8', // the bulb's base
+      W: '#cbd5e1', // wire
+      Z: '#9ca3af', // zinc
+      C: '#c47a4a', // copper
+      S: '#f1f5f9', // salt bridge
+      G: '#e2e8f0', // beaker glass
+      L: '#bae6fd', // zinc nitrate, nearly colourless
+      U: '#3b82f6', // copper(II) nitrate, blue
+      T: '#475569', // bench
+    },
+  },
 } satisfies Record<string, DoorArt>;
 
 export type DoorArtName = keyof typeof DOOR_ART;

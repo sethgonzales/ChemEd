@@ -50,6 +50,14 @@ export const PAGE_TIPS: Record<string, string[]> = {
     'In Unknown: moles of titrant = M × L. At 1:1, divide by the flask’s 0.02500 L.',
     'Phosphoric acid gives up its protons one at a time. Look for two jumps.',
   ],
+  '/electrochemistry': [
+    'Pick a metal for each beaker, then press Connect. The metal with the lower E° becomes the anode.',
+    'An Ox, Red Cat: oxidation happens at the anode, reduction at the cathode.',
+    'No salt bridge, no current: ions must cross between the beakers, or charge builds up and stops the flow.',
+    'A cell runs down as the cathode’s ions get used up. The Nernst equation shows Q rising and E falling.',
+    'Tap an electrode or the salt bridge to zoom in on the atoms, ions and electrons.',
+    'On the Electrolytic tab a power supply forces a reaction. Faraday’s law tells you how much it makes.',
+  ],
 };
 
 /** For pages without their own tips */

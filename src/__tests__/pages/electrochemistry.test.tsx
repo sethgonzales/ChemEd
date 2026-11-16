@@ -2,6 +2,13 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Electrochemistry from '~/pages/electrochemistry';
 
+// record what the page asks Mr. G to say
+const mockSay = jest.fn();
+jest.mock('~/components/guide', () => ({
+  useGuide: () => ({ say: mockSay, visible: false }),
+}));
+beforeEach(() => mockSay.mockClear());
+
 const button = (name: string | RegExp) => screen.getByRole('button', { name });
 const voltage = () => screen.getByTestId('voltage');
 const status = () => screen.getByRole('status');
@@ -397,5 +404,74 @@ describe('Electrochemistry page: Electrolytic', () => {
       /^0 h 0 min$/,
     );
     expect(power()).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
+describe('Electrochemistry page: Predict mode', () => {
+  // 0.3 picks zinc, then iron from the metals left: a Zn | Fe cell, 0.32 V
+  beforeEach(() => jest.spyOn(Math, 'random').mockReturnValue(0.3));
+  afterEach(() => jest.restoreAllMocks());
+
+  const predict = () =>
+    userEvent.click(
+      screen.getByRole('checkbox', { name: 'Predict before connecting' }),
+    );
+  const answer = async (metal: RegExp, volts: string) => {
+    await userEvent.click(screen.getByRole('radio', { name: metal }));
+    await userEvent.type(
+      screen.getByRole('textbox', { name: /Cell voltage/ }),
+      volts,
+    );
+    await userEvent.click(button('Check'));
+  };
+
+  it('sets a challenge, has Mr. G name it, and hides the answer until checked', async () => {
+    render(<Electrochemistry />);
+    await predict();
+    expect(button('Left electrode: Zinc (Zn)')).toBeInTheDocument();
+    expect(button('Right electrode: Iron (Fe)')).toBeInTheDocument();
+    expect(mockSay).toHaveBeenCalledWith(
+      expect.stringMatching(/zinc on the left, iron on the right/i),
+      'tip',
+    );
+    expect(button('Connect')).toBeDisabled();
+    expect(screen.queryByTestId('nernst')).toBeNull();
+  });
+
+  it('cheers a right prediction, then connects to show it', async () => {
+    render(<Electrochemistry />);
+    await predict();
+    await answer(/Zinc \(left\)/, '0.32');
+    expect(screen.getByText(/Right: zinc is the anode/)).toBeInTheDocument();
+    expect(mockSay).toHaveBeenCalledWith(expect.any(String), 'cheer');
+    expect(voltage()).toHaveTextContent('0.32 V');
+    expect(screen.getByTestId('nernst')).toBeInTheDocument();
+  });
+
+  it('works a wrong voltage out, with a hint from Mr. G', async () => {
+    render(<Electrochemistry />);
+    await predict();
+    await answer(/Zinc \(left\)/, '1.2');
+    expect(
+      screen.getByText(/Right anode, but check the voltage/),
+    ).toHaveTextContent(/−0\.44 − \(−0\.76\) = 0\.32 V/);
+    expect(mockSay).toHaveBeenCalledWith(expect.any(String), 'hint');
+  });
+
+  it('starts afresh on New challenge', async () => {
+    render(<Electrochemistry />);
+    await predict();
+    await answer(/Iron \(right\)/, '0.32');
+    expect(screen.getByText(/wrong anode/i)).toBeInTheDocument();
+    await userEvent.click(button('New challenge'));
+    expect(screen.queryByText(/wrong anode/i)).toBeNull();
+    expect(button('Connect')).toBeDisabled();
+  });
+
+  it('frees Connect again when Predict is turned off', async () => {
+    render(<Electrochemistry />);
+    await predict();
+    await predict();
+    expect(button('Connect')).toBeEnabled();
   });
 });

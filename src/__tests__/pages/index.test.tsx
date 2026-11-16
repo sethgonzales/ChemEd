@@ -41,6 +41,14 @@ describe('Home page', () => {
     expect(push).toHaveBeenCalledWith('/reaction-balancing');
   });
 
+  it('opens the Electrochemistry door now it’s built', async () => {
+    render(<Home />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Electrochemistry' }),
+    );
+    expect(push).toHaveBeenCalledWith('/electrochemistry');
+  });
+
   it('keeps the Chemical Reactions door sealed for now', async () => {
     render(<Home />);
     await userEvent.click(

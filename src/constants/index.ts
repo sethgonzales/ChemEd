@@ -52,6 +52,13 @@ export const SIMULATIONS: Simulation[] = [
     ready: true,
   },
   {
+    title: 'Electrochemistry',
+    path: '/electrochemistry',
+    art: 'electrochemistry',
+    color: '#6366f1', // indigo
+    ready: true,
+  },
+  {
     title: 'Chemical Reactions', // types of reactions, still being built
     path: '/chemical-reactions',
     art: 'reactions',

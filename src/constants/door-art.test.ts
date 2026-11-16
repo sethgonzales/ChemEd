@@ -131,3 +131,34 @@ describe('balancing door', () => {
     expect(rows.join('')).toMatch(/[MN]/); // atoms in the pans
   });
 });
+
+describe('electrochemistry door', () => {
+  const rows = DOOR_ART.electrochemistry.rows;
+  const column = (letter: string) =>
+    rows.flatMap((row) =>
+      [...row].flatMap((p, x) => (p === letter ? [x] : [])),
+    );
+
+  it('draws two beakers of solution side by side, an electrode in each', () => {
+    const base = rows.findLast((row) => row.includes('G'))!;
+    const glass = [...base].flatMap((p, x) => (p === 'G' ? [x] : []));
+    const gap = glass.findIndex((x, i) => i && x - glass[i - 1] > 1);
+    expect(gap).toBeGreaterThan(0); // two separate beakers
+    const [zinc, copper] = [column('Z'), column('C')];
+    expect(Math.min(...zinc)).toBeGreaterThan(glass[0]);
+    expect(Math.max(...zinc)).toBeLessThan(glass[gap]);
+    expect(Math.min(...copper)).toBeGreaterThan(glass[gap]);
+    expect(rows.join('')).toMatch(/L/); // zinc's solution
+    expect(rows.join('')).toMatch(/U/); // blue Cu²⁺
+  });
+
+  it('wires the electrodes through a lit bulb, and bridges the beakers', () => {
+    const wire = rows.find((row) => row.includes('W'))!;
+    const span = [...wire].flatMap((p, x) => (/[Wb]/.test(p) ? [x] : []));
+    expect(span[0]).toBe(column('Z')[0]);
+    expect(span.at(-1)).toBe(column('C')[0]);
+    const bulb = rows.findIndex((row) => row.includes('Y'));
+    expect(bulb).toBeLessThan(rows.indexOf(wire)); // above the wire
+    expect(column('S').length).toBeGreaterThan(5); // the salt bridge
+  });
+});

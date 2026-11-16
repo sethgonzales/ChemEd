@@ -14,6 +14,7 @@ describe('SIMULATIONS', () => {
       'Electron Configurations',
       'Reaction Balancing',
       'Titrations',
+      'Electrochemistry',
       'Chemical Reactions',
     ]);
   });

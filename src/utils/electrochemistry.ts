@@ -360,3 +360,75 @@ export function formatElapsed(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 }
+
+/** E° to two places, as on the AP table, so worked sums add up on screen */
+export const tableValue = (v: number) => Math.round(v * 100) / 100;
+
+/** A potential to two places, with a true minus sign */
+export const formatPotential = (v: number) =>
+  `${v < 0 ? '−' : ''}${Math.abs(v).toFixed(2)}`;
+
+/** A potential being subtracted: negatives in brackets, so "0.34 − (−0.76)" reads right */
+export const bracketed = (v: number) =>
+  v < 0 ? `(−${Math.abs(v).toFixed(2)})` : v.toFixed(2);
+
+/** A Predict-mode cell: two different metals, each in its own ions at 1 M */
+export function newChallenge(random: () => number = Math.random): Cell {
+  const ids = COUPLES.map((c) => c.id);
+  const first = ids[Math.floor(random() * ids.length)];
+  const rest = ids.filter((id) => id !== first);
+  const second = rest[Math.floor(random() * rest.length)];
+  const half = (id: string): HalfCell => ({
+    electrode: id,
+    solution: id,
+    concentration: 1,
+  });
+  return { left: half(first), right: half(second), saltBridge: true };
+}
+
+export type PredictionVerdict =
+  | 'correct'
+  | 'wrong-anode'
+  | 'wrong-volts'
+  | 'both-wrong';
+
+const PREDICTION_TOLERANCE = 0.02; // V: rounding E° first or last both count
+
+/** Marks a student's anode and cell voltage for a working cell, with the reasoning */
+export function checkPrediction(
+  cell: Cell,
+  guess: { anode: Side; volts: number },
+) {
+  const reading = analyzeCell(cell);
+  const anode = reading.anode!;
+  const ox = coupleFor(cell[anode].electrode);
+  const red = coupleFor(cell[reading.cathode!].electrode);
+  const [eA, eC] = [tableValue(ox.eStandard), tableValue(red.eStandard)];
+  // the worked answer, carried to the cell's concentrations by Nernst
+  const worked = eC - eA + (reading.voltage - reading.standardVoltage!);
+  const near = (v: number) =>
+    Math.abs(guess.volts - v) <= PREDICTION_TOLERANCE + 1e-9;
+
+  const anodeRight = guess.anode === anode;
+  const voltsRight = near(worked) || near(reading.voltage);
+  const name = ox.metal.toLowerCase();
+  const why = {
+    anode: `The anode is the metal with the lower E°: ${name} (${formatPotential(eA)} V), so it’s oxidised.`,
+    volts: `E°cell = E°cathode − E°anode = ${formatPotential(eC)} − ${bracketed(eA)} = ${worked.toFixed(2)} V.`,
+  };
+  const verdict: PredictionVerdict =
+    anodeRight && voltsRight
+      ? 'correct'
+      : anodeRight
+        ? 'wrong-volts'
+        : voltsRight
+          ? 'wrong-anode'
+          : 'both-wrong';
+  const text = {
+    correct: `Right: ${name} is the anode, and the cell gives ${worked.toFixed(2)} V.`,
+    'wrong-anode': `Right voltage, wrong anode. ${why.anode}`,
+    'wrong-volts': `Right anode, but check the voltage. ${why.volts}`,
+    'both-wrong': `Not quite. ${why.anode} ${why.volts}`,
+  }[verdict];
+  return { verdict, text };
+}
