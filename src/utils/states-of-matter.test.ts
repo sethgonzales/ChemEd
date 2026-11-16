@@ -2,7 +2,7 @@ import { SUBSTANCES } from '~/constants/substances';
 import {
   createSimulation,
   getParams,
-  heatAt,
+  pointOn,
   heatingCurve,
   phaseHint,
   phaseOf,
@@ -298,6 +298,8 @@ describe('substances', () => {
 
 describe('heatingCurve', () => {
   const water = SUBSTANCES.find((s) => s.id === 'water')!;
+  const benzene = SUBSTANCES.find((s) => s.id === 'benzene')!;
+  const mercury = SUBSTANCES.find((s) => s.id === 'mercury')!;
 
   it('holds the temperature flat while it melts and while it boils', () => {
     for (const s of SUBSTANCES) {
@@ -325,9 +327,24 @@ describe('heatingCurve', () => {
 
   it('places a temperature on the curve, mid-plateau at the phase change itself', () => {
     const curve = heatingCurve(water);
-    expect(heatAt(water, -25)).toBe(0);
-    expect(heatAt(water, 50)).toBeGreaterThan(heatAt(water, 0));
-    expect(heatAt(water, 100)).toBeCloseTo((curve[3].q + curve[4].q) / 2);
-    expect(heatAt(water, 125)).toBeCloseTo(curve[curve.length - 1].q);
+    expect(pointOn(water, -25).q).toBe(0);
+    expect(pointOn(water, 50).q).toBeGreaterThan(pointOn(water, 0).q);
+    expect(pointOn(water, 100)).toEqual({
+      q: (curve[3].q + curve[4].q) / 2,
+      t: 100,
+    });
+    expect(pointOn(water, 125).q).toBeCloseTo(curve[curve.length - 1].q);
+  });
+
+  it('puts the dot mid-plateau at the slider’s nearest degree to a phase change', () => {
+    const mid = (s: typeof water, i: number) => {
+      const c = heatingCurve(s);
+      return { q: (c[i].q + c[i + 1].q) / 2, t: c[i].t };
+    };
+    expect(pointOn(benzene, 5)).toEqual(mid(benzene, 1)); // melts at 5.49 °C
+    expect(pointOn(benzene, 80)).toEqual(mid(benzene, 3)); // boils at 80.15 °C
+    expect(pointOn(mercury, 357)).toEqual(mid(mercury, 3)); // boils at 356.73 °C
+    // a degree away it's back on the slope, below the plateau's start
+    expect(pointOn(water, 99).q).toBeLessThan(heatingCurve(water)[3].q);
   });
 });

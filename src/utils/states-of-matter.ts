@@ -460,19 +460,25 @@ export function heatingCurve(s: Substance): CurvePoint[] {
   ];
 }
 
-/** Where a temperature sits on the heating curve; mid-plateau at a phase change */
-export function heatAt(s: Substance, tempC: number) {
+/**
+ * Where a temperature sits on the heating curve. At a phase change (to the
+ * slider's nearest degree) it's mid-plateau: the temperature alone can't say
+ * how far through melting or boiling it is.
+ */
+export function pointOn(s: Substance, tempC: number): CurvePoint {
   const curve = heatingCurve(s);
+  for (const i of [1, 3]) {
+    if (Math.abs(tempC - curve[i].t) <= AT_POINT) {
+      return { q: (curve[i].q + curve[i + 1].q) / 2, t: curve[i].t };
+    }
+  }
   const t = clamp(tempC, curve[0].t, curve[curve.length - 1].t);
-  // a plateau first, since the slope below it ends at the same temperature
-  const plateau = [1, 3].find((i) => curve[i].t === t);
-  if (plateau) return (curve[plateau].q + curve[plateau + 1].q) / 2;
   for (let i = 1; i < curve.length; i++) {
     const a = curve[i - 1];
     const b = curve[i];
     if (a.t !== b.t && t <= b.t) {
-      return lerp(a.q, b.q, (t - a.t) / (b.t - a.t));
+      return { q: lerp(a.q, b.q, (t - a.t) / (b.t - a.t)), t };
     }
   }
-  return curve[curve.length - 1].q;
+  return curve[curve.length - 1];
 }
