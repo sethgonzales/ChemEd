@@ -97,4 +97,30 @@ describe('Dropdown', () => {
     await userEvent.click(button);
     expect(button).toHaveAttribute('aria-expanded', 'true');
   });
+
+  it('can sit inline at its own width, even on a phone', () => {
+    render(
+      <Dropdown label="State" inline>
+        <li>Option</li>
+      </Dropdown>,
+    );
+    const wrapper = screen.getByRole('button', {
+      name: 'State',
+    }).parentElement!;
+    expect(wrapper).not.toHaveClass('w-full');
+  });
+
+  it('can show a faded placeholder as its label', () => {
+    render(
+      <Dropdown
+        label={<span className="opacity-50">(aq)</span>}
+        ariaLabel="State"
+      >
+        <li>Option</li>
+      </Dropdown>,
+    );
+    expect(screen.getByRole('button', { name: 'State' })).toHaveTextContent(
+      '(aq)',
+    );
+  });
 });

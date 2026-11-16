@@ -61,7 +61,7 @@ export default function BeakerParticles({ particles, reacted }: Props) {
       role="img"
       aria-label={label}
       viewBox={`-2 0 ${W + 4} ${H + 2}`}
-      className="w-full max-w-xl h-auto mx-auto"
+      className="w-full max-w-md h-auto mx-auto"
     >
       <rect
         x={0}

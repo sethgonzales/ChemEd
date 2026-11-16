@@ -92,3 +92,69 @@ describe('gradeTyped', () => {
     ).toBe('no-reaction');
   });
 });
+
+describe('gradeTyped: balancing with coefficients', () => {
+  // 3Mg(s) + 2Al(NO₃)₃(aq) → 3Mg(NO₃)₂(aq) + 2Al(s)
+  const mg = predict(['Mg', 'Al(NO3)3']);
+  const products = [
+    { text: 'Mg(NO3)2', state: 'aq' as const },
+    { text: 'Al', state: 's' as const },
+  ];
+
+  it('is correct only once the products are balanced', () => {
+    expect(gradeTyped(mg, products, ['3', '2', '3', '2']).verdict).toBe(
+      'correct',
+    );
+    const unbalanced = gradeTyped(mg, products, ['', '', '', '']);
+    expect(unbalanced.verdict).toBe('unbalanced');
+    expect(unbalanced.balance).toMatch(
+      /Count the N: 3 on the left, 2 on the right/,
+    );
+  });
+
+  it('follows the order the products were typed in', () => {
+    const swapped = [products[1], products[0]];
+    expect(gradeTyped(mg, swapped, ['3', '2', '2', '3']).verdict).toBe(
+      'correct',
+    );
+  });
+
+  it('asks for the smallest whole numbers', () => {
+    const doubled = gradeTyped(mg, products, ['6', '4', '6', '4']);
+    expect(doubled.verdict).toBe('unbalanced');
+    expect(doubled.balance).toMatch(/divides by 2/);
+  });
+
+  it('counts a blank coefficient as 1', () => {
+    const zinc = predict(['Zn', 'CuSO4']); // all ones
+    expect(
+      gradeTyped(
+        zinc,
+        [
+          { text: 'ZnSO4', state: 'aq' },
+          { text: 'Cu', state: 's' },
+        ],
+        ['', '1', '', ''],
+      ).verdict,
+    ).toBe('correct');
+  });
+
+  it('leaves balancing until the products are right', () => {
+    const wrong = gradeTyped(
+      mg,
+      [{ text: 'MgNO3', state: 'aq' }, products[1]],
+      ['3', '2', '3', '2'],
+    );
+    expect(wrong.verdict).toBe('wrong-products');
+    expect(wrong.balance).toBeNull();
+  });
+
+  it('points a coefficient typed into the formula to its box', () => {
+    const graded = gradeTyped(
+      mg,
+      [{ text: '3Mg(NO3)2', state: 'aq' }, products[1]],
+      ['', '', '', ''],
+    );
+    expect(graded.hints[0]).toMatch(/coefficient.*box in front/i);
+  });
+});

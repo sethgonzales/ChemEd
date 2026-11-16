@@ -203,6 +203,7 @@ export function predict([a, b]: [string, string]): Prediction {
 
 export type Verdict =
   | 'correct'
+  | 'unbalanced'
   | 'wrong-state'
   | 'wrong-products'
   | 'missed-reaction'

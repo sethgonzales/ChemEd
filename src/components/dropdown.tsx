@@ -12,12 +12,13 @@ import { PIXEL_CONTROL } from '~/utils/pixel';
 import { useEscape } from '~/utils/use-escape';
 
 interface Props {
-  label?: string;
+  label?: ReactNode; // the chosen option, or a faded placeholder
   children: ReactNode;
   className?: string;
   closeOnClickAway?: boolean;
   ariaLabel?: string; // when the button's text alone doesn't say what it picks
   menuClassName?: string;
+  inline?: boolean; // sits in a line of text at its own width, even on phones
 }
 
 // lets items close the menu once one is chosen
@@ -64,6 +65,7 @@ export default function Dropdown({
   className,
   ariaLabel,
   menuClassName,
+  inline = false,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -94,7 +96,10 @@ export default function Dropdown({
   return (
     <div
       ref={dropdownRef}
-      className="relative inline-block text-left w-full sm:w-auto"
+      className={cn(
+        'relative inline-block text-left',
+        !inline && 'w-full sm:w-auto',
+      )}
     >
       <button
         ref={buttonRef}

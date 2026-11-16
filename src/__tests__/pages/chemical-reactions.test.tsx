@@ -215,22 +215,43 @@ describe('Chemical Reactions: Predict', () => {
     within(predictor()).getByRole('textbox', { name: `Product ${n}` });
   const write = (n: number, text: string, state?: string) => {
     fireEvent.change(blank(n), { target: { value: text } });
-    if (state)
-      fireEvent.change(
-        within(predictor()).getByRole('combobox', {
-          name: `Product ${n} state`,
+    if (state) {
+      fireEvent.click(
+        within(predictor()).getByRole('button', {
+          name: new RegExp(`^Product ${n} state`),
         }),
-        { target: { value: state } },
       );
+      fireEvent.click(
+        within(predictor()).getByRole('button', {
+          name: new RegExp(`^\\(${state}\\)`),
+        }),
+      );
+    }
   };
   const open = () => {
     render(<ChemicalReactions />);
     fireEvent.click(screen.getByRole('tab', { name: 'Predict' }));
   };
-  // Mg(s) + Al(NO₃)₃(aq) → Mg(NO₃)₂(aq) + Al(s)
-  const writeRight = () => {
+  const coefficient = (name: string, value: string) =>
+    fireEvent.change(
+      within(predictor()).getByRole('textbox', {
+        name: `Coefficient for ${name}`,
+      }),
+      { target: { value } },
+    );
+  const equation = () =>
+    within(predictor()).getByRole('group', { name: 'Equation' });
+  // 3Mg(s) + 2Al(NO₃)₃(aq) → 3Mg(NO₃)₂(aq) + 2Al(s)
+  const writeProducts = () => {
     write(1, 'Mg(NO3)2', 'aq');
     write(2, 'Al', 's');
+  };
+  const writeRight = () => {
+    writeProducts();
+    coefficient('Mg', '3');
+    coefficient('Al(NO₃)₃', '2');
+    coefficient('product 1', '3');
+    coefficient('product 2', '2');
   };
   const status = () => within(predictor()).getByRole('status');
   const picture = () =>
@@ -247,12 +268,50 @@ describe('Chemical Reactions: Predict', () => {
 
   it('deals reactants to predict, with the beaker as it starts', () => {
     open();
-    expect(
-      within(predictor()).getByText('Mg(s) + Al(NO₃)₃(aq) →'),
-    ).toBeInTheDocument();
+    expect(equation()).toHaveTextContent(/^Mg\(s\) \+ Al\(NO₃\)₃\(aq\) →/);
     expect(picture()).toHaveAccessibleName(
       /before: 3 Mg \(solid\).*Al³⁺.*NO₃⁻/,
     );
+  });
+
+  it('keeps the products on the reactants’ line, after the arrow', () => {
+    open();
+    expect(equation()).toHaveTextContent(/Mg\(s\) \+ Al\(NO₃\)₃\(aq\) →.*\+/);
+    expect(
+      within(equation()).getAllByRole('textbox', { name: /^Product/ }),
+    ).toHaveLength(2);
+  });
+
+  it('gives every reactant and product a coefficient box', () => {
+    open();
+    expect(
+      within(equation()).getAllByRole('textbox', { name: /^Coefficient for/ }),
+    ).toHaveLength(4);
+  });
+
+  it('asks for balancing once the products are right', () => {
+    open();
+    writeProducts();
+    press('Check');
+    expect(status()).toHaveTextContent(/balance/i);
+    expect(status()).toHaveTextContent(
+      /Count the N: 3 on the left, 2 on the right/,
+    );
+    expect(within(predictor()).getByTestId('predict-score')).toHaveTextContent(
+      '0 of 1',
+    );
+  });
+
+  it('shows a faded (aq) in each state picker until a state is chosen', () => {
+    open();
+    const picker = within(predictor()).getByRole('button', {
+      name: 'Product 1 state: not chosen',
+    });
+    expect(picker).toHaveTextContent('(aq)');
+    write(1, 'Mg(NO3)2', 's');
+    expect(
+      within(predictor()).getByRole('button', { name: 'Product 1 state: (s)' }),
+    ).toBeInTheDocument();
   });
 
   it('turns typed numbers into subscripts', () => {
@@ -322,10 +381,11 @@ describe('Chemical Reactions: Predict', () => {
     writeRight();
     press('Check');
     press('Next reactants');
-    expect(
-      within(predictor()).getByText('Mg(s) + Zn(NO₃)₂(aq) →'),
-    ).toBeInTheDocument();
+    expect(equation()).toHaveTextContent(/^Mg\(s\) \+ Zn\(NO₃\)₂\(aq\) →/);
     expect(blank(1)).toHaveValue('');
+    expect(
+      within(predictor()).getByRole('textbox', { name: 'Coefficient for Mg' }),
+    ).toHaveValue('');
     expect(status()).toHaveTextContent('');
   });
 });

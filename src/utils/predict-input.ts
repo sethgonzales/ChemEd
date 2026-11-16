@@ -8,7 +8,12 @@ import {
   type State,
   type Verdict,
 } from './predict';
-import { parseCompound } from './reactions';
+import {
+  elementTally,
+  isBalanced,
+  isLowestTerms,
+  parseCompound,
+} from './reactions';
 
 export type Typed = { text: string; state?: State };
 
@@ -37,6 +42,8 @@ const count = (n: number) => ['', 'one', 'two', 'three'][n] ?? String(n);
 /** Why a typed product is wrong, in a way that points without telling */
 function hintFor(prediction: Prediction, text: string): string | null {
   const expected = prediction.products!.map((p) => p.formula);
+  if (/^\s*\d/.test(text))
+    return 'Put the coefficient in the box in front, and write just the formula here.';
   const formula = readFormula(text);
   const plain = text.replace(/\s+/g, '').toLowerCase();
   if (expected.some((f) => f.toLowerCase() === plain && f !== formula))
@@ -71,13 +78,40 @@ function hintFor(prediction: Prediction, text: string): string | null {
   return null;
 }
 
-/** Grade typed products, with a hint for each blank that needs one */
-export function gradeTyped(prediction: Prediction, answers: Typed[]) {
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+
+/** What still needs balancing, or null once it balances in lowest terms */
+function balanceHint(
+  reactants: string[],
+  products: string[],
+  coefficients: number[],
+) {
+  const reaction = { reactants, products };
+  if (isBalanced(reaction, coefficients))
+    return isLowestTerms(coefficients)
+      ? null
+      : `Balanced, but use the smallest whole numbers: every coefficient divides by ${coefficients.reduce(gcd)}.`;
+  const off = elementTally(reaction, coefficients).find(
+    (row) => row.reactants !== row.products,
+  )!;
+  return `Count the ${off.element}: ${off.reactants} on the left, ${off.products} on the right.`;
+}
+
+/**
+ * Grade typed products, with a hint for each blank that needs one; once the
+ * products and states are right, the coefficients (reactants then products,
+ * blank meaning 1) must balance the equation
+ */
+export function gradeTyped(
+  prediction: Prediction,
+  answers: Typed[],
+  coefficients: string[] = [],
+) {
   const products = answers.map(
     (a) =>
       ({ formula: readFormula(a.text) ?? a.text, state: a.state }) as Product,
   );
-  const verdict: Verdict = check(prediction, products).verdict;
+  let verdict: Verdict = check(prediction, products).verdict;
   const hints = answers.map((answer, i) => {
     if (!prediction.products) return null;
     const match = prediction.products.find(
@@ -88,5 +122,17 @@ export function gradeTyped(prediction: Prediction, answers: Typed[]) {
       ? null
       : 'Right formula: now check its state.';
   });
-  return { verdict, hints };
+  const counts = [...prediction.reactants, ...answers].map(
+    (_, i) => Number(coefficients[i]) || 1,
+  );
+  const balance =
+    verdict === 'correct' && prediction.products
+      ? balanceHint(
+          prediction.reactants.map((r) => r.formula),
+          products.map((p) => p.formula),
+          counts,
+        )
+      : null;
+  if (balance) verdict = 'unbalanced';
+  return { verdict, hints, balance };
 }

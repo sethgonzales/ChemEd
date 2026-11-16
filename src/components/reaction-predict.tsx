@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import BeakerParticles from '~/components/beaker-particles';
 import Button from '~/components/button';
+import Dropdown, { DropdownItem } from '~/components/dropdown';
 import Stage from '~/components/stage';
 import { useScore } from '~/components/use-score';
 import { beaker } from '~/utils/beaker';
@@ -17,11 +18,17 @@ import {
 } from '~/utils/predict';
 import { gradeTyped, type Typed } from '~/utils/predict-input';
 
-const STATES: State[] = ['s', 'l', 'g', 'aq'];
+const STATES: { id: State; name: string }[] = [
+  { id: 's', name: 'solid' },
+  { id: 'l', name: 'liquid' },
+  { id: 'g', name: 'gas' },
+  { id: 'aq', name: 'aqueous' },
+];
 const EMPTY: Typed[] = [{ text: '' }, { text: '' }];
 
 const OPENING: Record<Verdict, string> = {
   correct: 'Correct!',
+  unbalanced: 'Right products and states, but it isn’t balanced yet.',
   'wrong-state': 'Right products, but check their states.',
   'wrong-products': 'Not quite.',
   'missed-reaction': 'There is a reaction.',
@@ -33,6 +40,29 @@ const FIELD = cn(
   'focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_white]',
   'disabled:opacity-60',
 );
+
+/** A coefficient box: digits only, blank meaning 1 */
+function Coefficient(props: {
+  label: string;
+  value: string;
+  disabled: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      aria-label={`Coefficient for ${props.label}`}
+      placeholder="1"
+      value={props.value}
+      disabled={props.disabled}
+      onChange={(e) =>
+        props.onChange(e.target.value.replace(/\D/g, '').slice(0, 2))
+      }
+      className={cn(FIELD, 'w-10 px-1 text-center placeholder:text-white/40')}
+    />
+  );
+}
 
 // what a student types shows with subscripts as they go
 const subscripted = (text: string) =>
@@ -68,7 +98,12 @@ export default function ReactionPredict() {
   const [result, setResult] = useState<{
     verdict: Verdict;
     hints: (string | null)[];
+    balance: string | null;
   } | null>(null);
+  // reactants' then products' coefficients
+  const [coefficients, setCoefficients] = useState(['', '', '', '']);
+  const setCoefficient = (i: number, value: string) =>
+    setCoefficients((all) => all.map((c, j) => (j === i ? value : c)));
   const { score, record } = useScore(
     (streak) => `${streak} in a row! You’re predicting like a chemist.`,
   );
@@ -84,14 +119,16 @@ export default function ReactionPredict() {
               ? 'missed-reaction'
               : 'correct') as Verdict,
             hints: [],
+            balance: null,
           }
-        : gradeTyped(prediction, answer);
+        : gradeTyped(prediction, answer, coefficients);
     setResult(graded);
     record(graded.verdict === 'correct');
   };
   const next = () => {
     setIndex(dealPredict(index));
     setAnswers(EMPTY);
+    setCoefficients(['', '', '', '']);
     setResult(null);
   };
 
@@ -106,8 +143,8 @@ export default function ReactionPredict() {
         header={
           <div className="flex flex-wrap justify-between gap-2 text-sm">
             <span>
-              What do these reactants make? Type each product and pick its
-              state, or call No reaction.
+              What do these reactants make? Type each product, pick its state
+              and balance the equation, or call No reaction.
             </span>
             <span data-testid="predict-score">
               Score: {score.right} of {score.total} · Streak: {score.streak}
@@ -130,6 +167,7 @@ export default function ReactionPredict() {
                 <span>
                   {OPENING[verdict]} {prediction.reason}
                 </span>
+                {result?.balance && <span>{result.balance}</span>}
                 {prediction.products && (
                   <>
                     <span>Balanced: {prediction.equation}</span>
@@ -150,68 +188,96 @@ export default function ReactionPredict() {
           reacted={locked && prediction.products !== null}
         />
 
-        <p className="text-center text-xl">
-          {prediction.reactants.map(shown).join(' + ')} →
-        </p>
-
-        <div className="flex flex-col sm:flex-row sm:items-start justify-center gap-2">
+        {/* products sit on the reactants' line, wrapping only when it won't fit */}
+        <div
+          role="group"
+          aria-label="Equation"
+          className="flex flex-wrap items-center justify-center gap-2 text-xl"
+        >
+          {prediction.reactants.map((reactant, i) => (
+            <Fragment key={reactant.formula}>
+              {i > 0 && <span>{' + '}</span>}
+              <span className="inline-flex items-center gap-1">
+                <Coefficient
+                  label={formatFormula(reactant.formula)}
+                  value={coefficients[i]}
+                  disabled={locked}
+                  onChange={(v) => setCoefficient(i, v)}
+                />
+                <span>{shown(reactant)}</span>
+              </span>
+            </Fragment>
+          ))}
+          <span>{' → '}</span>
           {answers.map((answer, i) => (
             <Fragment key={i}>
-              {i > 0 && (
-                <span
-                  aria-hidden="true"
-                  className="text-xl text-center sm:pt-2"
-                >
-                  +
-                </span>
-              )}
-              <div className="flex flex-col gap-1 sm:w-56">
-                <div className="flex gap-1">
-                  <input
-                    type="text"
-                    aria-label={`Product ${i + 1}`}
-                    placeholder="formula"
-                    autoCapitalize="off"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    value={answer.text}
-                    disabled={locked}
-                    onChange={(e) =>
-                      change(i, { text: subscripted(e.target.value) })
+              {i > 0 && <span>{' + '}</span>}
+              <span className="inline-flex items-center gap-1">
+                <Coefficient
+                  label={`product ${i + 1}`}
+                  value={coefficients[prediction.reactants.length + i]}
+                  disabled={locked}
+                  onChange={(v) =>
+                    setCoefficient(prediction.reactants.length + i, v)
+                  }
+                />
+                <input
+                  type="text"
+                  aria-label={`Product ${i + 1}`}
+                  placeholder="formula"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  value={answer.text}
+                  disabled={locked}
+                  onChange={(e) =>
+                    change(i, { text: subscripted(e.target.value) })
+                  }
+                  className={cn(FIELD, 'w-28 placeholder:text-white/50')}
+                />
+                {locked ? (
+                  <span>({answer.state})</span>
+                ) : (
+                  <Dropdown
+                    inline
+                    ariaLabel={`Product ${i + 1} state: ${answer.state ? `(${answer.state})` : 'not chosen'}`}
+                    label={
+                      answer.state ? (
+                        `(${answer.state})`
+                      ) : (
+                        <span className="opacity-50">(aq)</span>
+                      )
                     }
-                    className={cn(
-                      FIELD,
-                      'min-w-0 flex-1 placeholder:text-white/50',
-                    )}
-                  />
-                  <select
-                    aria-label={`Product ${i + 1} state`}
-                    value={answer.state ?? ''}
-                    disabled={locked}
-                    onChange={(e) =>
-                      change(i, { state: e.target.value as State })
-                    }
-                    className={cn(FIELD, 'cursor-pointer')}
+                    className="text-lg"
+                    menuClassName="w-36"
                   >
-                    <option value="" disabled>
-                      state
-                    </option>
-                    {STATES.map((s) => (
-                      <option key={s} value={s}>
-                        ({s})
-                      </option>
+                    {STATES.map(({ id, name }) => (
+                      <DropdownItem
+                        key={id}
+                        selected={answer.state === id}
+                        onSelect={() => change(i, { state: id })}
+                      >
+                        ({id}) <span className="opacity-70">{name}</span>
+                      </DropdownItem>
                     ))}
-                  </select>
-                </div>
-                {result?.hints[i] && (
-                  <p className="text-sm text-red-100 bg-red-500/25 px-2 py-1">
-                    {result.hints[i]}
-                  </p>
+                  </Dropdown>
                 )}
-              </div>
+              </span>
             </Fragment>
           ))}
         </div>
+        {result?.hints.some(Boolean) && (
+          <ul className="flex flex-col gap-1 text-sm">
+            {result.hints.map(
+              (hint, i) =>
+                hint && (
+                  <li key={i} className="text-red-100 bg-red-500/25 px-2 py-1">
+                    Product {i + 1}: {hint}
+                  </li>
+                ),
+            )}
+          </ul>
+        )}
       </Stage>
 
       <div className="flex flex-wrap gap-2">
