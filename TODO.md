@@ -38,7 +38,7 @@
 - [x] Pixel-art door illustrations
 - [x] Dungeon colour theme (the default), with readable text in every theme
 - [x] Sounds: a mute button, a "treasure found" sound on successes, and no hover sounds
-- [x] (16 Nov 2026) The **Dungeon** theme is the only one with header goo; the old purple Classic is now **Periwinkle**. Home page doors in rows of 4 on wide screens. One app pixel, 4px (`PIXEL` in `src/utils/pixel.ts`, `--pixel` in CSS): pixel art draws one art pixel per app pixel (the door drawings redrawn at 48 × 36 with twice the detail, Water's lone pairs now angled to show its tetrahedral shape), and the 8-bit corners, control edges, focus rings and the doors' stone courses step in it. Door drawings sit centred in their arches, with even gaps between rows and columns.
+- [x] (16 Nov 2026) The **Dungeon** theme is the only one with header goo; the old purple Classic is now **Periwinkle**. Home page doors in rows of 4 on wide screens. One app pixel, 4px (`PIXEL` in `src/utils/pixel.ts`, `--pixel` in CSS): pixel art draws one art pixel per app pixel (the door drawings redrawn at 48 × 36 with twice the detail, Water's lone pairs now angled to show its tetrahedral shape; Mr. G alone stays at his original 96px, off the grid, so he doesn’t crowd the page), and the 8-bit corners, control edges, focus rings and the doors' stone courses step in it. Door drawings sit centred in their arches, with even gaps between rows and columns.
 
 ## Integrations and accounts
 

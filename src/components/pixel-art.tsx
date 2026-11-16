@@ -4,10 +4,13 @@ interface Props {
   rows: string[]; // palette letters; '.' is transparent
   palette: Record<string, string>;
   label?: string; // describes the picture; without one it's decorative
-  scale?: number; // app pixels (PIXEL) per art pixel, a whole number
+  scale?: number; // app pixels (PIXEL) per art pixel; whole numbers keep the grid
   className?: string;
   'data-frame'?: string;
 }
+
+// trims floating-point dust from fractional scales (30 × 3.2 = 96.00000000000001)
+const round = (n: number) => Math.round(n * 100) / 100;
 
 type Run = { x: number; y: number; width: number; fill: string };
 
@@ -43,8 +46,8 @@ export default function PixelArt({
         ? { role: 'img', 'aria-label': label }
         : { 'aria-hidden': true })}
       viewBox={`0 0 ${width} ${rows.length}`}
-      width={width * px}
-      height={rows.length * px}
+      width={round(width * px)}
+      height={round(rows.length * px)}
       shapeRendering="crispEdges"
       className={className}
       {...rest}
