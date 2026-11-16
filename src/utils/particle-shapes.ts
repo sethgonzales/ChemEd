@@ -1,6 +1,4 @@
-import { findElement } from '~/utils';
-import { GROUP_ANION_CHARGES, POLYATOMIC_CHARGES } from '~/constants/ions';
-import { elementCategory } from './periodic-table';
+import { ionsOf, isGroup } from './ions';
 import { parseCompound, type Reaction } from './reactions';
 
 /** One drawn particle: an atom, or a polyatomic ion kept whole. Units: an atom's radius. */
@@ -180,21 +178,13 @@ const scale = (v: { x: number; y: number }, s: number) => ({
   y: v.y * s,
 });
 
-/** The cation and anion of an ionic compound or oxoacid, or null for a molecule */
+/** The ions of a salt or oxoacid as drawn; HCl and H₂O stay molecules */
 function ionParts(formula: string) {
-  const m = formula.match(/^([A-Z][a-z]?)(\d*)([A-Z(].*)$/);
-  if (!m) return null;
-  const [, cation, n, rest] = m;
-  const bracketed = rest.match(/^\((.+)\)(\d+)$/);
-  const single = rest.match(/^([A-Z][a-z]?)(\d*)$/);
-  const anion = bracketed?.[1] ?? single?.[1] ?? rest;
-  const anions = Number(bracketed?.[2] ?? single?.[2] ?? 1) || 1;
-  const isGroup = !single;
-  const el = findElement(cation);
-  const metal = el !== null && elementCategory(el) === 'metal';
-  // an oxoacid like H₂SO₄ is drawn like a salt; HCl and H₂O are molecules
-  if (!metal && !(cation === 'H' && isGroup)) return null;
-  return { cation, cations: Number(n) || 1, anion, anions, isGroup };
+  const ions = ionsOf(formula);
+  if (!ions) return null;
+  const group = isGroup(ions.anion.symbol);
+  if (ions.cation.symbol === 'H' && !group) return null;
+  return { ...ions, isGroup: group };
 }
 
 /** Polyatomic ions found on the same scale on both sides, so they never break */
@@ -205,8 +195,8 @@ export function keptGroups(reaction: Reaction, coefficients: number[]) {
       const parts = ionParts(f);
       if (parts?.isGroup)
         groups.set(
-          parts.anion,
-          (groups.get(parts.anion) ?? 0) +
+          parts.anion.symbol,
+          (groups.get(parts.anion.symbol) ?? 0) +
             parts.anions * coefficients[offset + i],
         );
     });
@@ -222,14 +212,11 @@ function ionic(
   parts: NonNullable<ReturnType<typeof ionParts>>,
   kept: string[],
 ) {
-  const { cation, cations, anion, anions, isGroup } = parts;
-  // anion charges are cited; the cation's follows, as the compound is neutral
-  const anionCharge = isGroup
-    ? POLYATOMIC_CHARGES[anion]
-    : GROUP_ANION_CHARGES[findElement(anion)?.group ?? 0];
-  const cationCharge = anionCharge && (-anionCharge * anions) / cations;
-  const charged =
-    cation !== 'H' && Number.isInteger(cationCharge) && cationCharge > 0;
+  const { cations, anions, isGroup } = parts;
+  const [cation, anion] = [parts.cation.symbol, parts.anion.symbol];
+  const [cationCharge, anionCharge] = [parts.cation.charge, parts.anion.charge];
+  // an oxoacid's hydrogens are drawn bonded, without charges
+  const charged = cation !== 'H';
   const cationNode = () => ({
     ...atom(cation),
     charge: charged ? cationCharge : undefined,
