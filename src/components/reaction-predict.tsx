@@ -258,7 +258,7 @@ export default function ReactionPredict() {
                         <span className="opacity-50">(aq)</span>
                       )
                     }
-                    className="text-lg py-2"
+                    className="text-lg py-2 px-2 gap-0.5"
                     menuClassName="w-36"
                   >
                     {STATES.map(({ id, name }) => (
