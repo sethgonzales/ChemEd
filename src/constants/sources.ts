@@ -96,24 +96,15 @@ const ALL = {
     url: 'https://en.wikipedia.org/wiki/Water_(data_page)',
     accessed: '2026-11-13',
   },
-  ethanolWebBook: {
+  benzeneWebBook: {
     topic:
-      'Ethanol: melting point, enthalpies of fusion and of vaporisation at the boiling point, liquid heat capacity',
+      'Benzene: melting and boiling points, enthalpies of fusion and of vaporisation at the boiling point, and the heat capacities of the solid (273 K), liquid (298.15 K) and gas (368.15 K)',
     author: 'Linstrom, P. J. and Mallard, W. G. (eds.)',
     year: 2025,
-    title: 'NIST Chemistry WebBook, SRD 69: Ethanol',
+    title: 'NIST Chemistry WebBook, SRD 69: Benzene',
     publisher: 'National Institute of Standards and Technology',
-    url: 'https://webbook.nist.gov/cgi/cbook.cgi?ID=C64175',
-    accessed: '2026-11-13',
-  },
-  ethanolData: {
-    topic:
-      'Ethanol: boiling point and vapour heat capacity. Its solid heat capacity is an estimate (the liquid’s value): no measured value could be checked',
-    ...WIKIPEDIA,
-    year: 2026,
-    title: 'Ethanol (data page)',
-    url: 'https://en.wikipedia.org/wiki/Ethanol_(data_page)',
-    accessed: '2026-11-13',
+    url: 'https://webbook.nist.gov/cgi/cbook.cgi?ID=C71432',
+    accessed: '2026-11-16',
   },
   mercury: {
     topic:

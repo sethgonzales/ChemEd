@@ -227,15 +227,15 @@ describe('States of Matter page: substances', () => {
     ).toBeInTheDocument();
   });
 
-  it('melts and boils ethanol at its own temperatures', async () => {
+  it('melts and boils benzene at its own temperatures', async () => {
     renderPage();
-    await pick('Ethanol');
-    expect(slider()).toHaveAttribute('min', '-162');
-    expect(slider()).toHaveAttribute('max', '127');
+    await pick('Benzene');
+    expect(slider()).toHaveAttribute('min', '-13');
+    expect(slider()).toHaveAttribute('max', '99');
     setTemperature(90);
     expect(phase()).toHaveTextContent('Gas'); // water would still be liquid
-    setTemperature(-120);
-    expect(phase()).toHaveTextContent('Solid');
+    setTemperature(2);
+    expect(phase()).toHaveTextContent('Solid'); // water would be liquid
   });
 
   it('keeps the thermometer reading when the substance changes', async () => {

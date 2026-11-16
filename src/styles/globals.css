@@ -15,42 +15,47 @@
   --text-primary-base: #000;
   --text-secondary-base: #000;
 
-  /* 8-bit corners, in 4px steps: two steps for panels, one for controls */
+  /* The app's pixel (PIXEL in src/utils/pixel.ts): pixel art, corners and
+     edges all step in it */
+  --pixel: 4px;
+  --pixel-2: calc(2 * var(--pixel));
+
+  /* 8-bit corners: two pixel steps for panels, one for controls */
   --pixel-corners-2: polygon(
-    0 8px,
-    4px 8px,
-    4px 4px,
-    8px 4px,
-    8px 0,
-    calc(100% - 8px) 0,
-    calc(100% - 8px) 4px,
-    calc(100% - 4px) 4px,
-    calc(100% - 4px) 8px,
-    100% 8px,
-    100% calc(100% - 8px),
-    calc(100% - 4px) calc(100% - 8px),
-    calc(100% - 4px) calc(100% - 4px),
-    calc(100% - 8px) calc(100% - 4px),
-    calc(100% - 8px) 100%,
-    8px 100%,
-    8px calc(100% - 4px),
-    4px calc(100% - 4px),
-    4px calc(100% - 8px),
-    0 calc(100% - 8px)
+    0 var(--pixel-2),
+    var(--pixel) var(--pixel-2),
+    var(--pixel) var(--pixel),
+    var(--pixel-2) var(--pixel),
+    var(--pixel-2) 0,
+    calc(100% - var(--pixel-2)) 0,
+    calc(100% - var(--pixel-2)) var(--pixel),
+    calc(100% - var(--pixel)) var(--pixel),
+    calc(100% - var(--pixel)) var(--pixel-2),
+    100% var(--pixel-2),
+    100% calc(100% - var(--pixel-2)),
+    calc(100% - var(--pixel)) calc(100% - var(--pixel-2)),
+    calc(100% - var(--pixel)) calc(100% - var(--pixel)),
+    calc(100% - var(--pixel-2)) calc(100% - var(--pixel)),
+    calc(100% - var(--pixel-2)) 100%,
+    var(--pixel-2) 100%,
+    var(--pixel-2) calc(100% - var(--pixel)),
+    var(--pixel) calc(100% - var(--pixel)),
+    var(--pixel) calc(100% - var(--pixel-2)),
+    0 calc(100% - var(--pixel-2))
   );
   --pixel-corners-1: polygon(
-    0 4px,
-    4px 4px,
-    4px 0,
-    calc(100% - 4px) 0,
-    calc(100% - 4px) 4px,
-    100% 4px,
-    100% calc(100% - 4px),
-    calc(100% - 4px) calc(100% - 4px),
-    calc(100% - 4px) 100%,
-    4px 100%,
-    4px calc(100% - 4px),
-    0 calc(100% - 4px)
+    0 var(--pixel),
+    var(--pixel) var(--pixel),
+    var(--pixel) 0,
+    calc(100% - var(--pixel)) 0,
+    calc(100% - var(--pixel)) var(--pixel),
+    100% var(--pixel),
+    100% calc(100% - var(--pixel)),
+    calc(100% - var(--pixel)) calc(100% - var(--pixel)),
+    calc(100% - var(--pixel)) 100%,
+    var(--pixel) 100%,
+    var(--pixel) calc(100% - var(--pixel)),
+    0 calc(100% - var(--pixel))
   );
 }
 
@@ -75,19 +80,20 @@
     clip-path: var(--pixel-corners-2);
   }
   &::after {
-    inset: 4px;
+    inset: var(--pixel);
     background: var(--frame-fill);
     clip-path: var(--pixel-corners-1);
   }
 }
 
-/* The home page doors: a stone wall with mortar lines round each archway */
+/* The home page doors: a stone wall with mortar lines round each archway,
+   courses three pixels tall with a one-pixel line of mortar */
 @utility stone-wall {
   --frame-outline: #1c1917;
   --frame-fill: repeating-linear-gradient(
     to bottom,
-    #57534e 0 14px,
-    #44403c 14px 16px
+    #57534e 0 calc(3 * var(--pixel)),
+    #44403c calc(3 * var(--pixel)) calc(4 * var(--pixel))
   );
 }
 
@@ -155,6 +161,7 @@
 /* Pixel ooze dripping off an edge, in the theme's accent colour: drips of
    every length, some with a bulb or a falling drop */
 @utility ooze-drips {
+  display: var(--ooze, block); /* none in themes without goo */
   height: 40px;
   background: var(--color-secondary-500);
   /* a wide, seeded-random pattern of drips, so the repeat is hard to spot */
@@ -207,6 +214,13 @@
   --color-secondary-700: var(--secondary-700);
   --color-secondary-800: var(--secondary-800);
   --color-secondary-900: var(--secondary-900);
+}
+
+/* The readable-font setting: everything drawn in the pixel font (headings,
+   buttons, tabs, dropdowns) uses the body's plain font instead. On every
+   element, to outrank the class next/font sets the variable with. */
+html[data-font='readable'] * {
+  --font-pixelify: Arial, Helvetica, sans-serif;
 }
 
 body {

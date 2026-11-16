@@ -34,19 +34,16 @@ export default function Card({ title, color, art, ready, onClick }: Props) {
       style={{ '--door': color } as CSSProperties}
     >
       {/* the archway, dark inside and lit in the simulation's colour */}
-      <span className="door-arch relative flex-1 min-h-0 w-full flex items-end justify-center px-6 pt-10 pb-4 overflow-hidden">
+      <span className="door-arch relative flex-1 min-h-0 w-full flex items-center justify-center p-6 overflow-hidden">
         <PixelArt
           {...DOOR_ART[art]}
-          className={cn(
-            'w-full max-w-64 h-full',
-            !ready && 'opacity-30 grayscale',
-          )}
+          className={cn('shrink-0', !ready && 'opacity-30 grayscale')}
         />
         {!ready && (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-2">
             {/* boarded up */}
-            <span className="absolute h-5 w-[120%] -rotate-12 bg-amber-900 shadow-[inset_0_-4px_0_rgb(0_0_0/0.3)]" />
-            <span className="absolute h-5 w-[120%] rotate-12 bg-amber-800 shadow-[inset_0_-4px_0_rgb(0_0_0/0.3)]" />
+            <span className="absolute h-5 w-[120%] -rotate-12 bg-amber-900 shadow-[inset_0_calc(-1*var(--pixel))_0_rgb(0_0_0/0.3)]" />
+            <span className="absolute h-5 w-[120%] rotate-12 bg-amber-800 shadow-[inset_0_calc(-1*var(--pixel))_0_rgb(0_0_0/0.3)]" />
             <span className="relative pixel-control bg-stone-300 p-1.5 text-stone-800">
               <IconLock size={20} stroke={2.5} aria-hidden="true" />
             </span>

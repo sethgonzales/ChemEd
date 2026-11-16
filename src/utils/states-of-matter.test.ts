@@ -232,7 +232,7 @@ describe('simulation', () => {
 
 describe('substances', () => {
   const water = SUBSTANCES.find((s) => s.id === 'water')!;
-  const ethanol = SUBSTANCES.find((s) => s.id === 'ethanol')!;
+  const benzene = SUBSTANCES.find((s) => s.id === 'benzene')!;
   const mercury = SUBSTANCES.find((s) => s.id === 'mercury')!;
 
   it('keeps water on the −25 to 125 °C range the model was tuned on', () => {
@@ -250,10 +250,11 @@ describe('substances', () => {
   });
 
   it('melts and boils each substance at its own temperatures', () => {
-    expect(toModelTemp(ethanol, ethanol.meltC)).toBeCloseTo(0);
-    expect(toModelTemp(ethanol, ethanol.boilC)).toBeCloseTo(100);
-    expect(phaseOf(ethanol, 20)).toBe('Liquid');
-    expect(phaseOf(ethanol, 90)).toBe('Gas');
+    expect(toModelTemp(benzene, benzene.meltC)).toBeCloseTo(0);
+    expect(toModelTemp(benzene, benzene.boilC)).toBeCloseTo(100);
+    expect(phaseOf(benzene, 0)).toBe('Solid'); // water would be melting
+    expect(phaseOf(benzene, 20)).toBe('Liquid');
+    expect(phaseOf(benzene, 90)).toBe('Gas');
     expect(phaseOf(water, 90)).toBe('Liquid');
     expect(phaseOf(mercury, -50)).toBe('Solid');
     expect(phaseOf(mercury, 20)).toBe('Liquid');

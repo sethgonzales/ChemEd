@@ -78,6 +78,35 @@ describe('themeVariables', () => {
   });
 });
 
+describe('theme names', () => {
+  it('calls the dungeon look Dungeon, and the purple one Periwinkle', () => {
+    expect(THEME.dungeon.label).toBe('Dungeon');
+    expect(THEME.purple.label).toBe('Periwinkle');
+  });
+
+  it('names each school theme in the singular, like its mascot', () => {
+    expect(Object.values(THEME).map((t) => t.label)).toEqual([
+      'Dungeon',
+      'Periwinkle',
+      'Cougar',
+      'Beaver',
+      'Raider',
+      'Warrior',
+      'Jaguar',
+    ]);
+  });
+});
+
+describe('header goo', () => {
+  it('drips only in the dungeon theme', () => {
+    expect(themeVariables('dungeon')['--ooze']).toBe('block');
+    for (const name of Object.keys(THEME) as (keyof typeof THEME)[]) {
+      if (name !== 'dungeon')
+        expect(themeVariables(name)['--ooze']).toBe('none');
+    }
+  });
+});
+
 describe('themeScript (runs in <head>, before the first paint)', () => {
   const run = () => new Function(themeScript())();
   const primary = () =>

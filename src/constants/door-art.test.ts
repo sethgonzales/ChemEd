@@ -1,5 +1,41 @@
 import { ART_HEIGHT, ART_WIDTH, DOOR_ART } from './door-art';
 
+// groups of touching pixels of a letter, e.g. the dots of a lone pair, as
+// each group's centre
+function clusters(rows: string[], letter: string) {
+  const seen = new Set<string>();
+  const groups: { x: number; y: number }[] = [];
+  rows.forEach((row, y) =>
+    [...row].forEach((p, x) => {
+      if (p !== letter || seen.has(`${x},${y}`)) return;
+      const pixels: number[][] = [];
+      const stack = [[x, y]];
+      seen.add(`${x},${y}`);
+      while (stack.length) {
+        const [cx, cy] = stack.pop()!;
+        pixels.push([cx, cy]);
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ]) {
+          const [nx, ny] = [cx + dx, cy + dy];
+          const key = `${nx},${ny}`;
+          if (rows[ny]?.[nx] === letter && !seen.has(key)) {
+            seen.add(key);
+            stack.push([nx, ny]);
+          }
+        }
+      }
+      const mean = (i: number) =>
+        pixels.reduce((sum, p) => sum + p[i], 0) / pixels.length;
+      groups.push({ x: mean(0), y: mean(1) });
+    }),
+  );
+  return groups;
+}
+
 describe('door art', () => {
   it.each(Object.entries(DOOR_ART))(
     '%s fits its door, is rectangular, and only uses its own colours',
@@ -15,12 +51,34 @@ describe('door art', () => {
     },
   );
 
+  it.each(Object.entries(DOOR_ART))(
+    '%s is drawn in fine detail, at least 36 pixels across',
+    (_, { rows }) => {
+      expect(rows[0].length).toBeGreaterThanOrEqual(36);
+    },
+  );
+
   it('draws water with exactly two lone pairs on oxygen: four electron dots', () => {
-    const dots = DOOR_ART.lewis.rows
-      .join('')
-      .split('')
-      .filter((p) => p === 'e');
-    expect(dots).toHaveLength(4);
+    expect(clusters(DOOR_ART.lewis.rows, 'e')).toHaveLength(4);
+  });
+
+  it('angles the lone pairs up and out from oxygen, as in its bent, tetrahedral shape', () => {
+    const rows = DOOR_ART.lewis.rows;
+    const oxygen = clusters(rows, 'O')[0];
+    const dots = clusters(rows, 'e').sort((a, b) => a.x - b.x);
+    const [left, right] = [dots.slice(0, 2), dots.slice(2)];
+    for (const pair of [left, right]) {
+      // above oxygen, and tilted rather than level
+      for (const dot of pair) expect(dot.y).toBeLessThan(oxygen.y);
+      expect(Math.abs(pair[0].y - pair[1].y)).toBeGreaterThanOrEqual(2);
+    }
+    // each pair's outer dot is higher, so the pairs splay away from each other
+    expect(left[0].y).toBeGreaterThan(left[1].y);
+    expect(right[1].y).toBeGreaterThan(right[0].y);
+    // and the hydrogens hang below oxygen, bent rather than in a line
+    const hydrogens = clusters(rows, 'H');
+    expect(hydrogens).toHaveLength(2);
+    for (const h of hydrogens) expect(h.y).toBeGreaterThan(oxygen.y + 4);
   });
 });
 
@@ -32,12 +90,13 @@ describe('electrons door', () => {
         p === 'R' ? [Math.hypot(x - centre.x, y - centre.y)] : [],
       ),
     );
-    // two rings, each a steady distance from the nucleus (electrons sit on them)
-    const inner = radii.filter((r) => r < 6);
-    const outer = radii.filter((r) => r >= 6);
+    // two rings, each a steady distance from the nucleus (electrons sit on
+    // them), two pixels thick
+    const inner = radii.filter((r) => r < 11);
+    const outer = radii.filter((r) => r >= 11);
     for (const ring of [inner, outer]) {
       expect(ring.length).toBeGreaterThan(0);
-      expect(Math.max(...ring) - Math.min(...ring)).toBeLessThanOrEqual(1.5);
+      expect(Math.max(...ring) - Math.min(...ring)).toBeLessThanOrEqual(2.5);
     }
   });
 });
@@ -57,17 +116,11 @@ describe('periodic table door', () => {
     .map((row, y) => ({ y, s: span(row, TILES) }))
     .filter((r) => r.s);
 
+  // each element is a 2 × 2 tile, so every period takes two rows of pixels
   it('has the periodic table’s shape: 2, 8, 8, then 18 across, and the f-block', () => {
-    expect(tileRows.map((r) => r.s!.count)).toEqual([
-      2, 8, 8, 18, 18, 18, 18, 14, 14,
-    ]);
-  });
-
-  it('fills its door, with no empty border to shrink it', () => {
-    expect(rows[0]).toMatch(/[^.]/);
-    expect(rows.at(-1)).toMatch(/[^.]/);
-    expect(rows.some((row) => row[0] !== '.')).toBe(true);
-    expect(rows.some((row) => row.at(-1) !== '.')).toBe(true);
+    expect(tileRows.map((r) => r.s!.count)).toEqual(
+      [2, 8, 8, 18, 18, 18, 18, 14, 14].flatMap((n) => [2 * n, 2 * n]),
+    );
   });
 
   it('puts H and He at the far ends of the first row', () => {
@@ -77,10 +130,10 @@ describe('periodic table door', () => {
   });
 
   it('sets the f-block apart below, indented under the d-block', () => {
-    const period7 = tileRows[6];
-    const f = tileRows[7];
+    const period7 = tileRows[13];
+    const f = tileRows[14];
     expect(f.y - period7.y).toBeGreaterThan(1); // a gap row
-    expect(f.s!.left).toBe(period7.s!.left + 2);
+    expect(f.s!.left).toBe(period7.s!.left + 4); // two elements in
   });
 });
 

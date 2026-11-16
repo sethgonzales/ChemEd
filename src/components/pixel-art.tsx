@@ -1,8 +1,10 @@
+import { PIXEL } from '~/utils/pixel';
+
 interface Props {
   rows: string[]; // palette letters; '.' is transparent
   palette: Record<string, string>;
   label?: string; // describes the picture; without one it's decorative
-  height?: number; // px; width follows the art's proportions
+  scale?: number; // app pixels (PIXEL) per art pixel, a whole number
   className?: string;
   'data-frame'?: string;
 }
@@ -29,19 +31,20 @@ export default function PixelArt({
   rows,
   palette,
   label,
-  height = rows.length,
+  scale = 1,
   className,
   ...rest
 }: Props) {
   const width = rows[0]?.length ?? 0;
+  const px = scale * PIXEL;
   return (
     <svg
       {...(label
         ? { role: 'img', 'aria-label': label }
         : { 'aria-hidden': true })}
       viewBox={`0 0 ${width} ${rows.length}`}
-      width={(height * width) / rows.length}
-      height={height}
+      width={width * px}
+      height={rows.length * px}
       shapeRendering="crispEdges"
       className={className}
       {...rest}

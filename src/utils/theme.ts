@@ -31,7 +31,7 @@ export const generateColorScale = (base: string): Record<string, string> => {
 export const DEFAULT_THEME: ThemeName = 'dungeon';
 export const THEME_STORAGE_KEY = 'chem.theme';
 
-/** Every CSS variable a theme sets on <html>: both colour scales and the text colours */
+/** Every CSS variable a theme sets on <html>: both colour scales, the text colours and whether the header drips */
 export function themeVariables(name: ThemeName): Record<string, string> {
   const { primary, secondary, primaryText, secondaryText } = THEME[name];
   const vars: Record<string, string> = {};
@@ -48,6 +48,8 @@ export function themeVariables(name: ThemeName): Record<string, string> {
   }
   vars['--text-primary-base'] = primaryText;
   vars['--text-secondary-base'] = secondaryText;
+  // the header's goo belongs to the dungeon look only
+  vars['--ooze'] = 'ooze' in THEME[name] ? 'block' : 'none';
   return vars;
 }
 

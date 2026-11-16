@@ -15,6 +15,13 @@ describe('MrG', () => {
     expect(screen.getByRole('img', { name: 'Mr. G' })).toBeInTheDocument();
   });
 
+  it('is drawn in the app’s 4px pixels', () => {
+    render(<MrG />);
+    const img = screen.getByRole('img', { name: 'Mr. G' });
+    expect(img).toHaveAttribute('width', String(SPRITE_WIDTH * 4));
+    expect(img).toHaveAttribute('height', String(SPRITE_HEIGHT * 4));
+  });
+
   it('draws crisp pixels in his palette', () => {
     const { container } = render(<MrG />);
     const svg = container.querySelector('svg')!;

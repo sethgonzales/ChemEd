@@ -9,6 +9,7 @@
 - [x] **Electron Configurations**: Explore (mini periodic table, orbital diagram with drop-in electrons, Bohr shell view, notation, exceptions) and Build (pick an element and charge, tap boxes to draw the diagram, type the notation, Check), with Mr. G's tips, hints and cheers ([plan](docs/plans/electron-configurations.md))
 - [x] **Titrations**: Lab (strong, weak and polyprotic acids and bases; three indicators; burette with drops, a stream and fading colour swirls; a stirred flask; a burette close-up for reading the meniscus to 0.01 mL; live pH curve with equivalence and pKa markers) and Unknown (find a hidden concentration, with feedback on endpoint and calculation) ([plan](docs/plans/titrations.md))
 - [x] **Chemical Reactions** (16 Nov 2026): Explore (particle pictures of the five types, with AP tags), Sort (classify dealt equations) and Predict (build the products of single and double replacements from ions, with states, graded with the net ionic equation and spectators), with Mr. G's tips and cited sources ([plan](docs/plans/chemical-reactions.md))
+- [ ] **Molecular Geometry and Hybridization**: build or pick a molecule, count its electron domains, and see its electron geometry and molecular geometry in 3D (VSEPR: linear to octahedral, with lone pairs bending the shape and squeezing bond angles). Predict the central atom's hybridization (sp, sp², sp³, sp³d, sp³d²) and model it: atomic orbitals mixing into hybrids, then overlapping into σ and π bonds. Could start from a Lewis structure drawn in Lewis Structures.
 - [ ] **Ore mining game**: dig down through a 2D cross-section of the Earth's layers with your sprite, finding ores at the depths and settings where they really occur. Each ore you collect earns coins relative to its worth, and a card pops up saying what it's made of, where it's found, what it's used for, and other facts.
 - [ ] **Dungeon quest game**: a step-by-step dungeon crawl that strings the quizzes together as levels. Each level opens with a wall of story text setting up a chemistry problem to solve or something to rescue. Each ends with a chemistry-themed boss, beaten by answering a question on a topic from one of the simulations or from general chemistry.
 - [x] **Electrochemistry** (16 Nov 2026): Voltaic (mix-and-match half-cells, Connect, voltmeter and bulb, electrodes thinning and plating, the Nernst equation worked, E° table, Predict mode with Mr. G) with a particle lens on each electrode and the salt bridge, and Electrolytic (water, copper plating, molten NaCl, cited minimum voltages, Faraday's law worked) ([plan](docs/plans/electrochemistry.md))
@@ -16,15 +17,19 @@
 ## Improvements
 
 - [x] Periodic Table: more colour modes (metal/nonmetal, electronegativity, atomic radius) and search
-- [x] States of Matter: heating curve, choice of substance (water, ethanol, mercury)
+- [x] States of Matter: heating curve, choice of substance (water, benzene, mercury)
   - [x] Solid mercury's heat capacity at its melting point (NIST-JANAF, 28.485 J/(mol·K))
-  - [ ] Solid ethanol's heat capacity near 159 K: still borrows the liquid's value. Sources: Haida, Suga & Seki, J. Chem. Thermodyn. 9 (1977) 1133, or Kelley, JACS 51 (1929) 779 (both paywalled) (`src/constants/substances.ts`). The NIST WebBook (checked 16 Nov 2026) lists only the liquid's Cp, not the solid's.
+  - [x] Ethanol swapped for benzene (16 Nov 2026): no source gave solid ethanol's heat capacity near its melting point, so it had borrowed the liquid's. Benzene has a measured solid Cp of 118.4 J/(mol·K) at 273 K, just below its 5.49 °C melting point (NIST WebBook).
 - [x] Mr. G wears safety goggles over his eyes on wet-lab pages (Titrations, Electrochemistry, and any later ones), to model good lab safety (16 Nov 2026; add new labs to `WET_LABS` in `src/constants/guide-tips.ts`)
-- [ ] **Readable font option**: a setting to swap the dungeon pixel font for a plain, more readable one across the app (buttons, chips, headings), e.g. beside the theme picker. The pixel font makes small sub- and superscripts (NO₃⁻, PO₄³⁻) hard to read on chips; the shared `Button` can't change its font yet.
-  - [ ] Let the option force the readable font in every `Dropdown` too (button and menu), whatever the rest of the app uses.
+- [x] **Readable font option** (16 Nov 2026): the "A" button beside the theme picker swaps the dungeon pixel font for a plain one across the app (headings, buttons, tabs, chips), remembered in the browser and set before the first paint. The pixel font makes small sub- and superscripts (NO₃⁻, PO₄³⁻) hard to read.
+  - [x] Covers every `Dropdown` too (button and menu).
   - [x] Per-dropdown override: `<Dropdown readable>` uses the plain font; first used for the state pickers in Chemical Reactions' Predict tab, where the pixel font turned "(aq)" into "{aq}" (16 Nov 2026).
 - [x] Migrate `next lint` (deprecated) to the ESLint CLI
 - [x] **Fact sweep and in-app citations** (13 Nov 2026): every value checked against IUPAC, NIST, Cordero et al. or the cited Wikipedia pages; fixes: 19 atomic masses to IUPAC 2024 abridged values (e.g. Zr 91.222, Ar 39.95), Tc [97], Sg [267], Hs [271], Cm electronegativity 1.3, NH₄⁺ pKa 9.25. Sources live in `src/constants/sources.ts` and show in each page’s Sources footer. Was: audit every real-world value the app states (element data, electronegativity, radii, substances, pKa and indicator ranges, E° values, molecule data, constants) and give each a source. Show the sources subtly on each page, e.g. a small "Sources" line at the bottom, so ChemEd models how to represent and cite data. Store a source with each data set in `src/constants/` so the citation can't drift from the value.
+
+## Curriculum
+
+- [ ] **Map ChemEd to my scope and sequence**: go through every unit in my classroom's scope and sequence, with its content and standards, and compare it with what ChemEd covers. List the gaps (units, topics or standards with no simulation or practice), and turn them into ideas for new simulations, modes and other resources.
 
 ## Dungeon look ([plan](docs/plans/dungeon-theme.md))
 
@@ -33,6 +38,7 @@
 - [x] Pixel-art door illustrations
 - [x] Dungeon colour theme (the default), with readable text in every theme
 - [x] Sounds: a mute button, a "treasure found" sound on successes, and no hover sounds
+- [x] (16 Nov 2026) The **Dungeon** theme is the only one with header goo; the old purple Classic is now **Periwinkle**. Home page doors in rows of 4 on wide screens. One app pixel, 4px (`PIXEL` in `src/utils/pixel.ts`, `--pixel` in CSS): pixel art draws one art pixel per app pixel (the door drawings redrawn at 48 × 36 with twice the detail, Water's lone pairs now angled to show its tetrahedral shape), and the 8-bit corners, control edges, focus rings and the doors' stone courses step in it. Door drawings sit centred in their arches, with even gaps between rows and columns.
 
 ## Integrations and accounts
 

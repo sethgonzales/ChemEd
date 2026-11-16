@@ -173,7 +173,7 @@ export default function ConfigurationBuilder() {
               placeholder="e.g. 1s2 2s2 2p4"
               autoComplete="off"
               spellCheck={false}
-              className="pixel-control px-3 py-2 bg-white text-gray-900 sm:max-w-sm focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_var(--color-secondary-500)]"
+              className="pixel-control px-3 py-2 bg-white text-gray-900 sm:max-w-sm focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_var(--pixel)_var(--color-secondary-500)]"
             />
           </label>
           {preview && (

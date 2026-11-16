@@ -111,7 +111,7 @@ export default function OrbitalDiagram(props: Props) {
                     onClick={() => onBox(subshell, i)}
                     className={cn(
                       BOX,
-                      'cursor-pointer hover:bg-primary-800 focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_white]',
+                      'cursor-pointer hover:bg-primary-800 focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_var(--pixel)_white]',
                     )}
                   >
                     {arrows}

@@ -1,15 +1,29 @@
 import { render, screen } from '@testing-library/react';
+import { PIXEL } from '~/utils/pixel';
 import PixelArt from './pixel-art';
 
 describe('PixelArt', () => {
   const art = { rows: ['AAB.', '.BB.'], palette: { A: '#f00', B: '#00f' } };
 
   it('is an image with a description', () => {
-    render(<PixelArt {...art} label="Three jars" height={40} />);
+    render(<PixelArt {...art} label="Three jars" />);
     const img = screen.getByRole('img', { name: 'Three jars' });
     expect(img).toHaveAttribute('viewBox', '0 0 4 2');
-    expect(img).toHaveAttribute('height', '40');
-    expect(img).toHaveAttribute('width', '80');
+  });
+
+  it('draws each pixel as one of the app’s 4px pixels', () => {
+    render(<PixelArt {...art} label="Jars" />);
+    const img = screen.getByRole('img');
+    expect(img).toHaveAttribute('width', String(4 * PIXEL));
+    expect(img).toHaveAttribute('height', String(2 * PIXEL));
+    expect(PIXEL).toBe(4);
+  });
+
+  it('can draw bigger, in whole app pixels', () => {
+    render(<PixelArt {...art} label="Jars" scale={2} />);
+    const img = screen.getByRole('img');
+    expect(img).toHaveAttribute('width', String(4 * 2 * PIXEL));
+    expect(img).toHaveAttribute('height', String(2 * 2 * PIXEL));
   });
 
   it('draws one rectangle per run of a colour, skipping transparent pixels', () => {

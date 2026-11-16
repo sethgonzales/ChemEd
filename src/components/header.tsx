@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 
 import { findElementsBySymbol, formatAtomicMass } from '~/utils';
 import { ThemeSelect } from '~/components/theme-select';
+import FontButton from '~/components/font-button';
 import MuteButton from '~/components/mute-button';
 import { useBloop } from '~/utils/sounds';
 
@@ -67,6 +68,7 @@ export default function Header() {
       </Link>
       <div className="flex gap-2 w-full sm:w-auto">
         <ThemeSelect />
+        <FontButton />
         <MuteButton />
       </div>
       <div

@@ -32,18 +32,16 @@ export const SUBSTANCES: Substance[] = [
     sources: ['waterData'],
   },
   {
-    id: 'ethanol',
-    name: 'Ethanol',
-    formula: 'C₂H₅OH',
-    meltC: -114.1,
-    boilC: 78.4,
-    fusionKJ: 4.9,
-    vaporizationKJ: 38.56,
-    // liquid at 25 °C, vapour at 90 °C. No reliable value for the solid was
-    // found, so it borrows the liquid's: an estimate that only tilts the
-    // short solid stretch of the heating curve.
-    heatCapacity: { solid: 112.4, liquid: 112.4, gas: 78.28 },
-    sources: ['ethanolWebBook', 'ethanolData'],
+    id: 'benzene',
+    name: 'Benzene',
+    formula: 'C₆H₆',
+    meltC: 5.49, // 278.64 K
+    boilC: 80.15, // 353.3 K
+    fusionKJ: 9.87,
+    vaporizationKJ: 30.72,
+    // solid at 273 K, just below melting; liquid at 25 °C; vapour at 95 °C
+    heatCapacity: { solid: 118.4, liquid: 135.69, gas: 103.98 },
+    sources: ['benzeneWebBook'],
   },
   {
     id: 'mercury',

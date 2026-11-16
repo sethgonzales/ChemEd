@@ -56,6 +56,13 @@ describe('Header', () => {
     ).toBeInTheDocument();
   });
 
+  it('has a switch for the readable font', () => {
+    renderHeader();
+    expect(
+      screen.getByRole('button', { name: 'Readable font' }),
+    ).toBeInTheDocument();
+  });
+
   it('includes the theme selector', () => {
     renderHeader();
     expect(screen.getByRole('button', { name: 'Dungeon' })).toBeInTheDocument();

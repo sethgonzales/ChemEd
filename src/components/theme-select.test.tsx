@@ -20,9 +20,9 @@ describe('ThemeSelect', () => {
       ).toBeGreaterThan(0);
     }
 
-    await userEvent.click(screen.getByRole('button', { name: 'Jaguars' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Jaguar' }));
     expect(
-      screen.getAllByRole('button', { name: 'Jaguars' })[0],
+      screen.getAllByRole('button', { name: 'Jaguar' })[0],
     ).toBeInTheDocument();
     expect(localStorage.getItem('chem.theme')).toBe('teal');
   });

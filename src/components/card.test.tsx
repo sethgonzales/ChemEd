@@ -14,6 +14,17 @@ const door = {
 };
 
 describe('Card (a chamber door)', () => {
+  it('draws its door art in the app’s 4px pixels, like everything else', () => {
+    const { container } = render(<Card {...door} ready onClick={jest.fn()} />);
+    const art = container.querySelector('svg[viewBox]')!;
+    const [, , cols, rows] = art
+      .getAttribute('viewBox')!
+      .split(' ')
+      .map(Number);
+    expect(art).toHaveAttribute('width', String(cols * 4));
+    expect(art).toHaveAttribute('height', String(rows * 4));
+  });
+
   it('opens when clicked', async () => {
     const onClick = jest.fn();
     render(<Card {...door} ready onClick={onClick} />);

@@ -193,7 +193,7 @@ export default function LewisToolbar({
               onPointerDown={(e) => draggable && !disabled && onPress(tool, e)}
               className={cn(
                 'relative w-full h-9 sm:w-10 sm:h-10 flex items-center justify-center pixel-control text-white cursor-pointer',
-                'focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_3px_white]',
+                'focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_var(--pixel)_white]',
                 'disabled:opacity-40 disabled:cursor-not-allowed',
                 draggable && 'touch-none',
                 active === tool

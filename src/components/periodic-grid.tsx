@@ -67,7 +67,7 @@ function ElementCell({
         'w-full aspect-square text-white hover:brightness-125',
         'focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_white]',
         compact ? 'p-0' : 'py-2 px-1',
-        isSelected && 'brightness-125 shadow-[inset_0_0_0_3px_white]',
+        isSelected && 'brightness-125 shadow-[inset_0_0_0_var(--pixel)_white]',
       )}
     >
       {compact ? (

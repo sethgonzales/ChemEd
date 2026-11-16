@@ -5,44 +5,45 @@ export const THEME = {
     primaryText: '#ffffff',
     secondary: '#84cc16', // glowing ooze
     secondaryText: '#000000',
+    ooze: true, // drips off the header
   },
   purple: {
-    label: 'Classic',
+    label: 'Periwinkle',
     primary: '#6168dd', // darkened from #8186e4 so white text is readable
     primaryText: '#ffffff',
     secondary: '#fab87e',
     secondaryText: '#000000',
   },
   black: {
-    label: 'Cougars',
+    label: 'Cougar',
     primary: '#000000',
     primaryText: '#ffffff',
     secondary: '#dc2626',
     secondaryText: '#ffffff',
   },
   brown: {
-    label: 'Beavers',
+    label: 'Beaver',
     primary: '#d24105', // darkened from #dc4405 so white text is readable
     primaryText: '#ffffff',
     secondary: '#000000',
     secondaryText: '#ffffff',
   },
   red: {
-    label: 'Raiders',
+    label: 'Raider',
     primary: '#dc2626',
     primaryText: '#ffffff',
     secondary: '#facc15',
     secondaryText: '#000000',
   },
   'burnt-orange': {
-    label: 'Warriors',
+    label: 'Warrior',
     primary: '#c2410c',
     primaryText: '#ffffff',
     secondary: '#000000',
     secondaryText: '#ffffff', // black on black was unreadable
   },
   teal: {
-    label: 'Jaguars',
+    label: 'Jaguar',
     primary: '#0e8376', // darkened from #14b8a6 so white text is readable
     primaryText: '#ffffff',
     secondary: '#000000',
