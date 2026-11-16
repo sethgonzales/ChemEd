@@ -4,6 +4,7 @@ import Button from '~/components/button';
 import Container from '~/components/container';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
 import ReactionParticles from '~/components/reaction-particles';
+import ReactionSort from '~/components/reaction-sort';
 import Stage from '~/components/stage';
 import Tabs from '~/components/tabs';
 import { balancedEquation, examplesOf } from '~/utils/reaction-particles';
@@ -142,7 +143,10 @@ export default function ChemicalReactions() {
     >
       <Tabs
         label="Activity"
-        tabs={[{ id: 'explore', label: 'Explore', content: <Explore /> }]}
+        tabs={[
+          { id: 'explore', label: 'Explore', content: <Explore /> },
+          { id: 'sort', label: 'Sort', content: <ReactionSort /> },
+        ]}
       />
       <p className="text-sm">
         Balancing equations has its own room:{' '}

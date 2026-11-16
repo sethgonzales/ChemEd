@@ -1,6 +1,13 @@
 import { REACTIONS } from '~/constants/reactions';
 import { parseEquation } from './reactions';
-import { apTags, classify, type ReactionType } from './reaction-types';
+import {
+  apTags,
+  classify,
+  deal,
+  explain,
+  SORT_POOL,
+  type ReactionType,
+} from './reaction-types';
 
 const typeOf = (equation: string) => classify(parseEquation(equation));
 const tagsOf = (equation: string) => apTags(parseEquation(equation));
@@ -73,5 +80,51 @@ describe('AP tags', () => {
 
   it('gives a plain swap of ions no tag until solubility says it precipitates', () => {
     expect(tagsOf('Pb(NO3)2 + KI -> PbI2 + KNO3')).toEqual([]);
+  });
+});
+
+describe('explain: why an equation is its type', () => {
+  const why = (equation: string) => explain(parseEquation(equation));
+
+  it.each([
+    ['H2 + O2 -> H2O', /H₂ and O₂ combine into one product, H₂O/],
+    ['KClO3 -> KCl + O2', /KClO₃ breaks down into KCl and O₂/],
+    [
+      'Zn + HCl -> ZnCl2 + H2',
+      /Zn takes the place of H in HCl, setting H₂ free/,
+    ],
+    [
+      'AgNO3 + NaCl -> AgCl + NaNO3',
+      /AgNO₃ and NaCl swap partners, making AgCl and NaNO₃/,
+    ],
+    ['CH4 + O2 -> CO2 + H2O', /CH₄ burns in oxygen, making CO₂ and H₂O/],
+  ])('%s', (equation, reason) => {
+    expect(why(equation)).toMatch(reason);
+  });
+});
+
+describe('deal: the next equation to sort', () => {
+  it('only deals equations of the five types', () => {
+    for (const r of SORT_POOL)
+      expect(classify(parseEquation(r.equation))).not.toBe('other');
+    expect(SORT_POOL.length).toBeGreaterThan(15);
+  });
+
+  it('never deals the same equation twice in a row', () => {
+    for (let i = 0; i < SORT_POOL.length; i++) {
+      const previous = SORT_POOL[i];
+      // a random number that would land on the previous one
+      const landing = (i + 0.5) / SORT_POOL.length;
+      expect(deal(previous.id, () => landing).id).not.toBe(previous.id);
+    }
+  });
+
+  it('can deal every equation', () => {
+    const seen = new Set(
+      SORT_POOL.map(
+        (_, i) => deal(undefined, () => (i + 0.5) / SORT_POOL.length).id,
+      ),
+    );
+    expect(seen.size).toBe(SORT_POOL.length);
   });
 });

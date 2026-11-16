@@ -1,4 +1,6 @@
-import { parseCompound, type Reaction } from './reactions';
+import { REACTIONS } from '~/constants/reactions';
+import { formatFormula } from './lewis';
+import { parseCompound, parseEquation, type Reaction } from './reactions';
 
 export type ReactionType =
   | 'synthesis'
@@ -102,3 +104,46 @@ export const TYPES: Record<FiveTypes, { pattern: string; meaning: string }> = {
     meaning: 'A fuel burns in oxygen, making carbon dioxide and water.',
   },
 };
+
+const and = (items: string[]) =>
+  items.length > 1
+    ? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
+    : items[0];
+const shown = (formulas: string[]) =>
+  and(formulas.map((f) => formatFormula(f)));
+
+/** Why an equation is its type, in terms of its own formulas */
+export function explain(reaction: Reaction): string {
+  const { reactants, products } = reaction;
+  switch (classify(reaction)) {
+    case 'synthesis':
+      return `${shown(reactants)} combine into one product, ${shown(products)}.`;
+    case 'decomposition':
+      return `${shown(reactants)} breaks down into ${shown(products)}.`;
+    case 'single replacement': {
+      const incoming = reactants.find(isElement)!;
+      const compound = reactants.find((f) => !isElement(f))!;
+      const freed = products.find(isElement)!;
+      return `${shown([incoming])} takes the place of ${elementsIn(freed)[0]} in ${shown([compound])}, setting ${shown([freed])} free.`;
+    }
+    case 'double replacement':
+      return `${shown(reactants)} swap partners, making ${shown(products)}.`;
+    case 'combustion': {
+      const fuel = reactants.filter((f) => f !== 'O2');
+      return `${shown(fuel)} burns in oxygen, making CO₂ and H₂O.`;
+    }
+    default:
+      return 'This reaction fits none of the five patterns.';
+  }
+}
+
+/** Reaction Balancing's practice equations that fit one of the five types */
+export const SORT_POOL = REACTIONS.filter(
+  (r) => classify(parseEquation(r.equation)) !== 'other',
+);
+
+/** A random equation to sort, never the one just sorted */
+export function deal(previous: string | undefined, random = Math.random) {
+  const pool = SORT_POOL.filter((r) => r.id !== previous);
+  return pool[Math.floor(random() * pool.length)];
+}

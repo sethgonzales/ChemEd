@@ -1,6 +1,11 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import ChemicalReactions from '~/pages/chemical-reactions';
 
+const mockSay = jest.fn();
+jest.mock('~/components/guide', () => ({
+  useGuide: () => ({ say: mockSay, visible: false }),
+}));
+
 const stage = () => screen.getByRole('region', { name: 'Reaction' });
 const picture = () => within(stage()).getByRole('img');
 const atoms = () => picture().querySelectorAll('[data-atom]');
@@ -104,5 +109,88 @@ describe('Chemical Reactions: Explore', () => {
     expect(
       screen.getByRole('link', { name: /Reaction Balancing/ }),
     ).toHaveAttribute('href', '/reaction-balancing');
+  });
+});
+
+describe('Chemical Reactions: Sort', () => {
+  const sorter = () => screen.getByRole('region', { name: 'Sort' });
+  const answer = (type: string) =>
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Reaction type' })).getByRole(
+        'button',
+        { name: type },
+      ),
+    );
+  const open = () => {
+    render(<ChemicalReactions />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Sort' }));
+  };
+
+  beforeEach(() => {
+    mockSay.mockClear();
+    jest.spyOn(Math, 'random').mockReturnValue(0); // deals the first equation
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it('deals a balanced equation to sort', () => {
+    open();
+    expect(within(sorter()).getByText('2H₂ + O₂ → 2H₂O')).toBeInTheDocument();
+  });
+
+  it('says why a right answer is right, and scores it', () => {
+    open();
+    answer('Synthesis');
+    expect(within(sorter()).getByRole('status')).toHaveTextContent(
+      /Correct.*H₂ and O₂ combine into one product, H₂O/,
+    );
+    expect(within(sorter()).getByTestId('sort-score')).toHaveTextContent(
+      '1 of 1',
+    );
+  });
+
+  it('gives the right type and the reason after a wrong answer', () => {
+    open();
+    answer('Decomposition');
+    expect(within(sorter()).getByRole('status')).toHaveTextContent(
+      /Not quite: it’s a synthesis\. .*combine into one product/,
+    );
+    expect(within(sorter()).getByTestId('sort-score')).toHaveTextContent(
+      '0 of 1',
+    );
+    expect(
+      within(screen.getByRole('group', { name: 'Reaction type' })).getByRole(
+        'button',
+        { name: 'Combustion' },
+      ),
+    ).toBeDisabled();
+  });
+
+  it('deals a different equation on Next', () => {
+    open();
+    answer('Synthesis');
+    fireEvent.click(screen.getByRole('button', { name: 'Next equation' }));
+    expect(within(sorter()).getByText('N₂ + 3H₂ → 2NH₃')).toBeInTheDocument();
+    expect(within(sorter()).getByRole('status')).toHaveTextContent('');
+    expect(
+      within(screen.getByRole('group', { name: 'Reaction type' })).getByRole(
+        'button',
+        { name: 'Synthesis' },
+      ),
+    ).toBeEnabled();
+  });
+
+  it('has Mr. G cheer a streak of five', () => {
+    open();
+    for (let i = 0; i < 5; i++) {
+      answer('Synthesis'); // water and ammonia, dealt in turn
+      fireEvent.click(screen.getByRole('button', { name: 'Next equation' }));
+    }
+    expect(mockSay).toHaveBeenCalledWith(
+      expect.stringMatching(/5 in a row/),
+      'cheer',
+    );
+    expect(within(sorter()).getByTestId('sort-score')).toHaveTextContent(
+      'Streak: 5',
+    );
   });
 });
