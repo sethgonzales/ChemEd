@@ -76,3 +76,29 @@ export function apTags({ reactants, products }: Reaction): ApTag[] {
     tags.push('acid–base');
   return tags;
 }
+
+type FiveTypes = Exclude<ReactionType, 'other'>;
+
+/** The five types in teaching order, each with its general pattern */
+export const TYPES: Record<FiveTypes, { pattern: string; meaning: string }> = {
+  synthesis: {
+    pattern: 'A + B → AB',
+    meaning: 'Two or more substances combine into one product.',
+  },
+  decomposition: {
+    pattern: 'AB → A + B',
+    meaning: 'One compound breaks down into simpler substances.',
+  },
+  'single replacement': {
+    pattern: 'A + BC → AC + B',
+    meaning: 'An element takes the place of another element in a compound.',
+  },
+  'double replacement': {
+    pattern: 'AB + CD → AD + CB',
+    meaning: 'Two compounds swap partners.',
+  },
+  combustion: {
+    pattern: 'CₓHᵧ + O₂ → CO₂ + H₂O',
+    meaning: 'A fuel burns in oxygen, making carbon dioxide and water.',
+  },
+};

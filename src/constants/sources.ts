@@ -174,6 +174,16 @@ const ALL = {
     url: 'https://en.wikipedia.org/wiki/Self-ionization_of_water',
     accessed: '2026-11-13',
   },
+  openstaxIons: {
+    topic:
+      'Ion charges: common polyatomic ions (Table 2.5) and the 1− and 2− anions of groups 17 and 16 (Figure 2.29)',
+    author: 'Flowers, P., Theopold, K., Langley, R. and Robinson, W. R.',
+    year: 2019,
+    title: 'Chemistry 2e, section 2.6: Molecular and Ionic Compounds',
+    publisher: 'OpenStax',
+    url: 'https://openstax.org/books/chemistry-2e/pages/2-6-molecular-and-ionic-compounds',
+    accessed: '2026-11-16',
+  },
 } satisfies Record<string, Source>;
 
 export type SourceId = keyof typeof ALL;

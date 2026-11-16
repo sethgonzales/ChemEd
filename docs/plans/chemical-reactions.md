@@ -1,6 +1,6 @@
 # Chemical Reactions — plan
 
-Status: **phase 1 done** (16 Nov 2026): `classify` and `apTags` in `src/utils/reaction-types.ts`. The door on the home map stays sealed until it's built.
+Status: **phase 2 done** (16 Nov 2026): the Explore tab. The door on the home map stays sealed until it's built.
 
 Students meet the classic reaction types by seeing what happens to the atoms, then practise telling them apart, and (optionally) predicting what a reaction makes.
 
@@ -46,7 +46,7 @@ AP Chemistry groups reactions differently (precipitation, acid–base, redox). T
 ## Phases (each test-first)
 
 1. ~~Engine: `classify` and the AP tags, tested against the practice list~~ (done 16 Nov 2026)
-2. Explore tab: pick a type and example; the particle view regroups the atoms
+2. ~~Explore tab: pick a type and example; the particle view regroups the atoms~~ (done 16 Nov 2026: `src/utils/reaction-particles.ts`, `src/utils/particle-shapes.ts`, `src/components/reaction-particles.tsx`). Polyatomic ions that survive the reaction are one particle; molecules keep their real shapes (bent water, linear CO₂, zigzag chains, the glucose ring); ionic compounds alternate cations and anions.
 3. Sort tab: name the type of each equation Mr. G deals
 4. Predict tab: source and cite an activity series and solubility rules, then build the products (and tag precipitations)
 5. Mr. G tips, sources footer, unseal the door
