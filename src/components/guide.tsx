@@ -129,16 +129,17 @@ function SpeechBubble({
       aria-live="polite"
       // floats above him, so opening it never moves him
       // the frame's border doubles as padding
-      className="absolute bottom-full right-0 mb-4 w-64 text-sm leading-snug text-gray-900"
+      className="absolute bottom-full right-0 mb-4 w-64 text-sm leading-[1.3] text-gray-900"
       style={FRAME_STYLE}
     >
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-gray-400">Mr. G:</span>
         <button
           type="button"
           aria-label="Close message"
           onClick={onClose}
-          className="rounded p-0.5 text-gray-500 hover:bg-gray-100 cursor-pointer"
+          // overhangs the row, so the button doesn’t push the message down
+          className="-my-1 rounded p-0.5 text-gray-500 hover:bg-gray-100 cursor-pointer"
         >
           <IconX size={14} aria-hidden="true" />
         </button>
