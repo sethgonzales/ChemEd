@@ -59,10 +59,10 @@ export const SIMULATIONS: Simulation[] = [
     ready: true,
   },
   {
-    title: 'Chemical Reactions', // types of reactions, still being built
+    title: 'Chemical Reactions',
     path: '/chemical-reactions',
     art: 'reactions',
     color: '#f59e0b', // amber
-    ready: false,
+    ready: true,
   },
 ];

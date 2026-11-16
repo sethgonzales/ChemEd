@@ -1,6 +1,12 @@
 import { REACTIONS } from '~/constants/reactions';
 import { parseCompound, parseEquation, solve } from './reactions';
-import { keptGroups, shapeOf, type Particle } from './particle-shapes';
+import { SOURCES } from '~/constants/sources';
+import {
+  BOND_ANGLE_SOURCE,
+  keptGroups,
+  shapeOf,
+  type Particle,
+} from './particle-shapes';
 
 const kept = (equation: string) => {
   const reaction = parseEquation(equation);
@@ -49,11 +55,22 @@ describe('shapeOf', () => {
     expect(labels(shapeOf('Ca(OH)2', []))).toEqual({ Ca: 1, O: 2, H: 2 });
   });
 
-  it('bends water at 104.5°', () => {
+  it('bends water at its measured 104.48°', () => {
     const water = shapeOf('H2O', []);
     const [o] = find(water, 'O');
     const [h1, h2] = find(water, 'H');
-    expect(angle(h1, o, h2)).toBeCloseTo(104.5, 1);
+    expect(angle(h1, o, h2)).toBeCloseTo(104.4776, 3);
+  });
+
+  it('opens ammonia’s H–N–H angle to its measured 106.67°', () => {
+    const ammonia = shapeOf('NH3', []);
+    const [n] = find(ammonia, 'N');
+    const [down, ...sides] = find(ammonia, 'H');
+    for (const h of sides) expect(angle(down, n, h)).toBeCloseTo(106.67, 2);
+  });
+
+  it('cites the measured bond angles', () => {
+    expect(SOURCES[BOND_ANGLE_SOURCE]).toBeDefined();
   });
 
   it('keeps carbon dioxide straight', () => {

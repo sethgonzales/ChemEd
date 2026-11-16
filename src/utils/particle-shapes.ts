@@ -1,3 +1,4 @@
+import type { SourceId } from '~/constants/sources';
 import { ionsOf, isGroup } from './ions';
 import { parseCompound, type Reaction } from './reactions';
 
@@ -57,12 +58,17 @@ function place(node: Node, out: Particle[], x = 0, y = 0, rot = 0) {
 }
 
 // Molecules, drawn flat but with their real bond angles where it matters
-const WATER_ANGLE = 104.5; // degrees, H–O–H
+// measured bond angles, degrees (NIST CCCBDB experimental geometries)
+export const BOND_ANGLE_SOURCE: SourceId = 'cccbdb';
+const WATER_ANGLE = 104.4776; // H–O–H, Hoy & Bunker 1979
+const AMMONIA_ANGLE = 106.67; // H–N–H, Herzberg 1966
 const half = WATER_ANGLE / 2;
 const MOLECULES: Record<string, () => Node> = {
   H2O: () => atom('O', [90 - half, H()], [90 + half, H()]), // bent
   CO2: () => atom('C', [0, atom('O')], [180, atom('O')]), // linear
-  NH3: () => atom('N', [90, H()], [90 + 107, H()], [90 - 107, H()]), // pyramid, seen from the side
+  // a pyramid seen from the side: each outer H at the real angle to the lower one
+  NH3: () =>
+    atom('N', [90, H()], [90 + AMMONIA_ANGLE, H()], [90 - AMMONIA_ANGLE, H()]),
   CH4: () => atom('C', [0, H()], [90, H()], [180, H()], [270, H()]), // tetrahedron, flattened
   H2O2: () => atom('O', [210, H()], [0, atom('O', [60, H()])]), // skewed chain
   C2H6: () => chain(['C', 'C']),

@@ -103,6 +103,18 @@ describe('Chemical Reactions: Explore', () => {
     expect(within(picture()).getAllByText('Cu')).toHaveLength(3);
   });
 
+  it('cites where its facts come from', () => {
+    render(<ChemicalReactions />);
+    for (const title of [
+      /Chemistry 2e, section 2\.6/, // ion charges
+      /Chemistry 2e, section 4\.2/, // solubility and strong acids
+      /Chemistry 2e, section 14\.3/, // strong bases
+      /Standard electrode potential/, // the activity series
+      /Computational Chemistry Comparison/, // bond angles
+    ])
+      expect(screen.getByText(title)).toBeInTheDocument();
+  });
+
   // old bookmarks to this page used to open balancing
   it('points the way to Reaction Balancing', () => {
     render(<ChemicalReactions />);

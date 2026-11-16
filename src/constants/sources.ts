@@ -203,6 +203,17 @@ const ALL = {
     url: 'https://openstax.org/books/chemistry-2e/pages/14-3-relative-strengths-of-acids-and-bases',
     accessed: '2026-11-16',
   },
+  cccbdb: {
+    topic:
+      'Bond angles: water H–O–H 104.4776° (Hoy and Bunker, 1979) and ammonia H–N–H 106.67° (Herzberg, 1966)',
+    author: 'NIST',
+    year: 2022,
+    title:
+      'Computational Chemistry Comparison and Benchmark Database, Release 22: experimental geometries',
+    publisher: 'NIST Standard Reference Database 101',
+    url: 'https://cccbdb.nist.gov/expgeom2x.asp?casno=7732185',
+    accessed: '2026-11-16',
+  },
 } satisfies Record<string, Source>;
 
 export type SourceId = keyof typeof ALL;

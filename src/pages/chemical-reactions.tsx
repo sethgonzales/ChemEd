@@ -11,6 +11,10 @@ import Tabs from '~/components/tabs';
 import { balancedEquation, examplesOf } from '~/utils/reaction-particles';
 import { apTags, TYPES } from '~/utils/reaction-types';
 import { parseEquation, solve } from '~/utils/reactions';
+import { ION_CHARGE_SOURCE } from '~/constants/ions';
+import { SOLUBILITY_SOURCE, STRONG_SOURCE } from '~/constants/solubility';
+import { BOND_ANGLE_SOURCE } from '~/utils/particle-shapes';
+import { ACTIVITY_SOURCE } from '~/utils/solubility';
 
 type Type = keyof typeof TYPES;
 const capital = (s: string) => s[0].toUpperCase() + s.slice(1);
@@ -139,7 +143,14 @@ export default function ChemicalReactions() {
     <Container
       backHref="/"
       header="Chemical Reactions"
-      description="See how atoms regroup in each type of reaction, then learn to tell the types apart."
+      sources={[
+        ION_CHARGE_SOURCE,
+        SOLUBILITY_SOURCE,
+        STRONG_SOURCE,
+        ACTIVITY_SOURCE,
+        BOND_ANGLE_SOURCE,
+      ]}
+      description="See how atoms regroup in each type of reaction, learn to tell the types apart, then predict the products."
       className="gap-4"
     >
       <Tabs

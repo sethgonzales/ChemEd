@@ -49,11 +49,11 @@ describe('Home page', () => {
     expect(push).toHaveBeenCalledWith('/electrochemistry');
   });
 
-  it('keeps the Chemical Reactions door sealed for now', async () => {
+  it('opens the Chemical Reactions door now it’s built', async () => {
     render(<Home />);
     await userEvent.click(
-      screen.getByRole('button', { name: 'Chemical Reactions (coming soon)' }),
+      screen.getByRole('button', { name: 'Chemical Reactions' }),
     );
-    expect(push).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith('/chemical-reactions');
   });
 });

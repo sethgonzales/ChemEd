@@ -31,9 +31,7 @@ describe('SIMULATIONS', () => {
     expect(new Set(colors).size).toBe(colors.length);
   });
 
-  it('seals Chemical Reactions while its reaction types are built', () => {
-    expect(SIMULATIONS.filter((s) => !s.ready).map((s) => s.title)).toEqual([
-      'Chemical Reactions',
-    ]);
+  it('opens every door now Chemical Reactions is built', () => {
+    expect(SIMULATIONS.filter((s) => !s.ready)).toEqual([]);
   });
 });

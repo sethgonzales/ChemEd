@@ -58,6 +58,14 @@ export const PAGE_TIPS: Record<string, string[]> = {
     'Tap an electrode or the salt bridge to zoom in on the atoms, ions and electrons.',
     'On the Electrolytic tab a power supply forces a reaction. Faraday’s law tells you how much it makes.',
   ],
+  '/chemical-reactions': [
+    'Read the pattern: A + B → AB is synthesis, AB → A + B is decomposition. Count the pieces on each side.',
+    'In a single replacement, a metal only takes another’s place if it’s higher in the activity series.',
+    'In a double replacement, look for a product that won’t dissolve: that’s the precipitate, written (s).',
+    'An acid and a hydroxide base make water: H⁺ + OH⁻ → H₂O. That’s neutralization.',
+    'Ions that look the same on both sides are spectators. Cross them out to get the net ionic equation.',
+    'Build a formula by crossing the charges: Al³⁺ and SO₄²⁻ make Al₂(SO₄)₃.',
+  ],
 };
 
 /** For pages without their own tips */

@@ -9,6 +9,7 @@ const PAGES = [
   '/reaction-balancing',
   '/electron-configurations',
   '/electrochemistry',
+  '/chemical-reactions',
 ];
 
 describe('Mr. G page tips', () => {
@@ -25,8 +26,11 @@ describe('Mr. G page tips', () => {
     expect(GENERAL_TIPS.length).toBeGreaterThan(0);
   });
 
-  it('leaves unbuilt Chemical Reactions to the general tips', () => {
-    expect(PAGE_TIPS['/chemical-reactions']).toBeUndefined();
+  it('teaches the reaction types and how to predict them', () => {
+    const tips = PAGE_TIPS['/chemical-reactions'].join(' ');
+    expect(tips).toMatch(/activity series/i);
+    expect(tips).toMatch(/precipitate/i);
+    expect(tips).toMatch(/spectator/i);
   });
 });
 
