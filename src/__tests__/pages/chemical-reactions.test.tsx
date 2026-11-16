@@ -209,85 +209,105 @@ describe('Chemical Reactions: Sort', () => {
 
 describe('Chemical Reactions: Predict', () => {
   const predictor = () => screen.getByRole('region', { name: 'Predict' });
-  const tap = (name: string | RegExp) =>
-    fireEvent.click(within(predictor()).getByRole('button', { name }));
-  // the button row sits below the stage
   const press = (name: string) =>
     fireEvent.click(screen.getByRole('button', { name }));
-  const chip = (name: string) =>
-    fireEvent.click(
-      within(screen.getByRole('group', { name: 'Pieces' })).getByRole(
-        'button',
-        { name },
-      ),
-    );
-  const state = (product: number, name: string) =>
-    fireEvent.click(
-      within(
-        screen.getByRole('group', { name: `Product ${product} state` }),
-      ).getByRole('button', { name }),
-    );
+  const blank = (n: number) =>
+    within(predictor()).getByRole('textbox', { name: `Product ${n}` });
+  const write = (n: number, text: string, state?: string) => {
+    fireEvent.change(blank(n), { target: { value: text } });
+    if (state)
+      fireEvent.change(
+        within(predictor()).getByRole('combobox', {
+          name: `Product ${n} state`,
+        }),
+        { target: { value: state } },
+      );
+  };
   const open = () => {
     render(<ChemicalReactions />);
     fireEvent.click(screen.getByRole('tab', { name: 'Predict' }));
   };
   // Mg(s) + Al(NO₃)₃(aq) → Mg(NO₃)₂(aq) + Al(s)
-  const buildRight = () => {
-    tap(/^Product 1/);
-    chip('Mg²⁺');
-    chip('NO₃⁻');
-    state(1, 'aqueous');
-    tap(/^Product 2/);
-    chip('Al');
-    state(2, 'solid');
+  const writeRight = () => {
+    write(1, 'Mg(NO3)2', 'aq');
+    write(2, 'Al', 's');
   };
   const status = () => within(predictor()).getByRole('status');
+  const picture = () =>
+    within(predictor()).getByRole('img', { name: /beaker/i });
 
   beforeEach(() => {
     mockSay.mockClear();
     jest.spyOn(Math, 'random').mockReturnValue(0); // deals the first puzzle
   });
-  afterEach(() => jest.restoreAllMocks());
-
-  it('deals reactants to predict', () => {
-    open();
-    expect(
-      within(predictor()).getByText('Mg(s) + Al(NO₃)₃(aq) → ?'),
-    ).toBeInTheDocument();
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
-  it('builds a formula from the ions’ charges', () => {
+  it('deals reactants to predict, with the beaker as it starts', () => {
     open();
-    tap(/^Product 1/);
-    chip('Mg²⁺');
-    chip('NO₃⁻');
     expect(
-      within(predictor()).getByRole('button', {
-        name: 'Product 1: Mg(NO₃)₂',
-      }),
+      within(predictor()).getByText('Mg(s) + Al(NO₃)₃(aq) →'),
     ).toBeInTheDocument();
+    expect(picture()).toHaveAccessibleName(
+      /before: 3 Mg \(solid\).*Al³⁺.*NO₃⁻/,
+    );
   });
 
-  it('marks right products and states correct, with the net ionic equation', () => {
+  it('turns typed numbers into subscripts', () => {
     open();
-    buildRight();
+    write(1, 'Mg(NO3)2');
+    expect(blank(1)).toHaveValue('Mg(NO₃)₂');
+  });
+
+  it('only checks once both products have a formula and a state', () => {
+    open();
+    write(1, 'Mg(NO3)2', 'aq');
+    expect(screen.getByRole('button', { name: 'Check' })).toBeDisabled();
+    write(2, 'Al', 's');
+    expect(screen.getByRole('button', { name: 'Check' })).toBeEnabled();
+  });
+
+  it('marks it correct, crossing out the spectators to leave the net ionic equation', () => {
+    open();
+    writeRight();
     press('Check');
     expect(status()).toHaveTextContent(/Correct/);
+    expect(status()).toHaveTextContent(/6NO₃⁻\(aq\) \(spectator\)/);
     expect(status()).toHaveTextContent(
       '3Mg(s) + 2Al³⁺(aq) → 3Mg²⁺(aq) + 2Al(s)',
     );
-    expect(status()).toHaveTextContent(/Spectators: NO₃⁻/);
     expect(within(predictor()).getByTestId('predict-score')).toHaveTextContent(
       '1 of 1',
     );
   });
 
-  it('says when only the states are wrong', () => {
+  it('shows the products forming in the beaker after Check', () => {
+    jest.useFakeTimers();
     open();
-    buildRight();
-    state(1, 'solid');
+    writeRight();
+    press('Check');
+    act(() => jest.advanceTimersByTime(5000));
+    expect(picture()).toHaveAccessibleName(/after: 3 Mg²⁺.*Al \(solid\)/);
+  });
+
+  it('hints at what’s wrong with a typed formula', () => {
+    open();
+    write(1, 'MgNO3', 'aq');
+    write(2, 'Al', 's');
+    press('Check');
+    expect(status()).toHaveTextContent(/Not quite/);
+    expect(within(predictor()).getByText(/MgNO₃ isn’t neutral/)).toBeVisible();
+  });
+
+  it('says when only a state is wrong', () => {
+    open();
+    write(1, 'Mg(NO3)2', 's');
+    write(2, 'Al', 's');
     press('Check');
     expect(status()).toHaveTextContent(/states/i);
+    expect(within(predictor()).getByText(/check its state/i)).toBeVisible();
   });
 
   it('says there is a reaction after a wrong No reaction', () => {
@@ -297,17 +317,15 @@ describe('Chemical Reactions: Predict', () => {
     expect(status()).toHaveTextContent(/Mg is above Al/);
   });
 
-  it('clears the products for the next reactants', () => {
+  it('clears the blanks for the next reactants', () => {
     open();
-    buildRight();
+    writeRight();
     press('Check');
     press('Next reactants');
     expect(
-      within(predictor()).getByText('Mg(s) + Zn(NO₃)₂(aq) → ?'),
+      within(predictor()).getByText('Mg(s) + Zn(NO₃)₂(aq) →'),
     ).toBeInTheDocument();
-    expect(
-      within(predictor()).getByRole('button', { name: 'Product 1: empty' }),
-    ).toBeInTheDocument();
+    expect(blank(1)).toHaveValue('');
     expect(status()).toHaveTextContent('');
   });
 });

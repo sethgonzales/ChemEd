@@ -17,7 +17,10 @@ export interface Prediction {
   equation: string; // balanced, with states
   netIonic: string;
   spectators: string[];
+  ionic: { left: IonicTerm[]; right: IonicTerm[] }; // complete, before cancelling
 }
+
+export type IonicTerm = { text: string; spectator: boolean };
 
 // a free element as it is found: hydrogen as H₂, metals as atoms
 const elementFormula = (symbol: string) => (symbol === 'H' ? 'H2' : symbol);
@@ -80,6 +83,13 @@ function equations(reactants: Product[], products: Product[]) {
   };
   const left = species(reactants, 0);
   const right = species(products, n);
+  // every species written out, spectators marked, before any cancel
+  const complete = (side: typeof left, other: typeof left): IonicTerm[] =>
+    [...side].map(([key, { count }]) => ({
+      text: `${count === 1 ? '' : count}${key}`,
+      spectator: other.has(key),
+    }));
+  const ionic = { left: complete(left, right), right: complete(right, left) };
   const spectators: string[] = [];
   for (const [key, { count, ion }] of left) {
     const other = right.get(key);
@@ -104,7 +114,7 @@ function equations(reactants: Product[], products: Product[]) {
       })
       .join(' + ');
   const netIonic = `${write(left)} → ${write(right)}`;
-  return { equation, netIonic, spectators };
+  return { equation, netIonic, spectators, ionic };
 }
 
 const noReaction = (
@@ -119,6 +129,7 @@ const noReaction = (
   equation: `${reactants.map((r) => `${show(r.formula)}(${r.state})`).join(' + ')} → no reaction`,
   netIonic: '',
   spectators: [],
+  ionic: { left: [], right: [] },
 });
 
 /** What a single or double replacement makes, or why nothing happens */

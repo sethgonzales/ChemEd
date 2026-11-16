@@ -15,7 +15,7 @@ const DURATION = 2500; // ms for the atoms to regroup
 const TICK = 30; // ms between frames
 
 // one theme shade per element, so every theme works; dark text on light shades
-const SHADES = [
+export const SHADES = [
   { fill: 'fill-secondary-500', text: 'fill-primary-900' },
   { fill: 'fill-secondary-200', text: 'fill-primary-900' },
   { fill: 'fill-secondary-800', text: 'fill-white' },

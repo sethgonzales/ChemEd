@@ -124,6 +124,32 @@ describe('predict: double replacement, by solubility', () => {
   });
 });
 
+describe('the complete ionic equation', () => {
+  const terms = (list: { text: string; spectator: boolean }[]) =>
+    list.map((t) => (t.spectator ? `[${t.text}]` : t.text));
+
+  it('splits dissolved compounds and marks the spectators', () => {
+    const { ionic } = predict(['AgNO3', 'NaCl']);
+    expect(terms(ionic.left)).toEqual([
+      'Ag⁺(aq)',
+      '[NO₃⁻(aq)]',
+      '[Na⁺(aq)]',
+      'Cl⁻(aq)',
+    ]);
+    expect(terms(ionic.right)).toEqual(['AgCl(s)', '[Na⁺(aq)]', '[NO₃⁻(aq)]']);
+  });
+
+  it('keeps coefficients from the balanced equation', () => {
+    const { ionic } = predict(['Zn', 'HCl']);
+    expect(terms(ionic.left)).toEqual(['Zn(s)', '2H⁺(aq)', '[2Cl⁻(aq)]']);
+    expect(terms(ionic.right)).toEqual(['Zn²⁺(aq)', '[2Cl⁻(aq)]', 'H₂(g)']);
+  });
+
+  it('is empty when nothing happens', () => {
+    expect(predict(['Cu', 'Zn(NO3)2']).ionic).toEqual({ left: [], right: [] });
+  });
+});
+
 describe('check: grading built products', () => {
   const zn = predict(['Zn', 'CuSO4']);
 
