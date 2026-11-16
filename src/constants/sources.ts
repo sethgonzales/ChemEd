@@ -184,6 +184,25 @@ const ALL = {
     url: 'https://openstax.org/books/chemistry-2e/pages/2-6-molecular-and-ionic-compounds',
     accessed: '2026-11-16',
   },
+  openstaxReactions: {
+    topic:
+      'Solubility of common ionic compounds in water (Table 4.1) and the common strong acids (Table 4.2)',
+    author: 'Flowers, P., Theopold, K., Langley, R. and Robinson, W. R.',
+    year: 2019,
+    title: 'Chemistry 2e, section 4.2: Classifying Chemical Reactions',
+    publisher: 'OpenStax',
+    url: 'https://openstax.org/books/chemistry-2e/pages/4-2-classifying-chemical-reactions',
+    accessed: '2026-11-16',
+  },
+  openstaxStrength: {
+    topic: 'The common strong acids and strong bases (Figure 14.6)',
+    author: 'Flowers, P., Theopold, K., Langley, R. and Robinson, W. R.',
+    year: 2019,
+    title: 'Chemistry 2e, section 14.3: Relative Strengths of Acids and Bases',
+    publisher: 'OpenStax',
+    url: 'https://openstax.org/books/chemistry-2e/pages/14-3-relative-strengths-of-acids-and-bases',
+    accessed: '2026-11-16',
+  },
 } satisfies Record<string, Source>;
 
 export type SourceId = keyof typeof ALL;
