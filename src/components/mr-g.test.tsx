@@ -1,5 +1,12 @@
 import { render, screen } from '@testing-library/react';
-import { FRAMES, PALETTE } from '~/constants/mr-g-sprite';
+import {
+  FRAMES,
+  PALETTE,
+  SPRITE_HEIGHT,
+  SPRITE_WIDTH,
+  spriteRows,
+  type Frame,
+} from '~/constants/mr-g-sprite';
 import MrG from './mr-g';
 
 describe('MrG', () => {
@@ -36,4 +43,47 @@ describe('MrG', () => {
     );
     expect(container.querySelectorAll('rect')).toHaveLength(runs);
   });
+});
+
+describe('MrG in a wet lab', () => {
+  const eyeRow = (rows: string[]) => rows.findIndex((r) => r.includes('E'));
+  const lensRow = (rows: string[]) => rows.findIndex((r) => r.includes('L'));
+
+  it('says he’s wearing safety goggles', () => {
+    render(<MrG goggles />);
+    expect(
+      screen.getByRole('img', { name: 'Mr. G, wearing safety goggles' }),
+    ).toBeInTheDocument();
+  });
+
+  it('wears them pushed up on his head otherwise', () => {
+    const rows = spriteRows('idle', false);
+    expect(lensRow(rows)).toBeLessThan(eyeRow(rows)); // lenses above his eyes
+  });
+
+  it('pulls them down over his eyes, which still show through', () => {
+    const rows = spriteRows('idle', true);
+    const eyes = eyeRow(rows);
+    expect(eyes).toBeGreaterThan(0);
+    // goggle frames above, beside and below the eyes; none left in his hair
+    expect(rows[eyes]).toMatch(/G.*E.*G.*G.*E.*G/);
+    expect(rows[eyes - 1]).toMatch(/G/);
+    expect(rows[eyes + 1]).toMatch(/G/);
+    expect(rows.slice(0, eyes - 1).join('')).not.toMatch(/[GgL]/);
+  });
+
+  it('blinks behind them', () => {
+    const rows = spriteRows('blink', true);
+    expect(rows.join('')).not.toMatch(/E/);
+    expect(rows.join('')).toMatch(/G/);
+  });
+
+  it.each(Object.keys(FRAMES) as Frame[])(
+    'keeps the %s frame the same size',
+    (frame) => {
+      const rows = spriteRows(frame, true);
+      expect(rows).toHaveLength(SPRITE_HEIGHT);
+      for (const row of rows) expect(row).toHaveLength(SPRITE_WIDTH);
+    },
+  );
 });

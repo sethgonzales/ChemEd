@@ -85,3 +85,23 @@ export const FRAMES = {
 };
 
 export type Frame = keyof typeof FRAMES;
+
+// In a wet lab his goggles come down over his eyes: hair where they sat, and
+// frames round each eye, which still shows through the lens.
+const GOGGLES_DOWN: Record<number, string> = {
+  3: '...KHHhHHHHHHhHHK...', // just hair now
+  4: '...KHHHHhHHHhHHHK...',
+  5: '...KHHSSSSSSSSHHK...', // his hairline
+  7: '...KSGGGGSSGGGGSK...', // goggle frames over the brows' ends
+  8: '...KgGEEGggGEEGgK...', // eyes through the lenses; the strap at the sides
+  9: '..KSSGGGGSSGGGGSSK..',
+};
+const BLINK_IN_GOGGLES = '...KgGKKGggGKKGgK...';
+
+/** A frame's rows, with his goggles over his eyes or pushed up on his head */
+export function spriteRows(frame: Frame, goggles: boolean): string[] {
+  if (!goggles) return FRAMES[frame];
+  return FRAMES[frame].map((row, i) =>
+    i === 8 && frame === 'blink' ? BLINK_IN_GOGGLES : (GOGGLES_DOWN[i] ?? row),
+  );
+}

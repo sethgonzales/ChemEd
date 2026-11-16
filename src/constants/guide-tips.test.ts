@@ -1,4 +1,5 @@
-import { GENERAL_TIPS, PAGE_TIPS } from './guide-tips';
+import { SIMULATIONS } from './index';
+import { GENERAL_TIPS, PAGE_TIPS, WET_LABS } from './guide-tips';
 
 const PAGES = [
   '/',
@@ -67,5 +68,13 @@ describe('Electrochemistry tips', () => {
   it('point to the close-up and the Electrolytic tab', () => {
     expect(tips().some((t) => /zoom/i.test(t))).toBe(true);
     expect(tips().some((t) => /Electrolytic/.test(t))).toBe(true);
+  });
+});
+
+describe('WET_LABS', () => {
+  it('lists the simulations with chemicals on the bench', () => {
+    expect(WET_LABS).toEqual(['/titrations', '/electrochemistry']);
+    for (const page of WET_LABS)
+      expect(SIMULATIONS.some((s) => s.path === page)).toBe(true);
   });
 });

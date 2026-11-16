@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { IconX } from '@tabler/icons-react';
 import MrG from '~/components/mr-g';
+import { WET_LABS } from '~/constants/guide-tips';
 import { PALETTE, type Frame } from '~/constants/mr-g-sprite';
 import {
   UNPROMPTED_GAP_MS,
@@ -308,6 +309,7 @@ function Corner({
           >
             <MrG
               frame={frame}
+              goggles={WET_LABS.includes(page ?? '')}
               className={facingLeft ? '-scale-x-100' : undefined}
             />
           </button>

@@ -65,3 +65,6 @@ export const GENERAL_TIPS = [
   'This simulation is still being built. Check back soon!',
   'Click me any time for a tip.',
 ];
+
+// pages with chemicals on the bench, where Mr. G wears his goggles over his eyes
+export const WET_LABS = ['/titrations', '/electrochemistry'];

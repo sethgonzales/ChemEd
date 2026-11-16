@@ -5,6 +5,7 @@ import {
   bubbleDuration,
   WELCOME_DELAY_MS,
 } from '~/utils/guide';
+import { WET_LABS } from '~/constants/guide-tips';
 import { GuideProvider, useGuide } from './guide';
 
 const playTreasure = jest.fn();
@@ -295,5 +296,19 @@ describe('Mr. G guide', () => {
     mockScreen({ desktop: false });
     renderGuide();
     expect(screen.getByTestId('visible')).toHaveTextContent('not showing');
+  });
+});
+
+describe('Mr. G’s safety goggles', () => {
+  const pictured = () => screen.getByRole('img', { name: /^Mr\. G/ });
+
+  it.each(WET_LABS)('wears them over his eyes in the %s lab', (page) => {
+    renderGuide(page);
+    expect(pictured()).toHaveAccessibleName('Mr. G, wearing safety goggles');
+  });
+
+  it('pushes them up on pages without chemicals', () => {
+    renderGuide('/lewis-structures');
+    expect(pictured()).toHaveAccessibleName('Mr. G');
   });
 });
