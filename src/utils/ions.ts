@@ -15,16 +15,26 @@ function anionCharge(symbol: string) {
   return GROUP_ANION_CHARGES[findElement(symbol)?.group ?? 0];
 }
 
-/** The ions in a salt, acid or base, or null for an element or a molecule */
-export function ionsOf(formula: string) {
+/** A formula read as cation then anion, with counts, before any chemistry */
+export function splitSalt(formula: string) {
   const m = formula.match(/^([A-Z][a-z]?)(\d*)([A-Z(].*)$/);
   if (!m) return null;
   const [, symbol, n, rest] = m;
   const bracketed = rest.match(/^\((.+)\)(\d+)$/);
   const single = rest.match(/^([A-Z][a-z]?)(\d*)$/);
-  const anion = bracketed?.[1] ?? single?.[1] ?? rest;
-  const anions = Number(bracketed?.[2] ?? single?.[2] ?? 1) || 1;
-  const cations = Number(n) || 1;
+  return {
+    symbol,
+    cations: Number(n) || 1,
+    anion: bracketed?.[1] ?? single?.[1] ?? rest,
+    anions: Number(bracketed?.[2] ?? single?.[2] ?? 1) || 1,
+  };
+}
+
+/** The ions in a salt, acid or base, or null for an element or a molecule */
+export function ionsOf(formula: string) {
+  const parts = splitSalt(formula);
+  if (!parts) return null;
+  const { symbol, cations, anion, anions } = parts;
 
   const el = findElement(symbol);
   const metal = el !== null && elementCategory(el) === 'metal';
