@@ -109,9 +109,10 @@ describe('States of Matter page', () => {
   it.each([
     [-20, 'Solid', null],
     [-3, 'Solid', 'Near the melting point'],
-    [0, 'Liquid', 'Near the melting point'],
+    [0, 'Liquid', 'At the melting point: melting or freezing'],
     [50, 'Liquid', null],
     [98, 'Liquid', 'Near the boiling point'],
+    [100, 'Gas', 'At the boiling point: boiling or condensing'],
     [110, 'Gas', null],
   ])('labels %i°C as %s', (temp, name, hint) => {
     renderPage();

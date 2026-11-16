@@ -260,6 +260,27 @@ describe('substances', () => {
     expect(phaseOf(mercury, 20)).toBe('Liquid');
   });
 
+  it('says it’s melting or boiling at the point itself, not just near it', () => {
+    expect(phaseHint(water, 0)).toBe(
+      'At the melting point: melting or freezing',
+    );
+    expect(phaseHint(water, 100)).toBe(
+      'At the boiling point: boiling or condensing',
+    );
+    // the slider moves in whole degrees, so the nearest one counts
+    expect(phaseHint(benzene, 5)).toBe(
+      'At the melting point: melting or freezing',
+    );
+    expect(phaseHint(benzene, 80)).toBe(
+      'At the boiling point: boiling or condensing',
+    );
+    expect(phaseHint(mercury, -39)).toBe(
+      'At the melting point: melting or freezing',
+    );
+    expect(phaseHint(water, 99)).toBe('Near the boiling point');
+    expect(phaseHint(water, 1)).toBe('Near the melting point');
+  });
+
   it('notes when a temperature is near a phase change', () => {
     expect(phaseHint(water, 98)).toBe('Near the boiling point');
     expect(phaseHint(water, 50)).toBeNull();

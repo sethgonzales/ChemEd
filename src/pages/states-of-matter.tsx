@@ -209,7 +209,11 @@ export default function StatesOfMatter() {
               </span>
               {hint && <span className="text-xs">{hint}</span>}
             </div>
-            <div data-testid="temperature" className="text-right leading-tight">
+            {/* the reading stays on one line; the hint beside it wraps instead */}
+            <div
+              data-testid="temperature"
+              className="shrink-0 whitespace-nowrap text-right leading-tight"
+            >
               <span className="block text-3xl font-bold">{temperature} °C</span>
               <span className="block text-sm text-white/70">
                 {Math.round(temperature + KELVIN_OFFSET)} K

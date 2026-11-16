@@ -400,6 +400,7 @@ export function step(sim: Simulation, tempC: number, dt: number) {
 const LIQUID_RANGE = BOIL_POINT_C - MELT_POINT_C;
 const RANGE_MARGIN = (MELT_POINT_C - TEMP_MIN_C) / LIQUID_RANGE; // either side, as a fraction of the liquid range
 const BAND_FRACTION = MELT_BAND_C / LIQUID_RANGE;
+const AT_POINT = 0.5; // °C; within half the slider's 1° step counts as at the point
 
 const span = (s: Substance) => s.boilC - s.meltC;
 
@@ -422,8 +423,12 @@ export function phaseOf(s: Substance, tempC: number): Phase {
   return 'Gas';
 }
 
-// inside a transition band the particles are partway between phases
+// inside a transition band the particles are partway between phases; at the
+// point itself (to the slider's nearest whole degree) both phases coexist
 export function phaseHint(s: Substance, tempC: number) {
+  const at = (point: number) => Math.abs(tempC - point) <= AT_POINT;
+  if (at(s.meltC)) return 'At the melting point: melting or freezing';
+  if (at(s.boilC)) return 'At the boiling point: boiling or condensing';
   const band = span(s) * BAND_FRACTION;
   if (Math.abs(tempC - s.meltC) <= band) return 'Near the melting point';
   if (Math.abs(tempC - s.boilC) <= band) return 'Near the boiling point';
