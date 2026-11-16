@@ -4,6 +4,7 @@ import Button from '~/components/button';
 import Container from '~/components/container';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
 import ReactionParticles from '~/components/reaction-particles';
+import ReactionPredict from '~/components/reaction-predict';
 import ReactionSort from '~/components/reaction-sort';
 import Stage from '~/components/stage';
 import Tabs from '~/components/tabs';
@@ -146,6 +147,7 @@ export default function ChemicalReactions() {
         tabs={[
           { id: 'explore', label: 'Explore', content: <Explore /> },
           { id: 'sort', label: 'Sort', content: <ReactionSort /> },
+          { id: 'predict', label: 'Predict', content: <ReactionPredict /> },
         ]}
       />
       <p className="text-sm">

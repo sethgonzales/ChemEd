@@ -1,6 +1,6 @@
 # Chemical Reactions — plan
 
-Status: **phase 3 done** (16 Nov 2026): Explore and Sort. The door on the home map stays sealed until it's built.
+Status: **phase 4 done** (16 Nov 2026): Explore, Sort and Predict. The door on the home map stays sealed until phase 5.
 
 Students meet the classic reaction types by seeing what happens to the atoms, then practise telling them apart, and (optionally) predicting what a reaction makes.
 
@@ -51,5 +51,5 @@ AP Chemistry groups reactions differently (precipitation, acid–base, redox). T
 4. Predict tab: source and cite an activity series and solubility rules, then build the products (and tag precipitations)
    - ~~4a. Data~~ (done 16 Nov 2026, `src/constants/solubility.ts`, `src/utils/solubility.ts`): solubility rules from OpenStax Chemistry 2e Table 4.1; strong acids from Table 4.2 and strong bases from Figure 14.6; the activity series read off the cited E° values already in Electrochemistry (Mg > Al > Zn > Fe > Ni > Pb > H > Cu > Ag), since OpenStax has no activity series of its own.
    - ~~4b. Engine~~ (done 16 Nov 2026, `src/utils/predict.ts`, with the shared `ionsOf` and `compound` in `src/utils/ions.ts`): predicts the products (or no reaction, with the reason) of a single or double replacement, with states, the balanced molecular equation and the net ionic equation with spectators; `check` grades built products (correct, wrong state, wrong products, missed reaction, no reaction). `PREDICT_POOL` holds 139 puzzles: every metal in every other metal's nitrate and in HCl, and pairs of 15 solutions; acids with carbonates are left out, since they give off CO₂, which the engine doesn't model.
-   - 4c. Tab: Mr. G deals reactants; students **build the products** from ion chips (formula from the charges), pick each product's state, or answer No reaction. Feedback shows the molecular and net ionic equations and why (decided 16 Nov 2026).
+   - ~~4c. Tab~~ (done 16 Nov 2026, `src/components/reaction-predict.tsx`; score and streak shared with Sort through `src/components/use-score.ts`): Mr. G deals reactants; students **build the products** from ion chips (formula from the charges), pick each product's state, or answer No reaction. Feedback shows the molecular and net ionic equations and why (decided 16 Nov 2026).
 5. Mr. G tips, sources footer, unseal the door

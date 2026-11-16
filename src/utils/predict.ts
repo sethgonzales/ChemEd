@@ -276,3 +276,39 @@ export const PREDICT_POOL: [string, string][] = [
       .map((b): [string, string] => [a, b]),
   ),
 ];
+
+/**
+ * The chips for building products: every ion in the reactants, the ion a free
+ * metal would form, and (for a single replacement) the free elements
+ */
+export function pieces(reactants: [string, string]) {
+  const ions: Ion[] = [];
+  const wholes: string[] = [];
+  const addIon = (ion: Ion) => {
+    if (!ions.some((i) => i.symbol === ion.symbol && i.charge === ion.charge))
+      ions.push(ion);
+  };
+  const free = reactants.find(isElement);
+  for (const formula of reactants) {
+    const parts = ionsOf(formula);
+    if (parts) {
+      addIon(parts.cation);
+      addIon(parts.anion);
+      if (free) wholes.push(elementFormula(parts.cation.symbol));
+    } else {
+      const metal = elementsIn(formula)[0];
+      addIon({ symbol: metal, charge: metalCharge(metal)! });
+      wholes.push(formula);
+    }
+  }
+  return { ions, wholes };
+}
+
+/** The index of a random puzzle, never the one just played */
+export function dealPredict(
+  previous: number | undefined,
+  random = Math.random,
+) {
+  const choices = PREDICT_POOL.map((_, i) => i).filter((i) => i !== previous);
+  return choices[Math.floor(random() * choices.length)];
+}

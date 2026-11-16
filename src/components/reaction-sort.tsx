@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Button from '~/components/button';
-import { useGuide } from '~/components/guide';
+import { useScore } from '~/components/use-score';
 import Stage from '~/components/stage';
 import { cn } from '~/utils/cn';
 import { balancedEquation } from '~/utils/reaction-particles';
@@ -14,17 +14,18 @@ import {
 } from '~/utils/reaction-types';
 import { parseEquation, solve } from '~/utils/reactions';
 
-const CHEER_EVERY = 5; // correct answers in a row before Mr. G cheers
 const capital = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 /** Mr. G deals equations; name the type of each */
 export default function ReactionSort() {
-  const { say } = useGuide();
+  const { score, record } = useScore(
+    (streak) =>
+      `${streak} in a row! You can read a reaction’s pattern at a glance.`,
+  );
   // the first deal waits for the browser, so the static page matches it
   const [current, setCurrent] = useState(SORT_POOL[0]);
   useEffect(() => setCurrent(deal(undefined)), []);
   const [picked, setPicked] = useState<ReactionType | null>(null);
-  const [score, setScore] = useState({ right: 0, total: 0, streak: 0 });
 
   const { reaction, equation, type } = useMemo(() => {
     const reaction = parseEquation(current.equation);
@@ -37,18 +38,7 @@ export default function ReactionSort() {
 
   const answer = (choice: ReactionType) => {
     setPicked(choice);
-    const right = choice === type;
-    const streak = right ? score.streak + 1 : 0;
-    setScore({
-      right: score.right + (right ? 1 : 0),
-      total: score.total + 1,
-      streak,
-    });
-    if (right && streak % CHEER_EVERY === 0)
-      say(
-        `${streak} in a row! You can read a reaction’s pattern at a glance.`,
-        'cheer',
-      );
+    record(choice === type);
   };
   const next = () => {
     setCurrent(deal(current.id));

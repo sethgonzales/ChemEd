@@ -1,7 +1,9 @@
 import {
   check,
   compound,
+  dealPredict,
   ionsOf,
+  pieces,
   predict,
   PREDICT_POOL,
   type Product,
@@ -176,6 +178,38 @@ describe('PREDICT_POOL', () => {
       const p = predict(reactants);
       if (p.products) expect(p.equation).toMatch(/→/);
       else expect(p.reason.length).toBeGreaterThan(10);
+    }
+  });
+});
+
+describe('pieces: the chips a student builds products from', () => {
+  const names = (ions: { symbol: string; charge: number }[]) =>
+    ions.map((i) => `${i.symbol}${i.charge}`);
+
+  it('offers every ion, the ion a free metal forms, and free elements', () => {
+    const { ions, wholes } = pieces(['Zn', 'CuSO4']);
+    expect(names(ions)).toEqual(['Zn2', 'Cu2', 'SO4-2']);
+    expect(wholes).toEqual(['Zn', 'Cu']);
+  });
+
+  it('offers H⁺ and hydrogen gas for an acid', () => {
+    const { ions, wholes } = pieces(['Mg', 'HCl']);
+    expect(names(ions)).toEqual(['Mg2', 'H1', 'Cl-1']);
+    expect(wholes).toEqual(['Mg', 'H2']);
+  });
+
+  it('offers only ions for two solutions', () => {
+    const { ions, wholes } = pieces(['HCl', 'NaOH']);
+    expect(names(ions)).toEqual(['H1', 'Cl-1', 'Na1', 'OH-1']);
+    expect(wholes).toEqual([]);
+  });
+});
+
+describe('dealPredict', () => {
+  it('never deals the same reactants twice in a row', () => {
+    for (let i = 0; i < PREDICT_POOL.length; i += 7) {
+      const landing = (i + 0.5) / PREDICT_POOL.length;
+      expect(dealPredict(i, () => landing)).not.toBe(i);
     }
   });
 });
