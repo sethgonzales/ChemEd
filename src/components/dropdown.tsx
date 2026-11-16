@@ -109,6 +109,7 @@ export default function Dropdown({
         aria-label={ariaLabel}
         aria-haspopup="true"
         aria-expanded={isOpen}
+        data-sound="none" // only choosing an option clicks
         onClick={(e) => {
           e.preventDefault();
           setIsOpen((prev) => !prev);

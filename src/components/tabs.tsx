@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { cn } from '~/utils/cn';
 import { PIXEL_CONTROL } from '~/utils/pixel';
+import { useTick } from '~/utils/sounds';
 
 export type Tab = { id: string; label: string; content: ReactNode };
 
@@ -40,6 +41,7 @@ export default function Tabs({
   const tabId = (id: string) => `${base}-tab-${id}`;
   const panelId = (id: string) => `${base}-panel-${id}`;
 
+  const tick = useTick();
   const onKeyDown = (e: KeyboardEvent, index: number) => {
     const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
     if (!step) return;
@@ -47,6 +49,7 @@ export default function Tabs({
     const next = (index + step + tabs.length) % tabs.length;
     setSelected(tabs[next].id);
     buttons.current[next]?.focus();
+    tick(); // clicks tick through ClickSounds; arrow keys don't click
   };
 
   return (

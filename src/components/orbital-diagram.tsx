@@ -107,6 +107,7 @@ export default function OrbitalDiagram(props: Props) {
                     key={i}
                     type="button"
                     data-box
+                    data-sound="tap"
                     aria-label={`${subshell} box ${i + 1}: ${describeSpins(spins)}`}
                     onClick={() => onBox(subshell, i)}
                     className={cn(

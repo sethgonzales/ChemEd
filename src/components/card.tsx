@@ -25,6 +25,7 @@ export default function Card({ title, color, art, ready, onClick }: Props) {
     <button
       type="button"
       onClick={ready ? open : undefined}
+      data-sound="none" // it thuds instead
       aria-disabled={!ready || undefined}
       aria-label={ready ? undefined : `${title} (coming soon)`}
       className={cn(

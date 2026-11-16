@@ -9,7 +9,11 @@ import { WET_LABS } from '~/constants/guide-tips';
 import { GuideProvider, useGuide } from './guide';
 
 const playTreasure = jest.fn();
-jest.mock('~/utils/sounds', () => ({ useTreasureSound: () => playTreasure }));
+const playThunk = jest.fn();
+jest.mock('~/utils/sounds', () => ({
+  useTreasureSound: () => playTreasure,
+  useThunk: () => playThunk,
+}));
 
 function mockScreen({ desktop = true, reducedMotion = false } = {}) {
   window.matchMedia = jest.fn((query: string) => ({
@@ -36,6 +40,11 @@ function Page() {
     <>
       <button onClick={() => say(HINT, 'hint')}>Get a hint</button>
       <button onClick={() => say('Balanced!', 'cheer')}>Balance it</button>
+      <button
+        onClick={() => say('Watch the oxygen.', 'hint', { unprompted: true })}
+      >
+        Wander off
+      </button>
       {['A', 'B'].map((name) => (
         <button
           key={name}
@@ -77,6 +86,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   localStorage.clear();
   playTreasure.mockClear();
+  playThunk.mockClear();
   sessionStorage.clear();
   mockScreen();
 });
@@ -183,6 +193,21 @@ describe('Mr. G guide', () => {
     expect(playTreasure).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Balance it' }));
     expect(playTreasure).toHaveBeenCalledTimes(1);
+  });
+
+  it('thunks when you check and it isn’t right yet: a hint you asked for', () => {
+    renderGuide();
+    fireEvent.click(screen.getByRole('button', { name: 'Get a hint' }));
+    expect(playThunk).toHaveBeenCalledTimes(1);
+  });
+
+  it('doesn’t thunk for cheers, or for hints and nudges he offers unasked', () => {
+    renderGuide();
+    fireEvent.click(screen.getByRole('button', { name: 'Balance it' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Wander off' }));
+    act(() => jest.advanceTimersByTime(UNPROMPTED_GAP_MS));
+    fireEvent.click(screen.getByRole('button', { name: 'Nudge A' }));
+    expect(playThunk).not.toHaveBeenCalled();
   });
 
   it('plays the treasure sound on phones too, where he is off screen', () => {

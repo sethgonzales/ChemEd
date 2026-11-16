@@ -1,6 +1,7 @@
 import { type CSSProperties, useRef } from 'react';
 import { IElementData } from '~/types';
 import { cn } from '~/utils/cn';
+import { useTap } from '~/utils/sounds';
 import {
   elementAt,
   elementColor,
@@ -46,14 +47,17 @@ function ElementCell({
   dimmed: boolean;
   onSelect: (el: IElementData, focus?: boolean) => void;
 }) {
+  const tap = useTap();
   return (
     <button
       onClick={() => onSelect(element)}
+      data-sound="tap"
       onKeyDown={(e) => {
         const next = ARROWS[e.key] && neighbor(element, ARROWS[e.key]);
         if (!next) return;
         e.preventDefault();
         onSelect(next, true);
+        tap(); // clicks tap through ClickSounds; arrow keys don't click
       }}
       aria-pressed={isSelected}
       // symbols alone don't say much to a screen reader

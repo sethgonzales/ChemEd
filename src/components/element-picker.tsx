@@ -56,6 +56,7 @@ export default function ElementPicker({ elements, onPick, onClose }: Props) {
               type="button"
               aria-label={`${el.name} (${el.symbol})`}
               onClick={() => onPick(el.symbol)}
+              data-sound="tap"
               style={{ gridColumn: column(el.group), gridRow: el.period }}
               className="h-10 rounded-md bg-primary-700 hover:bg-primary-800 text-white font-semibold cursor-pointer"
             >

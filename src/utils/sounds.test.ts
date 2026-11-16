@@ -1,10 +1,14 @@
 import { act, renderHook } from '@testing-library/react';
 import {
   isMuted,
+  resetSounds,
   setMuted,
   useBloop,
   useDoorSound,
   useMuted,
+  useTap,
+  useThunk,
+  useTick,
   useTreasureSound,
 } from './sounds';
 
@@ -37,6 +41,8 @@ function mockAudioContext() {
   };
   const ctx = {
     currentTime: 0,
+    state: 'running' as AudioContextState,
+    resume: jest.fn(() => Promise.resolve()),
     destination: {},
     createOscillator: jest.fn(node),
     createGain: jest.fn(node),
@@ -63,6 +69,7 @@ describe.each([['useDoorSound (opening a simulation)', useDoorSound]])(
       expect(AudioContext).not.toHaveBeenCalled();
 
       result.current();
+      jest.advanceTimersByTime(1000);
       result.current();
 
       expect(AudioContext).toHaveBeenCalledTimes(1);
@@ -73,7 +80,10 @@ describe.each([['useDoorSound (opening a simulation)', useDoorSound]])(
       const { ctx } = mockAudioContext();
       const { result } = renderHook(() => useSound());
       // random variants, so play plenty to hear them all
-      for (let i = 0; i < 40; i++) result.current();
+      for (let i = 0; i < 40; i++) {
+        result.current();
+        jest.advanceTimersByTime(1000);
+      }
       expect(Math.max(...pitches(ctx))).toBeLessThanOrEqual(400);
     });
 
@@ -92,7 +102,109 @@ const startTimes = (ctx: ReturnType<typeof mockAudioContext>['ctx']) =>
     ({ value }) => value.start.mock.calls[0][0] as number,
   );
 
-beforeEach(() => localStorage.clear());
+// the page's clock spaces sounds out; tests move it by hand
+beforeEach(() => {
+  jest.useFakeTimers();
+  localStorage.clear();
+  resetSounds();
+});
+afterEach(() => jest.useRealTimers());
+
+// each tone's starting volume and how long it rings, in s
+const tones = (ctx: ReturnType<typeof mockAudioContext>['ctx']) =>
+  ctx.createGain.mock.results
+    .map(({ value }) => value)
+    .filter((g) => g.gain.exponentialRampToValueAtTime.mock.calls.length)
+    .map((g) => ({
+      volume: g.gain.setValueAtTime.mock.calls[0][0] as number,
+      length: g.gain.exponentialRampToValueAtTime.mock.calls[0][1] as number,
+    }));
+
+describe('subtle UI sounds', () => {
+  it.each([
+    ['useTick (a button or checkbox)', useTick],
+    ['useTap (picking an element or box)', useTap],
+  ])('%s is short, quiet and dry', (_, useSound) => {
+    const { ctx } = mockAudioContext();
+    const { result } = renderHook(() => useSound());
+    result.current();
+    const played = tones(ctx);
+    expect(played.length).toBeGreaterThan(0);
+    for (const t of played) {
+      expect(t.length).toBeLessThanOrEqual(0.06);
+      expect(t.volume).toBeLessThanOrEqual(0.05); // a third of the bloop
+    }
+    expect(ctx.createDelay).not.toHaveBeenCalled(); // no echo to muddy it
+  });
+
+  it('taps a little brighter than it ticks', () => {
+    const tick = mockAudioContext();
+    renderHook(() => useTick()).result.current();
+    resetSounds();
+    const tap = mockAudioContext();
+    renderHook(() => useTap()).result.current();
+    expect(Math.min(...pitches(tap.ctx))).toBeGreaterThan(
+      Math.max(...pitches(tick.ctx)),
+    );
+  });
+});
+
+describe('useThunk (a wrong answer)', () => {
+  it('is a soft, low thunk that falls in pitch', () => {
+    const { ctx } = mockAudioContext();
+    renderHook(() => useThunk()).result.current();
+    const hz = pitches(ctx);
+    expect(Math.max(...hz)).toBeLessThanOrEqual(200);
+    const osc = ctx.createOscillator.mock.results[0].value;
+    const [[to]] = osc.frequency.exponentialRampToValueAtTime.mock.calls;
+    expect(to).toBeLessThan(hz[0]);
+    for (const t of tones(ctx)) expect(t.volume).toBeLessThan(0.35); // under the door
+  });
+});
+
+describe('sharing and spacing sounds', () => {
+  it('uses one AudioContext for every sound on the page', () => {
+    const { AudioContext, ctx } = mockAudioContext();
+    for (const useSound of [useTick, useTap, useBloop, useThunk]) {
+      renderHook(() => useSound()).result.current();
+      jest.advanceTimersByTime(1000);
+    }
+    expect(AudioContext).toHaveBeenCalledTimes(1);
+  });
+
+  it('plays a sound once, not in a burst, when it repeats within 40 ms', () => {
+    const { ctx } = mockAudioContext();
+    const { result } = renderHook(() => useTick());
+    result.current();
+    const once = ctx.createOscillator.mock.calls.length;
+    jest.advanceTimersByTime(20);
+    result.current();
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(once);
+    jest.advanceTimersByTime(50);
+    result.current();
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(once * 2);
+  });
+
+  it('wakes audio the browser suspended, and keeps playing while its clock is frozen', () => {
+    const { ctx } = mockAudioContext();
+    ctx.state = 'suspended'; // before a first tap, or after the phone sleeps
+    const { result } = renderHook(() => useTick());
+    result.current();
+    expect(ctx.resume).toHaveBeenCalled();
+    const once = ctx.createOscillator.mock.calls.length;
+    jest.advanceTimersByTime(100); // ctx.currentTime stays 0
+    result.current();
+    expect(ctx.createOscillator).toHaveBeenCalledTimes(once * 2);
+  });
+
+  it('still plays different sounds together: a click and its answer', () => {
+    const { ctx } = mockAudioContext();
+    renderHook(() => useTick()).result.current();
+    const tick = ctx.createOscillator.mock.calls.length;
+    renderHook(() => useThunk()).result.current();
+    expect(ctx.createOscillator.mock.calls.length).toBeGreaterThan(tick);
+  });
+});
 
 describe('useTreasureSound (a success)', () => {
   it('plays a rising 8-bit arpeggio', () => {
@@ -130,7 +242,14 @@ describe('muting', () => {
     const { AudioContext } = mockAudioContext();
     setMuted(true);
     expect(localStorage.getItem('chem.sound.muted')).toBe('true');
-    for (const useSound of [useDoorSound, useBloop, useTreasureSound]) {
+    for (const useSound of [
+      useDoorSound,
+      useBloop,
+      useTreasureSound,
+      useTick,
+      useTap,
+      useThunk,
+    ]) {
       const { result } = renderHook(() => useSound());
       result.current();
     }

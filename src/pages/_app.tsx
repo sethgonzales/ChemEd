@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { Pixelify_Sans } from 'next/font/google';
+import ClickSounds from '~/components/click-sounds';
 import { GuideProvider } from '~/components/guide';
 import { ThemeProvider } from '~/styles/theme-provider';
 import '~/styles/globals.css';
@@ -18,6 +19,8 @@ const pixel = Pixelify_Sans({
 export default function App({ Component, pageProps, router }: AppProps) {
   return (
     <ThemeProvider>
+      {/* every button and checkbox clicks the same quiet click */}
+      <ClickSounds />
       <div className={pixel.variable}>
         <GuideProvider page={router.pathname}>
           <Suspense fallback={<Loading />}>

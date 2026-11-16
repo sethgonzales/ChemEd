@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // Low, echoing sounds, so the app sounds like a stone dungeon. Sounds play only
-// on clicks and successes, never on hover, and a mute switch silences them all.
+// on clicks and answers, never on hover, and a mute switch silences them all.
+// Clicks get a quiet, dry tick or tap; the bigger moments get the echo.
 
 const ECHO_DELAY = 0.22; // s between echoes, like a stone corridor
 const ECHO_FEEDBACK = 0.35; // each echo this much quieter than the last
 const ECHO_LOWPASS = 900; // Hz; stone swallows the highs
 const TREASURE_NOTE = 0.09; // s between arpeggio notes
+const MIN_GAP = 40; // ms; a sound repeated sooner than this plays once
 
 const MUTED_KEY = 'chem.sound.muted';
 type Voice = (ctx: AudioContext, out: AudioNode, time: number) => void;
@@ -49,6 +51,44 @@ const BLOOP_VOICES: Voice[] = [
   (ctx, out, t) => {
     tone(ctx, out, t, { from: 196, to: 523, volume: 0.12, length: 0.1 });
     tone(ctx, out, t + 0.11, { from: 262, to: 784, volume: 0.1, length: 0.1 });
+  },
+];
+
+// a button or checkbox: a soft, low click
+const TICK_VOICES: Voice[] = [
+  (ctx, out, t) =>
+    tone(ctx, out, t, {
+      type: 'triangle',
+      from: 300,
+      to: 220,
+      volume: 0.04,
+      length: 0.04,
+    }),
+];
+
+// picking an element or an orbital box: the same click, a touch brighter
+const TAP_VOICES: Voice[] = [
+  (ctx, out, t) =>
+    tone(ctx, out, t, {
+      type: 'triangle',
+      from: 520,
+      to: 400,
+      volume: 0.035,
+      length: 0.05,
+    }),
+];
+
+// a wrong answer: a soft, low thunk, like a stone that won't budge
+const THUNK_VOICES: Voice[] = [
+  (ctx, out, t) => {
+    tone(ctx, out, t, { from: 150, to: 70, volume: 0.18, length: 0.22 });
+    tone(ctx, out, t, {
+      type: 'triangle',
+      from: 110,
+      to: 60,
+      volume: 0.06,
+      length: 0.15,
+    });
   },
 ];
 
@@ -125,23 +165,39 @@ export function useMuted() {
   return [muted, toggle] as const;
 }
 
-/** Plays a random one of these voices through the dungeon echo */
-function useSound(voices: Voice[]) {
-  // one context and one echo, reused for every play
-  const audio = useRef<{ ctx: AudioContext; echo: AudioNode } | null>(null);
+// One AudioContext for the whole page (browsers cap how many there can be),
+// with the echo built the first time a sound needs it
+let audio: { ctx: AudioContext; echo: AudioNode | null } | null = null;
+const lastPlayed = new Map<Voice[], number>();
 
-  // stable, so callers can list it as an effect or callback dependency
-  return useCallback(() => {
-    if (isMuted() || typeof AudioContext === 'undefined') return;
-    if (!audio.current) {
-      const ctx = new AudioContext();
-      audio.current = { ctx, echo: withEcho(ctx) };
-    }
-    const { ctx, echo } = audio.current;
-    const voice = voices[Math.floor(Math.random() * voices.length)];
-    voice(ctx, echo, ctx.currentTime);
-  }, [voices]);
+/** Forgets the page's audio, so each test starts afresh */
+export function resetSounds() {
+  audio = null;
+  lastPlayed.clear();
 }
+
+/** Plays a random one of these voices, through the dungeon echo or dry */
+function play(voices: Voice[], echo: boolean) {
+  if (isMuted() || typeof AudioContext === 'undefined') return;
+  audio ??= { ctx: new AudioContext(), echo: null };
+  const { ctx } = audio;
+  // browsers suspend audio until a tap, and phones when they sleep; a click
+  // is the moment to wake it
+  if (ctx.state === 'suspended') void ctx.resume();
+  // timed by the page's clock: a suspended context's clock stands still
+  const now = performance.now();
+  const last = lastPlayed.get(voices);
+  // held keys and fast clicks would otherwise play a burst
+  if (last !== undefined && now - last < MIN_GAP) return;
+  lastPlayed.set(voices, now);
+  const out = echo ? (audio.echo ??= withEcho(ctx)) : ctx.destination;
+  const voice = voices[Math.floor(Math.random() * voices.length)];
+  voice(ctx, out, ctx.currentTime);
+}
+
+// stable, so callers can list it as an effect or callback dependency
+const useSound = (voices: Voice[], echo = true) =>
+  useCallback(() => play(voices, echo), [voices, echo]);
 
 /** Clicking a header tile */
 export const useBloop = () => useSound(BLOOP_VOICES);
@@ -151,3 +207,16 @@ export const useDoorSound = () => useSound(DOOR_VOICES);
 
 /** A success: balanced, a correct structure */
 export const useTreasureSound = () => useSound(TREASURE_VOICES);
+
+/** A wrong answer */
+export const useThunk = () => useSound(THUNK_VOICES);
+
+/** Any button or checkbox */
+export const useTick = () => useSound(TICK_VOICES, false);
+
+/** Picking an element, an orbital box or the like */
+export const useTap = () => useSound(TAP_VOICES, false);
+
+/** Plays a click's sound outside React (see ClickSounds) */
+export const playClick = (kind: 'tick' | 'tap') =>
+  play(kind === 'tap' ? TAP_VOICES : TICK_VOICES, false);

@@ -22,7 +22,7 @@ import {
 } from '~/utils/guide';
 import { useEscape } from '~/utils/use-escape';
 import { useMedia } from '~/utils/use-media';
-import { useTreasureSound } from '~/utils/sounds';
+import { useThunk, useTreasureSound } from '~/utils/sounds';
 
 export type Mood = 'tip' | 'hint' | 'cheer' | 'nudge';
 
@@ -350,6 +350,7 @@ export function GuideProvider({
   };
 
   const playTreasure = useTreasureSound();
+  const playThunk = useThunk();
   const lastUnprompted = useRef<number | null>(null);
   const say = useCallback(
     (text: string, mood: Mood = 'tip', { unprompted }: SayOptions = {}) => {
@@ -359,11 +360,13 @@ export function GuideProvider({
         if (last !== null && now - last < UNPROMPTED_GAP_MS) return;
         lastUnprompted.current = now;
       }
-      // successes ring out even on phones, where he isn't on screen
+      // successes ring out even on phones, where he isn't on screen; a hint
+      // the student asked for (by checking) means it isn't right yet
       if (mood === 'cheer') playTreasure();
+      else if (mood === 'hint' && !unprompted) playThunk();
       setMessage({ text, mood, id: Date.now() });
     },
-    [playTreasure],
+    [playTreasure, playThunk],
   );
   const close = useCallback(() => setMessage(null), []);
 
