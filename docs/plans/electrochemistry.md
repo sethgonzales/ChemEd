@@ -1,6 +1,6 @@
 # Electrochemistry — plan
 
-Status: **phase 1 done** (13 Nov 2026): data and engine. **Phase 2 built** (16 Nov 2026): the Galvanic cell at `/electrochemistry`, not yet on the home map. Decisions below.
+Status: **phase 1 done** (13 Nov 2026): data and engine. **Phases 2 and 3 built** (16 Nov 2026): the Galvanic cell and its particle lens at `/electrochemistry`, not yet on the home map. Decisions below.
 
 Students build cells from two half-cells, close the circuit and watch what happens at three scales: the **bench** (voltmeter, bulb, electrodes thinning or plating), the **particles** (a zoom into an electrode surface where atoms give up electrons and ions move through the solution and salt bridge), and the **numbers** (E°cell, then the Nernst equation as concentrations change).
 
@@ -79,7 +79,7 @@ Behaviour tests: the Daniell cell reads 1.10 V; swapping the electrodes picks th
 
 1. ~~Data and engine: E° table, E°cell, Nernst, running the cell down~~ (done 13 Nov 2026)
 2. ~~Galvanic tab: half-cell pickers, Connect, voltmeter, electron flow, electrodes changing~~ (built 16 Nov 2026). Notes: concentration sliders step by tens (0.001 to 1 M); simulated time runs at 1 h/s (10 h/s with Run faster), so a Daniell cell goes flat in about 50 s; electrode masses are shown in grams; the voltmeter reads 0 until Connect, as planned (a real voltmeter across an open cell would read E). There is one panel for now; the Galvanic/Electrolytic tabs arrive with phase 4, and the sealed door with its art in phase 5.
-3. Particle lens at the anode, cathode and salt bridge
+3. ~~Particle lens at the anode, cathode and salt bridge~~ (built 16 Nov 2026). The model is `src/utils/electrochemistry-lens.ts`: atoms leave the anode as ions, each freeing n electrons into the metal; ions at the cathode meet electrons from the wire and join the metal; K⁺ and NO₃⁻ drift through the bridge in step with the current. The electrodes follow the cell's own wear (`electrodeWear`, the same measure that thins and coats them in the main drawing), so the lens shows the whole run without resetting: the anode's surface eats back through four of its six layers and the cathode grows three new ones by the time the cell is flat, atoms never move once placed, and opening the lens partway shows the wear so far. At most two atoms react a second (about one every 2 s for a Daniell cell at normal speed), so Run faster catches up calmly. Ions in solution float: each has a slow drift (0.03 lens widths/s) that wanders gently, rather than jittering. ions in view follow the concentration (8 at 1 M), and water isn't drawn; none of it is to scale. The lens opens beneath the cell inside the Stage on every screen size, rather than over the picture.
 4. Electrolytic tab with Faraday's-law readouts
 5. Mr. G tips, sources line, door art, and (if wanted) Predict mode
 

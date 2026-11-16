@@ -2,8 +2,10 @@ import { COUPLES } from '~/constants/electrochemistry';
 import {
   analyzeCell,
   cellReaction,
+  electrodeWear,
   electrolysis,
   halfCellState,
+  halfEquations,
   metalChange,
   runCell,
   type HalfCell,
@@ -204,6 +206,17 @@ describe('the cell reaction, for the worked Nernst equation', () => {
   });
 });
 
+describe('half-equations', () => {
+  it('moves as many electrons as the ion’s charge', () => {
+    expect(halfEquations('Cu')).toEqual({
+      oxidation: 'Cu → Cu²⁺ + 2e⁻',
+      reduction: 'Cu²⁺ + 2e⁻ → Cu',
+    });
+    expect(halfEquations('Ag').reduction).toBe('Ag⁺ + e⁻ → Ag');
+    expect(halfEquations('Al').oxidation).toBe('Al → Al³⁺ + 3e⁻');
+  });
+});
+
 describe('the electrodes as the cell runs', () => {
   it('thins the zinc and plates copper, mole for mole', () => {
     const later = runCell(daniell, 3600);
@@ -221,6 +234,28 @@ describe('the electrodes as the cell runs', () => {
 
   it('changes nothing before the cell runs', () => {
     expect(metalChange(daniell, daniell)).toEqual({ left: 0, right: 0 });
+  });
+});
+
+describe('electrode wear, for drawing how far each electrode has changed', () => {
+  it('starts at 0 and grows on both electrodes as the cell runs', () => {
+    expect(electrodeWear(daniell, daniell)).toEqual({ left: 0, right: 0 });
+    const later = runCell(daniell, 3600 * 10);
+    const wear = electrodeWear(daniell, later);
+    expect(wear.left).toBeGreaterThan(0);
+    expect(wear.right).toBeCloseTo(wear.left, 9); // a mole of Zn for a mole of Cu
+  });
+
+  it('reaches 1 once the Daniell cell is flat, and never goes past it', () => {
+    let cell = daniell;
+    for (let i = 0; i < 100; i++) cell = runCell(cell, 3600);
+    const wear = electrodeWear(daniell, cell);
+    expect(wear.left).toBeCloseTo(1, 9);
+    expect(wear.right).toBeCloseTo(1, 9);
+    const silver = { ...daniell, right: half('Ag') };
+    let s = silver;
+    for (let i = 0; i < 100; i++) s = runCell(s, 3600);
+    expect(electrodeWear(silver, s).right).toBeLessThanOrEqual(1);
   });
 });
 

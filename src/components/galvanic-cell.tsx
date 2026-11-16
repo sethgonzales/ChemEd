@@ -1,5 +1,9 @@
 import type { Cell, CellReading, Side } from '~/utils/electrochemistry';
-import { coupleFor, metalChange } from '~/utils/electrochemistry';
+import {
+  coupleFor,
+  electrodeWear,
+  metalChange,
+} from '~/utils/electrochemistry';
 
 // SVG units
 const WIDTH = 320;
@@ -11,9 +15,9 @@ const ELECTRODE = { width: 14, top: 52, bottom: 190 };
 const WIRE_Y = 22;
 const BULB_R = 10;
 const BRIDGE = { inset: 30, top: 66, bottom: 150, width: 14 }; // the KNO₃ tube
-const ELECTRODE_SCALE = 0.1; // mol of metal that fully thins or coats an electrode (drawing scale)
 const THIN = 0.7; // the most of its width an anode loses
 const COAT = 10; // the thickest a cathode's coat grows
+const HIT_HALF_WIDTH = 22; // tap target either side of an electrode
 const MAX_GLOW_VOLTS = 3.2; // about Mg | Ag, the biggest cell on the list (V)
 
 // rough metal colours, for the drawing only
@@ -29,11 +33,23 @@ interface Props {
   cell: Cell;
   reading: CellReading;
   flowing: boolean; // connected and driving a current
+  zoomed: Zoom | null; // which spot's close-up is open
+  onZoom: (spot: Zoom | null) => void;
 }
 
+export type Zoom = Side | 'bridge';
+
 /** Two beakers joined by a wire through a bulb, and a salt bridge */
-export default function GalvanicCell({ start, cell, reading, flowing }: Props) {
+export default function GalvanicCell({
+  start,
+  cell,
+  reading,
+  flowing,
+  zoomed,
+  onZoom,
+}: Props) {
   const change = metalChange(start, cell);
+  const wear = electrodeWear(start, cell);
   const describe = (side: Side) =>
     `a ${lower(coupleFor(cell[side].electrode).metal)} electrode in ${coupleFor(cell[side].solution).solution} on the ${side}`;
   const anode = reading.anode!;
@@ -61,7 +77,7 @@ export default function GalvanicCell({ start, cell, reading, flowing }: Props) {
     // ions used up fade the colour; tinted solutions are about this strong at 1 M
     const [rgb, alpha] = [solution.color.slice(0, 7), solution.color.slice(7)];
     const opacity = (parseInt(alpha, 16) / 255) * Math.min(1, h.concentration);
-    const moved = Math.min(1, Math.abs(change[side]) / ELECTRODE_SCALE);
+    const moved = wear[side];
     const gained = change[side] > 0;
     const width = ELECTRODE.width * (gained ? 1 : 1 - THIN * moved);
     const coat = gained ? COAT * moved : 0;
@@ -102,17 +118,20 @@ export default function GalvanicCell({ start, cell, reading, flowing }: Props) {
           />
         )}
         <rect
+          data-testid={`${side}-electrode`}
           x={ex - width / 2}
           y={ELECTRODE.top}
           width={width}
           height={ELECTRODE.bottom - ELECTRODE.top}
           fill={metalColor(electrode.id)}
         />
+        {/* beside the electrode, clear of its thickest coat: on the metal it
+            would spill onto the background as the anode thins */}
         <text
-          x={ex}
-          y={ELECTRODE.top + 18}
-          textAnchor="middle"
-          className="fill-gray-900 text-[11px] font-bold"
+          x={ex - (ELECTRODE.width + COAT) / 2 - 3}
+          y={BEAKER.top + 12}
+          textAnchor="end"
+          className="fill-white text-[11px] font-bold"
         >
           {electrode.id}
         </text>
@@ -138,12 +157,12 @@ export default function GalvanicCell({ start, cell, reading, flowing }: Props) {
     );
   };
 
-  return (
+  const picture = (
     <svg
       role="img"
       aria-label={label}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="w-full max-w-xl h-auto mx-auto"
+      className="w-full h-auto"
     >
       {cell.saltBridge && (
         <g>
@@ -228,5 +247,59 @@ export default function GalvanicCell({ start, cell, reading, flowing }: Props) {
         opacity={glow}
       />
     </svg>
+  );
+
+  // what each zoom button covers, as percentages of the picture
+  const box = (x: number, y: number, w: number, h: number) => ({
+    left: `${(x / WIDTH) * 100}%`,
+    top: `${(y / HEIGHT) * 100}%`,
+    width: `${(w / WIDTH) * 100}%`,
+    height: `${(h / HEIGHT) * 100}%`,
+  });
+  const targets: { spot: Zoom; name: string; style: object }[] = [
+    ...(['left', 'right'] as const).map((side) => ({
+      spot: side,
+      name: `Zoom in on the ${side} electrode (${lower(coupleFor(cell[side].electrode).metal)})`,
+      style: box(
+        centre(side) - HIT_HALF_WIDTH,
+        ELECTRODE.top,
+        HIT_HALF_WIDTH * 2,
+        ELECTRODE.bottom - ELECTRODE.top,
+      ),
+    })),
+    ...(cell.saltBridge
+      ? [
+          {
+            spot: 'bridge' as const,
+            name: 'Zoom in on the salt bridge',
+            style: box(
+              BEAKER_X.left + BEAKER.width - BRIDGE.inset - BRIDGE.width,
+              BRIDGE.top - BRIDGE.width,
+              BEAKER_X.right -
+                BEAKER_X.left -
+                BEAKER.width +
+                2 * (BRIDGE.inset + BRIDGE.width),
+              BRIDGE.width * 2,
+            ),
+          },
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="relative w-full max-w-xl mx-auto">
+      {picture}
+      {targets.map(({ spot, name, style }) => (
+        <button
+          key={spot}
+          type="button"
+          aria-label={name}
+          aria-expanded={zoomed === spot}
+          onClick={() => onZoom(zoomed === spot ? null : spot)}
+          className="absolute cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-secondary-500"
+          style={style}
+        />
+      ))}
+    </div>
   );
 }

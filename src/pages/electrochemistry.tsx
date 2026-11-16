@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useEscape } from '~/utils/use-escape';
 import Button from '~/components/button';
 import Container from '~/components/container';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
-import GalvanicCell from '~/components/galvanic-cell';
+import CellLens from '~/components/cell-lens';
+import GalvanicCell, { type Zoom } from '~/components/galvanic-cell';
 import GalvanicEquations from '~/components/galvanic-equations';
 import Setting from '~/components/setting';
 import Slider from '~/components/slider';
@@ -17,6 +19,7 @@ import {
   analyzeCell,
   cellReaction,
   coupleFor,
+  electrodeWear,
   halfCellState,
   metalChange,
   molarMass,
@@ -144,6 +147,8 @@ export default function Electrochemistry() {
   const [showEquations, setShowEquations] = useState(true);
   const [showTable, setShowTable] = useState(false);
   const [fast, setFast] = useState(false);
+  const [zoomed, setZoomed] = useState<Zoom | null>(null);
+  useEscape(() => setZoomed(null), zoomed !== null);
 
   const now = { ...cell, saltBridge };
   const reading = analyzeCell(now);
@@ -257,7 +262,18 @@ export default function Electrochemistry() {
           cell={now}
           reading={reading}
           flowing={flowing}
+          zoomed={zoomed}
+          onZoom={setZoomed}
         />
+        {zoomed && (
+          <Lens
+            zoomed={zoomed}
+            start={start}
+            cell={now}
+            reading={reading}
+            flowing={flowing}
+          />
+        )}
       </Stage>
 
       <div className="flex flex-wrap gap-2">
@@ -282,6 +298,38 @@ export default function Electrochemistry() {
         </Setting>
       </div>
     </Container>
+  );
+}
+
+/** The close-up on one spot, at its electrode's role and the cell's current */
+function Lens({
+  zoomed,
+  start,
+  cell,
+  reading,
+  flowing,
+}: {
+  zoomed: Zoom;
+  start: Cell;
+  cell: Cell;
+  reading: CellReading;
+  flowing: boolean;
+}) {
+  const bridge = zoomed === 'bridge';
+  const side: Side = bridge ? 'left' : zoomed;
+  // before any current, the side that would be the anode still shows as one
+  const spot = bridge ? 'bridge' : reading.anode === side ? 'anode' : 'cathode';
+  return (
+    <CellLens
+      // a fresh close-up for each spot and metal
+      key={`${zoomed}-${cell[side].electrode}`}
+      spot={spot}
+      metal={cell[side].electrode}
+      concentration={cell[side].concentration}
+      current={flowing ? reading.voltage / CIRCUIT_RESISTANCE : 0}
+      cathodeSide={reading.cathode ?? 'right'}
+      wear={electrodeWear(start, cell)[side]}
+    />
   );
 }
 

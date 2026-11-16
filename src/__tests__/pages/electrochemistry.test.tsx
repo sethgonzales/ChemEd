@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Electrochemistry from '~/pages/electrochemistry';
 
@@ -165,5 +165,90 @@ describe('Electrochemistry page: running the cell', () => {
     expect(button('Connect')).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(button('Connect'));
     expect(voltage()).toHaveTextContent('1.10 V');
+  });
+});
+
+describe('Electrochemistry page: the particle lens', () => {
+  const lensPicture = () => screen.getByRole('img', { name: /close-up/i });
+  const zoom = (name: RegExp) => button(name);
+
+  it('zooms in on the zinc anode: atoms leave as ions, electrons stay in the metal', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(button('Connect'));
+    expect(screen.queryByRole('img', { name: /close-up/i })).toBeNull();
+    await userEvent.click(zoom(/zoom in on the left electrode/i));
+    expect(zoom(/zoom in on the left electrode/i)).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(lensPicture()).toHaveAccessibleName(
+      /close-up of the zinc anode.*zinc atoms lose 2 electrons each.*Zn²⁺ ions/i,
+    );
+  });
+
+  it('zooms in on the copper cathode: ions take electrons and become metal', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(button('Connect'));
+    await userEvent.click(zoom(/zoom in on the right electrode/i));
+    expect(lensPicture()).toHaveAccessibleName(
+      /close-up of the copper cathode.*Cu²⁺ ions gain 2 electrons each.*copper atoms/i,
+    );
+  });
+
+  it('writes the half-equation under each electrode’s close-up', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(button('Connect'));
+    await userEvent.click(zoom(/zoom in on the right electrode/i));
+    expect(
+      within(screen.getByRole('figure')).getByText('Cu²⁺ + 2e⁻ → Cu'),
+    ).toBeInTheDocument();
+    await userEvent.click(zoom(/zoom in on the left electrode/i));
+    expect(
+      within(screen.getByRole('figure')).getByText('Zn → Zn²⁺ + 2e⁻'),
+    ).toBeInTheDocument();
+  });
+
+  it('zooms in on the salt bridge: K⁺ towards the cathode, NO₃⁻ towards the anode', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(button('Connect'));
+    await userEvent.click(zoom(/zoom in on the salt bridge/i));
+    expect(lensPicture()).toHaveAccessibleName(
+      /K⁺ ions drift right, towards the cathode.*NO₃⁻ ions drift left, towards the anode/i,
+    );
+  });
+
+  it('shows nothing reacting while the circuit is open', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(zoom(/zoom in on the left electrode/i));
+    expect(lensPicture()).toHaveAccessibleName(/no current.*nothing reacts/i);
+  });
+
+  it('closes on a second tap, or with Escape', async () => {
+    render(<Electrochemistry />);
+    const left = zoom(/zoom in on the left electrode/i);
+    await userEvent.click(left);
+    await userEvent.click(left);
+    expect(screen.queryByRole('img', { name: /close-up/i })).toBeNull();
+    await userEvent.click(left);
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('img', { name: /close-up/i })).toBeNull();
+  });
+
+  it('has no salt bridge to zoom in on when it’s taken out', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Salt bridge' }),
+    );
+    expect(
+      screen.queryByRole('button', { name: /zoom in on the salt bridge/i }),
+    ).toBeNull();
+  });
+
+  it('keeps no running count of atoms: the close-up is a picture, not to scale', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(button('Connect'));
+    await userEvent.click(zoom(/zoom in on the left electrode/i));
+    expect(screen.queryByText(/oxidised:|reduced:/i)).toBeNull();
+    expect(screen.queryByTestId('lens-count')).toBeNull();
   });
 });

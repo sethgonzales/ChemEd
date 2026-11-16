@@ -107,6 +107,16 @@ const times = (k: number, species: string) =>
   k === 1 ? species : `${k}${species}`;
 const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
 
+/** A metal's half-equations: as many electrons as its ion's charge */
+export function halfEquations(metal: string) {
+  const { id, ion, charge } = coupleFor(metal);
+  const e = `${charge === 1 ? '' : charge}e⁻`;
+  return {
+    oxidation: `${id} → ${ion} + ${e}`,
+    reduction: `${ion} + ${e} → ${id}`,
+  };
+}
+
 export interface CellReaction {
   oxidation: string; // at the anode
   reduction: string; // at the cathode
@@ -122,7 +132,6 @@ export function cellReaction(cell: Cell): CellReaction | null {
   if (status !== 'working') return null;
   const ox = coupleFor(cell[anode!].electrode);
   const red = coupleFor(cell[cathode!].electrode);
-  const e = (k: number) => `${k === 1 ? '' : k}e⁻`;
 
   // a·M + b·Nᵐ⁺ → a·Mⁿ⁺ + b·N, with both sides moving the same electrons
   const n = (ox.charge * red.charge) / gcd(ox.charge, red.charge);
@@ -136,8 +145,8 @@ export function cellReaction(cell: Cell): CellReaction | null {
     : [`[${ox.ion}]${power(a)}`, `[${red.ion}]${power(b)}`];
 
   return {
-    oxidation: `${ox.id} → ${ox.ion} + ${e(ox.charge)}`,
-    reduction: `${red.ion} + ${e(red.charge)} → ${red.id}`,
+    oxidation: halfEquations(ox.id).oxidation,
+    reduction: halfEquations(red.id).reduction,
     overall: `${times(a, ox.id)} + ${times(b, red.ion)} → ${times(a, ox.ion)} + ${times(b, red.id)}`,
     n,
     quotient: `${top} / ${bottom}`,
@@ -152,6 +161,17 @@ export function metalChange(start: Cell, now: Cell): Record<Side, number> {
     (start[side].concentration - now[side].concentration) * HALF_CELL_VOLUME ||
     0;
   return { left: change('left'), right: change('right') };
+}
+
+// mol of metal that fully thins an anode or coats a cathode in the drawings:
+// a Daniell cell's 0.1 mol of Cu²⁺, so it reads 1 when that cell goes flat
+const WEAR_SCALE = 0.1;
+
+/** How far each electrode has thinned or been coated since `start`, 0 to 1 */
+export function electrodeWear(start: Cell, now: Cell): Record<Side, number> {
+  const change = metalChange(start, now);
+  const wear = (side: Side) => Math.min(1, Math.abs(change[side]) / WEAR_SCALE);
+  return { left: wear('left'), right: wear('right') };
 }
 
 // moves `electrons` mol of e⁻ through the wire: anode metal → ions, cathode ions → metal
