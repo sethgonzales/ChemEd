@@ -44,3 +44,30 @@ describe('GalvanicCell', () => {
     }
   });
 });
+
+describe('GalvanicCell labels under the beakers', () => {
+  it('centres Anode and Cathode under their beakers', () => {
+    render(
+      <GalvanicCell
+        start={daniell}
+        cell={daniell}
+        reading={analyzeCell(daniell)}
+        flowing
+        zoomed={null}
+        onZoom={() => {}}
+      />,
+    );
+    for (const [side, name] of [
+      ['left', 'Anode (−)'],
+      ['right', 'Cathode (+)'],
+    ]) {
+      const beaker = screen.getByTestId(`${side}-beaker`);
+      const centre =
+        Number(beaker.getAttribute('x')) +
+        Number(beaker.getAttribute('width')) / 2;
+      const label = screen.getByText(name);
+      expect(label).toHaveAttribute('text-anchor', 'middle');
+      expect(Number(label.getAttribute('x'))).toBeCloseTo(centre);
+    }
+  });
+});

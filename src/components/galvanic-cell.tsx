@@ -87,6 +87,7 @@ export default function GalvanicCell({
     return (
       <g key={side}>
         <rect
+          data-testid={`${side}-beaker`}
           x={x}
           y={LIQUID_TOP}
           width={BEAKER.width}
@@ -150,7 +151,7 @@ export default function GalvanicCell({
         </text>
         {flowing && (
           <text
-            x={ex}
+            x={x + BEAKER.width / 2}
             y={HEIGHT - 2}
             textAnchor="middle"
             className="fill-white text-[11px]"

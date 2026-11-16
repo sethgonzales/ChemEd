@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { cn } from '~/utils/cn';
 import { useEscape } from '~/utils/use-escape';
 import Button from '~/components/button';
 import Container from '~/components/container';
@@ -263,7 +264,14 @@ function Galvanic() {
           <div className="flex flex-col gap-3">
             <div className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
               {SIDES.map((side) => (
-                <div key={side} className="flex flex-col">
+                // side by side, the columns face each other across the middle
+                <div
+                  key={side}
+                  className={cn(
+                    'flex flex-col',
+                    side === 'left' ? 'sm:text-right' : 'sm:text-left',
+                  )}
+                >
                   <span>
                     [{coupleFor(cell[side].solution).ion}]:{' '}
                     {cell[side].concentration.toFixed(3)} M
