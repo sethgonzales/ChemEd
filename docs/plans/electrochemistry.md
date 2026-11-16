@@ -1,6 +1,6 @@
 # Electrochemistry — plan
 
-Status: **phase 1 done** (13 Nov 2026): data and engine. **Phases 2 and 3 built** (16 Nov 2026): the Galvanic cell and its particle lens at `/electrochemistry`, not yet on the home map. Decisions below.
+Status: **phase 1 done** (13 Nov 2026): data and engine. **Phases 2 to 4 built** (16 Nov 2026): the Galvanic cell with its particle lens, and the Electrolytic tab, at `/electrochemistry`, not yet on the home map. Decisions below.
 
 Students build cells from two half-cells, close the circuit and watch what happens at three scales: the **bench** (voltmeter, bulb, electrodes thinning or plating), the **particles** (a zoom into an electrode surface where atoms give up electrons and ions move through the solution and salt bridge), and the **numbers** (E°cell, then the Nernst equation as concentrations change).
 
@@ -41,7 +41,14 @@ Standard reduction potentials, 25 °C, 1 M, 1 atm, vs the standard hydrogen elec
 | Cu²⁺ + 2e⁻ → Cu | +0.337  | Bard et al.   |
 | Ag⁺ + e⁻ → Ag   | +0.7996 | CRC (Vanýsek) |
 
-The water and chlorine couples (2H₂O/H₂, O₂/H₂O, Cl₂/Cl⁻) aren't in the table yet; they arrive with the Electrolytic tab in phase 4, sourced the same way.
+Electrolysis uses four more couples from the same page (`ELECTROLYSIS_POTENTIALS`):
+
+| Half-reaction         | E° (V) | Credited to           |
+| --------------------- | ------ | --------------------- |
+| Na⁺ + e⁻ → Na         | −2.71  | CRC (Vanýsek), Atkins |
+| 2H⁺ + 2e⁻ → H₂        | 0      | the definition        |
+| O₂ + 4H⁺ + 4e⁻ → 2H₂O | +1.229 | Atkins                |
+| Cl₂ + 2e⁻ → 2Cl⁻      | +1.36  | Atkins                |
 
 Constants: F = 96 485.332 12 C/mol and R = 8.314 462 618 J/(mol·K), exact in the 2019 SI (CODATA 2018). Solution colours (Cu²⁺ blue, Ni²⁺ green, Fe²⁺ pale green, the rest colourless) are approximate and described as such. Each beaker holds 0.1 L, and the bulb and cell together are 10 Ω (model choices, not data).
 
@@ -80,7 +87,7 @@ Behaviour tests: the Daniell cell reads 1.10 V; swapping the electrodes picks th
 1. ~~Data and engine: E° table, E°cell, Nernst, running the cell down~~ (done 13 Nov 2026)
 2. ~~Galvanic tab: half-cell pickers, Connect, voltmeter, electron flow, electrodes changing~~ (built 16 Nov 2026). Notes: concentration sliders step by tens (0.001 to 1 M); simulated time runs at 1 h/s (10 h/s with Run faster), so a Daniell cell goes flat in about 50 s; electrode masses are shown in grams; the voltmeter reads 0 until Connect, as planned (a real voltmeter across an open cell would read E). There is one panel for now; the Galvanic/Electrolytic tabs arrive with phase 4, and the sealed door with its art in phase 5.
 3. ~~Particle lens at the anode, cathode and salt bridge~~ (built 16 Nov 2026). The model is `src/utils/electrochemistry-lens.ts`: atoms leave the anode as ions, each freeing n electrons into the metal; ions at the cathode meet electrons from the wire and join the metal; K⁺ and NO₃⁻ drift through the bridge in step with the current. The electrodes follow the cell's own wear (`electrodeWear`, the same measure that thins and coats them in the main drawing), so the lens shows the whole run without resetting: the anode's surface eats back through four of its six layers and the cathode grows three new ones by the time the cell is flat, atoms never move once placed, and opening the lens partway shows the wear so far. At most two atoms react a second (about one every 2 s for a Daniell cell at normal speed), so Run faster catches up calmly. Ions in solution float: each has a slow drift (0.03 lens widths/s) that wanders gently, rather than jittering. ions in view follow the concentration (8 at 1 M), and water isn't drawn; none of it is to scale. The lens opens beneath the cell inside the Stage on every screen size, rather than over the picture.
-4. Electrolytic tab with Faraday's-law readouts
+4. ~~Electrolytic tab with Faraday's-law readouts~~ (built 16 Nov 2026). Water (dilute H₂SO₄), copper plating (CuSO₄, copper electrodes) and molten NaCl, each with inert electrodes unless stated; a 0 to 6.0 V supply through 2 Ω (a model choice); gas tubes that switch the supply off when one holds 100 mL; time at 1 min/s (10 with Run faster). Changing the setup or voltage starts a fresh run, so Q = I·t holds for the whole of it.
 5. Mr. G tips, sources line, door art, and (if wanted) Predict mode
 
 ## Decisions (13 Nov 2026)
@@ -93,4 +100,5 @@ Behaviour tests: the Daniell cell reads 1.10 V; swapping the electrodes picks th
 6. **Solutions are nitrates**, so every ion stays dissolved (lead and silver sulfates are insoluble). The salt bridge is KNO₃.
 7. **Mismatched half-cells** (phase 1): a metal in a more easily reduced metal's ions "reacts in the beaker" (e.g. Zn in Cu²⁺), so no current goes through the wire; a metal in ions it can't displace "has no potential set by E°" (e.g. Cu in Zn²⁺), so the cell is not predictable from the table. Both read 0 V.
 8. **Running down** (phase 1): 0.1 L per beaker and 10 Ω in the circuit. A Daniell cell holds most of its voltage until the Cu²⁺ is used up, then goes **flat** (its true equilibrium, at about 10⁻³⁷ M Cu²⁺, is out of reach). A concentration cell runs down smoothly to 0 V as the two sides even out.
-9. **Electrolysis minimum voltages** are left for phase 4, once they're sourced.
+9. **Electrolysis minimum voltages** (phase 4): the thermodynamic minimum, the gap between the two couples' E°: water 1.23 V, molten NaCl 4.07 V (estimated from 25 °C aqueous values, and said so), copper plating 0 V (the same couple at both ends). The page says real cells need more because of overpotential, without quoting an uncited overvoltage.
+10. **Voltages show to two decimal places**, AP style (16 Nov 2026): the voltmeter, supply, E° table and worked equations. The worked E°cell rounds each E° first, as students do from the AP table, so its sums add up; the voltmeter keeps full precision, so for five pairs (Mg|Pb, Al|Pb, Zn|Pb, Ni|Cu, Pb|Cu) the worked answer and the meter differ by 0.01 V. The data keeps its full tabulated precision.

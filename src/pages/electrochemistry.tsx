@@ -9,6 +9,8 @@ import GalvanicEquations from '~/components/galvanic-equations';
 import Setting from '~/components/setting';
 import Slider from '~/components/slider';
 import Stage from '~/components/stage';
+import Tabs from '~/components/tabs';
+import ElectrolysisLab from '~/components/electrolysis-lab';
 import {
   CIRCUIT_RESISTANCE,
   CONSTANTS_SOURCE,
@@ -20,6 +22,7 @@ import {
   cellReaction,
   coupleFor,
   electrodeWear,
+  formatElapsed,
   halfCellState,
   metalChange,
   molarMass,
@@ -44,12 +47,6 @@ const DANIELL: Cell = {
 
 const capital = (s: string) => s[0].toUpperCase() + s.slice(1);
 const metalName = (id: string) => coupleFor(id).metal.toLowerCase();
-
-// "2 h 5 min" of simulated time
-const formatTime = (seconds: number) => {
-  const minutes = Math.floor(seconds / 60);
-  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
-};
 
 // why the cell does or doesn't drive a current, in a sentence
 function explain(cell: Cell, reading: CellReading, connected: boolean) {
@@ -138,7 +135,7 @@ function HalfCellControls({
   );
 }
 
-export default function Electrochemistry() {
+function Galvanic() {
   const [start, setStart] = useState<Cell>(DANIELL); // as filled
   const [cell, setCell] = useState<Cell>(DANIELL); // as it is now
   const [time, setTime] = useState(0); // simulated s
@@ -188,17 +185,7 @@ export default function Electrochemistry() {
   };
 
   return (
-    <Container
-      backHref="/"
-      header="Electrochemistry"
-      sources={[
-        'electrodePotentials',
-        CONSTANTS_SOURCE,
-        ...ATOMIC_MASS_SOURCES,
-      ]}
-      description="Build a cell from two half-cells, connect it and watch the electrons flow."
-      className="gap-4"
-    >
+    <>
       <div className="grid gap-4 sm:grid-cols-2">
         {SIDES.map((side) => (
           <HalfCellControls
@@ -225,7 +212,7 @@ export default function Electrochemistry() {
               A
             </span>
             <span className="text-sm">
-              Time: <span data-testid="time">{formatTime(time)}</span>
+              Time: <span data-testid="time">{formatElapsed(time)}</span>
             </span>
           </div>
         }
@@ -248,7 +235,6 @@ export default function Electrochemistry() {
             {showEquations && reaction && (
               <GalvanicEquations
                 reaction={reaction}
-                reading={reading}
                 eCathode={coupleFor(now[reading.cathode!].electrode).eStandard}
                 eAnode={coupleFor(now[reading.anode!].electrode).eStandard}
               />
@@ -297,6 +283,35 @@ export default function Electrochemistry() {
           Run faster
         </Setting>
       </div>
+    </>
+  );
+}
+
+export default function Electrochemistry() {
+  return (
+    <Container
+      backHref="/"
+      header="Electrochemistry"
+      sources={[
+        'electrodePotentials',
+        CONSTANTS_SOURCE,
+        ...ATOMIC_MASS_SOURCES,
+      ]}
+      description="Build a cell from two half-cells and watch the electrons flow, or drive a reaction with a power supply."
+      className="gap-4"
+    >
+      <Tabs
+        label="Kind of cell"
+        panelClassName="flex flex-col gap-4"
+        tabs={[
+          { id: 'galvanic', label: 'Galvanic', content: <Galvanic /> },
+          {
+            id: 'electrolytic',
+            label: 'Electrolytic',
+            content: <ElectrolysisLab />,
+          },
+        ]}
+      />
     </Container>
   );
 }
@@ -359,7 +374,7 @@ function PotentialTable({ inUse }: { inUse: Cell }) {
             </td>
             <td className="text-right tabular-nums">
               {c.eStandard < 0 ? '−' : '+'}
-              {Math.abs(c.eStandard)}
+              {Math.abs(c.eStandard).toFixed(2)}
             </td>
           </tr>
         ))}

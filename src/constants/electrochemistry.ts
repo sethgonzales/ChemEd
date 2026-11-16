@@ -9,6 +9,7 @@ export const CONSTANTS_SOURCE: SourceId = 'codata';
 
 export const HALF_CELL_VOLUME = 0.1; // L of solution in each beaker
 export const CIRCUIT_RESISTANCE = 10; // Ω, the bulb and the cell together
+export const ELECTROLYSIS_RESISTANCE = 2; // Ω, the electrolysis cell and its leads
 
 export interface Couple {
   id: string; // the metal's symbol
@@ -108,3 +109,33 @@ export const COUPLES: Couple[] = [
     source: 'electrodePotentials',
   },
 ];
+
+export interface ElectrolysisCouple {
+  equation: string; // as a reduction
+  eStandard: number; // V
+  source?: SourceId;
+}
+
+// The couples electrolysis needs, from the same data page, which credits
+// O₂ and Cl₂ to Atkins and Na to the CRC Handbook (Vanýsek) and Atkins.
+export const ELECTROLYSIS_POTENTIALS: Record<
+  'hydrogen' | 'oxygen' | 'chlorine' | 'sodium',
+  ElectrolysisCouple
+> = {
+  hydrogen: { equation: '2H⁺ + 2e⁻ → H₂', eStandard: 0 }, // the reference, by definition
+  oxygen: {
+    equation: 'O₂ + 4H⁺ + 4e⁻ → 2H₂O',
+    eStandard: 1.229,
+    source: 'electrodePotentials',
+  },
+  chlorine: {
+    equation: 'Cl₂ + 2e⁻ → 2Cl⁻',
+    eStandard: 1.36,
+    source: 'electrodePotentials',
+  },
+  sodium: {
+    equation: 'Na⁺ + e⁻ → Na',
+    eStandard: -2.71,
+    source: 'electrodePotentials',
+  },
+};

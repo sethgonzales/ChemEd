@@ -3,7 +3,11 @@ import {
   analyzeCell,
   cellReaction,
   electrodeWear,
+  ELECTROLYSIS,
   electrolysis,
+  electrolysisCurrent,
+  formatElapsed,
+  minimumVoltage,
   halfCellState,
   halfEquations,
   metalChange,
@@ -279,5 +283,56 @@ describe('electrolysis (Faraday’s law)', () => {
     expect(cathode).toMatchObject({ product: 'Na' });
     expect(cathode.grams).toBeCloseTo(22.99, 2); // 1 mol of electrons → 1 mol Na
     expect(anode.product).toBe('Cl₂');
+  });
+});
+
+describe('electrolysis: the power supply', () => {
+  it('needs at least the gap between the two electrodes’ E°', () => {
+    expect(minimumVoltage('water')).toBeCloseTo(1.229, 3); // O₂/H₂O vs H⁺/H₂
+    expect(minimumVoltage('molten-nacl')).toBeCloseTo(4.07, 2); // Cl₂/Cl⁻ vs Na⁺/Na
+    expect(minimumVoltage('copper-plating')).toBe(0); // the same couple both sides
+  });
+
+  it('drives no current below the minimum, and more the higher it goes', () => {
+    expect(electrolysisCurrent('water', 1)).toBe(0);
+    expect(electrolysisCurrent('water', 1.229)).toBe(0);
+    const low = electrolysisCurrent('water', 2);
+    const high = electrolysisCurrent('water', 4);
+    expect(low).toBeGreaterThan(0);
+    expect(high).toBeGreaterThan(low);
+    expect(electrolysisCurrent('molten-nacl', 4)).toBe(0);
+    expect(electrolysisCurrent('molten-nacl', 5)).toBeGreaterThan(0);
+  });
+
+  it('plates copper at any voltage at all', () => {
+    expect(electrolysisCurrent('copper-plating', 0)).toBe(0);
+    expect(electrolysisCurrent('copper-plating', 0.5)).toBeGreaterThan(0);
+  });
+});
+
+describe('electrolysis half-equations', () => {
+  it('writes each electrode’s reaction with its electrons', () => {
+    expect(ELECTROLYSIS.water.cathode.equation).toBe('2H⁺ + 2e⁻ → H₂');
+    expect(ELECTROLYSIS.water.anode.equation).toBe('2H₂O → O₂ + 4H⁺ + 4e⁻');
+    expect(ELECTROLYSIS['molten-nacl'].anode.equation).toBe('2Cl⁻ → Cl₂ + 2e⁻');
+    expect(ELECTROLYSIS['copper-plating'].cathode.equation).toBe(
+      'Cu²⁺ + 2e⁻ → Cu',
+    );
+  });
+
+  it('matches the electrons in each equation to the ones Faraday’s law counts', () => {
+    for (const setup of Object.values(ELECTROLYSIS))
+      for (const side of [setup.cathode, setup.anode]) {
+        const n = side.equation.match(/(\d*)e⁻/)![1];
+        expect(Number(n || 1)).toBe(side.electrons);
+      }
+  });
+});
+
+describe('formatElapsed', () => {
+  it('shows simulated time in hours and minutes', () => {
+    expect(formatElapsed(0)).toBe('0 h 0 min');
+    expect(formatElapsed(59)).toBe('0 h 0 min');
+    expect(formatElapsed(3600 * 2 + 60 * 5 + 30)).toBe('2 h 5 min');
   });
 });

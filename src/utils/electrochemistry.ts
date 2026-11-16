@@ -2,6 +2,8 @@ import {
   ATMOSPHERE,
   CIRCUIT_RESISTANCE,
   COUPLES,
+  ELECTROLYSIS_POTENTIALS,
+  ELECTROLYSIS_RESISTANCE,
   FARADAY,
   GAS_CONSTANT,
   HALF_CELL_VOLUME,
@@ -229,6 +231,7 @@ export type ElectrolysisSetup = 'copper-plating' | 'water' | 'molten-nacl';
 
 interface ElectrodeProduct {
   product: string;
+  equation: string; // the half-reaction at this electrode
   electrons: number; // per formula unit made
   gas: boolean;
   element: string; // for the molar mass
@@ -240,10 +243,11 @@ export const ELECTROLYSIS: Record<
   ElectrolysisSetup,
   { cathode: ElectrodeProduct; anode: ElectrodeProduct }
 > = {
-  // Cu²⁺ + 2e⁻ → Cu at the cathode; the copper anode dissolves, Cu → Cu²⁺ + 2e⁻
+  // copper plates onto the cathode as the copper anode dissolves
   'copper-plating': {
     cathode: {
       product: 'Cu',
+      equation: 'Cu²⁺ + 2e⁻ → Cu',
       electrons: 2,
       gas: false,
       element: 'Cu',
@@ -251,27 +255,49 @@ export const ELECTROLYSIS: Record<
     },
     anode: {
       product: 'Cu²⁺',
+      equation: 'Cu → Cu²⁺ + 2e⁻',
       electrons: 2,
       gas: false,
       element: 'Cu',
       atoms: 1,
     },
   },
-  // 2H₂O + 2e⁻ → H₂ + 2OH⁻ and 2H₂O → O₂ + 4H⁺ + 4e⁻
+  // in dilute acid
   water: {
-    cathode: { product: 'H₂', electrons: 2, gas: true, element: 'H', atoms: 2 },
-    anode: { product: 'O₂', electrons: 4, gas: true, element: 'O', atoms: 2 },
+    cathode: {
+      product: 'H₂',
+      equation: '2H⁺ + 2e⁻ → H₂',
+      electrons: 2,
+      gas: true,
+      element: 'H',
+      atoms: 2,
+    },
+    anode: {
+      product: 'O₂',
+      equation: '2H₂O → O₂ + 4H⁺ + 4e⁻',
+      electrons: 4,
+      gas: true,
+      element: 'O',
+      atoms: 2,
+    },
   },
-  // Na⁺ + e⁻ → Na and 2Cl⁻ → Cl₂ + 2e⁻
   'molten-nacl': {
     cathode: {
       product: 'Na',
+      equation: 'Na⁺ + e⁻ → Na',
       electrons: 1,
       gas: false,
       element: 'Na',
       atoms: 1,
     },
-    anode: { product: 'Cl₂', electrons: 2, gas: true, element: 'Cl', atoms: 2 },
+    anode: {
+      product: 'Cl₂',
+      equation: '2Cl⁻ → Cl₂ + 2e⁻',
+      electrons: 2,
+      gas: true,
+      element: 'Cl',
+      atoms: 2,
+    },
   },
 };
 
@@ -305,4 +331,32 @@ export function electrolysis(
   };
   const { cathode, anode } = ELECTROLYSIS[setup];
   return { electrons, cathode: make(cathode), anode: make(anode) };
+}
+
+/**
+ * The least voltage that drives the reaction: the gap between the E° of the
+ * couple reduced at the cathode and the one oxidised at the anode. Real cells
+ * need more (overpotential); molten NaCl uses 25 °C aqueous values, roughly.
+ */
+export function minimumVoltage(setup: ElectrolysisSetup) {
+  const { hydrogen, oxygen, chlorine, sodium } = ELECTROLYSIS_POTENTIALS;
+  switch (setup) {
+    case 'water':
+      return oxygen.eStandard - hydrogen.eStandard;
+    case 'molten-nacl':
+      return chlorine.eStandard - sodium.eStandard;
+    default:
+      return 0; // copper dissolves at one end and plates at the other
+  }
+}
+
+/** Current through the electrolysis cell: whatever the supply has beyond the minimum */
+export function electrolysisCurrent(setup: ElectrolysisSetup, volts: number) {
+  return Math.max(0, volts - minimumVoltage(setup)) / ELECTROLYSIS_RESISTANCE;
+}
+
+/** Simulated time as "2 h 5 min" */
+export function formatElapsed(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 }

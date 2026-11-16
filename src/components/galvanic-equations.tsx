@@ -3,7 +3,7 @@ import {
   GAS_CONSTANT,
   ROOM_TEMPERATURE,
 } from '~/constants/electrochemistry';
-import type { CellReaction, CellReading } from '~/utils/electrochemistry';
+import type { CellReaction } from '~/utils/electrochemistry';
 
 const SUPERSCRIPT: Record<string, string> = {
   '-': '⁻',
@@ -20,13 +20,15 @@ export function formatNumber(x: number) {
   return `${mantissa} × 10${power}`;
 }
 
-// negatives in brackets, so "0.337 − (−0.762)" reads right
+// E° to two places, as on the AP table, so the worked sums add up on screen
+const toTable = (v: number) => Math.round(v * 100) / 100;
+
+// negatives in brackets, so "0.34 − (−0.76)" reads right
 const signed = (v: number) =>
-  v < 0 ? `(−${Math.abs(v).toFixed(3)})` : v.toFixed(3);
+  v < 0 ? `(−${Math.abs(v).toFixed(2)})` : v.toFixed(2);
 
 interface Props {
   reaction: CellReaction;
-  reading: CellReading;
   eCathode: number; // E° of each electrode, V
   eAnode: number;
 }
@@ -34,12 +36,13 @@ interface Props {
 /** The half-equations, the overall equation and the Nernst equation, worked */
 export default function GalvanicEquations({
   reaction,
-  reading,
   eCathode,
   eAnode,
 }: Props) {
   const rtf = (GAS_CONSTANT * ROOM_TEMPERATURE) / FARADAY; // V
-  const e0 = reading.standardVoltage!;
+  const [eC, eA] = [toTable(eCathode), toTable(eAnode)];
+  const e0 = eC - eA;
+  const e = e0 - (rtf / reaction.n) * Math.log(reaction.q);
 
   return (
     <div className="grid gap-3 text-sm sm:grid-cols-2">
@@ -53,16 +56,15 @@ export default function GalvanicEquations({
       </dl>
       <div data-testid="nernst" className="flex flex-col gap-1">
         <p>
-          E°cell = {signed(eCathode)} − {signed(eAnode)} = {e0.toFixed(3)} V{' '}
+          E°cell = {signed(eC)} − {signed(eA)} = {e0.toFixed(2)} V{' '}
           <span className="text-white/70">(cathode − anode)</span>
         </p>
         <p>
           Q = {reaction.quotient} = {formatNumber(reaction.q)}
         </p>
         <p>
-          E = E°cell − (RT / nF) ln Q = {e0.toFixed(3)} − ({rtf.toFixed(5)} /{' '}
-          {reaction.n}) ln {formatNumber(reaction.q)} ={' '}
-          {reading.voltage.toFixed(3)} V
+          E = E°cell − (RT / nF) ln Q = {e0.toFixed(2)} − ({rtf.toFixed(4)} /{' '}
+          {reaction.n}) ln {formatNumber(reaction.q)} = {e.toFixed(2)} V
         </p>
       </div>
     </div>

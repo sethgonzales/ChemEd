@@ -1,5 +1,10 @@
 import { ELEMENTS } from './elements';
-import { COUPLES, FARADAY, GAS_CONSTANT } from './electrochemistry';
+import {
+  COUPLES,
+  ELECTROLYSIS_POTENTIALS,
+  FARADAY,
+  GAS_CONSTANT,
+} from './electrochemistry';
 import { SOURCES } from './sources';
 
 const byId = (id: string) => COUPLES.find((c) => c.id === id)!;
@@ -28,6 +33,20 @@ describe('COUPLES', () => {
 
   it('cites a real source', () => {
     for (const c of COUPLES) expect(SOURCES[c.source]).toBeDefined();
+  });
+});
+
+describe('ELECTROLYSIS_POTENTIALS', () => {
+  it('uses E° values as tabulated in the cited data page', () => {
+    expect(ELECTROLYSIS_POTENTIALS.hydrogen.eStandard).toBe(0); // by definition
+    expect(ELECTROLYSIS_POTENTIALS.oxygen.eStandard).toBe(1.229);
+    expect(ELECTROLYSIS_POTENTIALS.chlorine.eStandard).toBe(1.36);
+    expect(ELECTROLYSIS_POTENTIALS.sodium.eStandard).toBe(-2.71);
+  });
+
+  it('cites a real source for every measured value', () => {
+    for (const c of Object.values(ELECTROLYSIS_POTENTIALS))
+      if (c.eStandard !== 0) expect(SOURCES[c.source!]).toBeDefined();
   });
 });
 

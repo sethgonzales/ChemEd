@@ -297,6 +297,25 @@ body {
   }
 }
 
+/* Gas bubbling off an electrode, rising --rise to the gas in its tube.
+   Hidden under reduced motion: the tube's level shows the gas instead. */
+@keyframes gas-bubble {
+  from {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  to {
+    transform: translateY(var(--rise));
+    opacity: 0.3;
+  }
+}
+@utility gas-bubble {
+  animation: gas-bubble 0.9s ease-in infinite;
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+}
+
 /* A drop of titrant briefly colours the liquid where it lands, then swirling
    mixes it in: it grows and fades, peaking at --strength. */
 @keyframes burette-swirl {

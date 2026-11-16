@@ -67,16 +67,41 @@ describe('Electrochemistry page: Galvanic cell', () => {
     expect(screen.getByText('Cu²⁺ + 2e⁻ → Cu')).toBeInTheDocument();
     expect(screen.getByText('Zn + Cu²⁺ → Zn²⁺ + Cu')).toBeInTheDocument();
     expect(screen.getByTestId('nernst')).toHaveTextContent(
-      /E°cell = 0\.337 − \(−0\.762\) = 1\.099 V/,
+      /E°cell = 0\.34 − \(−0\.76\) = 1\.10 V/,
     );
     expect(screen.getByTestId('nernst')).toHaveTextContent(
       /Q = \[Zn²⁺\] \/ \[Cu²⁺\] = 1/,
+    );
+    expect(screen.getByTestId('nernst')).toHaveTextContent(
+      /E = E°cell − \(RT \/ nF\) ln Q = 1\.10 − \(0\.0257 \/ 2\) ln 1 = 1\.10 V/,
     );
 
     await userEvent.click(
       screen.getByRole('checkbox', { name: 'Show half-equations' }),
     );
     expect(screen.queryByText('Zn → Zn²⁺ + 2e⁻')).not.toBeInTheDocument();
+  });
+
+  it('works with E° rounded to two places, as on the AP table, so the sums add up', async () => {
+    render(<Electrochemistry />);
+    await pick(/^Left electrode/, /^Nickel/);
+    await pick(/^Left solution/, /^Ni\(NO₃\)₂/);
+    await userEvent.click(button('Connect'));
+    // 0.337 − (−0.257) is 0.594 V, but from the rounded values it's 0.60 V
+    expect(screen.getByTestId('nernst')).toHaveTextContent(
+      /E°cell = 0\.34 − \(−0\.26\) = 0\.60 V/,
+    );
+  });
+
+  it('lists the E° table to two decimal places', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Show E° table' }),
+    );
+    const table = within(screen.getByRole('table'));
+    expect(table.getByText('−0.76')).toBeInTheDocument(); // Zn, −0.7618
+    expect(table.getByText('+0.80')).toBeInTheDocument(); // Ag, 0.7996
+    expect(table.getByText('−0.44')).toBeInTheDocument(); // Fe
   });
 
   it('stops without a salt bridge, and says why', async () => {
@@ -250,5 +275,127 @@ describe('Electrochemistry page: the particle lens', () => {
     await userEvent.click(zoom(/zoom in on the left electrode/i));
     expect(screen.queryByText(/oxidised:|reduced:/i)).toBeNull();
     expect(screen.queryByTestId('lens-count')).toBeNull();
+  });
+});
+
+describe('Electrochemistry page: Electrolytic', () => {
+  const open = () =>
+    fireEvent.click(screen.getByRole('tab', { name: 'Electrolytic' }));
+  const supply = () => screen.getByRole('slider', { name: /Supply voltage/ });
+  const setVolts = (v: number) =>
+    fireEvent.change(supply(), {
+      target: { value: String(Math.round(v * 10)) },
+    });
+  const amount = (id: string) =>
+    Number(screen.getByTestId(id).textContent!.match(/[\d.]+(?= (mL|g))/)![0]);
+  const power = () => button('Power on');
+
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+  // a second at a time, so the page renders between ticks as a browser would
+  const wait = (seconds: number) => {
+    for (let i = 0; i < seconds; i++) act(() => jest.advanceTimersByTime(1000));
+  };
+
+  it('starts with water, 3.00 V on the supply and the power off', () => {
+    render(<Electrochemistry />);
+    open();
+    expect(button(/^Setup: Electrolysis of water/)).toBeInTheDocument();
+    expect(supply()).toHaveAccessibleName('Supply voltage: 3.00 V');
+    expect(power()).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('supply-current')).toHaveTextContent('0.000 A');
+  });
+
+  it('drives no current below the minimum voltage, and says what it is', () => {
+    render(<Electrochemistry />);
+    open();
+    setVolts(1);
+    fireEvent.click(power());
+    expect(screen.getByTestId('supply-current')).toHaveTextContent('0.000 A');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /1\.00 V is below the minimum of 1\.23 V/i,
+    );
+  });
+
+  it('splits water into twice as much hydrogen as oxygen', () => {
+    render(<Electrochemistry />);
+    open();
+    fireEvent.click(power());
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /hydrogen.*cathode.*oxygen.*anode/i,
+    );
+    wait(10);
+    const h2 = amount('cathode-amount');
+    expect(h2).toBeGreaterThan(0);
+    expect(h2 / amount('anode-amount')).toBeCloseTo(2, 1);
+    expect(screen.getByTestId('cathode-amount')).toHaveTextContent(/H₂/);
+    expect(screen.getByTestId('anode-amount')).toHaveTextContent(/O₂/);
+  });
+
+  it('works through Faraday’s law: Q = I·t, then moles of electrons', () => {
+    render(<Electrochemistry />);
+    open();
+    fireEvent.click(power());
+    wait(5);
+    expect(screen.getByTestId('faraday')).toHaveTextContent(
+      /Q = I·t = 0\.88[56] A × 300 s = 266 C/, // (3 − 1.229) / 2 Ω, a rounding tie,
+    );
+    expect(screen.getByTestId('faraday')).toHaveTextContent(
+      /n\(e⁻\) = Q \/ F = 0\.00275 mol/,
+    );
+  });
+
+  it('plates as much copper on the cathode as dissolves from the anode', () => {
+    render(<Electrochemistry />);
+    open();
+    fireEvent.click(button(/^Setup:/));
+    fireEvent.click(button(/^Copper plating/));
+    setVolts(0.5);
+    fireEvent.click(power());
+    wait(10);
+    const plated = amount('cathode-amount');
+    expect(plated).toBeGreaterThan(0);
+    expect(amount('anode-amount')).toBeCloseTo(plated, 3);
+  });
+
+  it('needs over 4 V for molten salt, an estimate from 25 °C values', () => {
+    render(<Electrochemistry />);
+    open();
+    fireEvent.click(button(/^Setup:/));
+    fireEvent.click(button(/^Molten sodium chloride/));
+    setVolts(4);
+    fireEvent.click(power());
+    expect(screen.getByTestId('supply-current')).toHaveTextContent('0.000 A');
+    expect(screen.getByRole('status')).toHaveTextContent(/4\.07 V/);
+    expect(
+      screen.getByText(/estimated from 25 °C values/i),
+    ).toBeInTheDocument();
+    setVolts(6);
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /sodium.*cathode.*chlorine.*anode/i,
+    );
+  });
+
+  it('turns off when the hydrogen tube is full', () => {
+    render(<Electrochemistry />);
+    open();
+    setVolts(6);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Run faster' }));
+    fireEvent.click(power());
+    wait(30);
+    expect(power()).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('status')).toHaveTextContent(/tube is full/i);
+  });
+
+  it('starts over on Reset', () => {
+    render(<Electrochemistry />);
+    open();
+    fireEvent.click(power());
+    wait(5);
+    fireEvent.click(button('Reset'));
+    expect(screen.getByTestId('electrolysis-time')).toHaveTextContent(
+      /^0 h 0 min$/,
+    );
+    expect(power()).toHaveAttribute('aria-pressed', 'false');
   });
 });
