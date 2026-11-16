@@ -283,6 +283,20 @@ body {
   }
 }
 
+/* Electrons dashing along a cell's wire, anode to cathode. With reduced
+   motion they stand still and the arrow beside them shows the way. */
+@keyframes electron-flow {
+  to {
+    stroke-dashoffset: -12.1;
+  }
+}
+@utility electron-flow {
+  animation: electron-flow 0.6s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 /* A drop of titrant briefly colours the liquid where it lands, then swirling
    mixes it in: it grows and fades, peaking at --strength. */
 @keyframes burette-swirl {

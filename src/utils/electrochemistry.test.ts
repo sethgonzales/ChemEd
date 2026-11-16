@@ -1,8 +1,10 @@
 import { COUPLES } from '~/constants/electrochemistry';
 import {
   analyzeCell,
+  cellReaction,
   electrolysis,
   halfCellState,
+  metalChange,
   runCell,
   type HalfCell,
 } from './electrochemistry';
@@ -135,6 +137,90 @@ describe('running a cell down', () => {
   it('stays put when the cell can’t run', () => {
     const stuck = { ...daniell, saltBridge: false };
     expect(runCell(stuck, 600)).toEqual(stuck);
+  });
+});
+
+describe('the cell reaction, for the worked Nernst equation', () => {
+  // E = E° − (RT / nF) ln Q must agree with the voltmeter
+  const nernst = (eStandard: number, n: number, q: number) =>
+    eStandard - ((8.314462618 * 298.15) / (n * 96485.33212)) * Math.log(q);
+
+  it('writes the Daniell cell’s half-equations and overall equation', () => {
+    const r = cellReaction(daniell)!;
+    expect(r.oxidation).toBe('Zn → Zn²⁺ + 2e⁻');
+    expect(r.reduction).toBe('Cu²⁺ + 2e⁻ → Cu');
+    expect(r.overall).toBe('Zn + Cu²⁺ → Zn²⁺ + Cu');
+    expect(r.n).toBe(2);
+    expect(r.quotient).toBe('[Zn²⁺] / [Cu²⁺]');
+    expect(r.q).toBe(1);
+  });
+
+  it('balances electrons when the ions have different charges', () => {
+    const r = cellReaction({ ...daniell, right: half('Ag') })!;
+    expect(r.overall).toBe('Zn + 2Ag⁺ → Zn²⁺ + 2Ag');
+    expect(r.n).toBe(2);
+    expect(r.quotient).toBe('[Zn²⁺] / [Ag⁺]²');
+
+    const al = cellReaction({ ...daniell, left: half('Al') })!;
+    expect(al.overall).toBe('2Al + 3Cu²⁺ → 2Al³⁺ + 3Cu');
+    expect(al.n).toBe(6);
+    expect(al.quotient).toBe('[Al³⁺]² / [Cu²⁺]³');
+  });
+
+  it.each([
+    ['Daniell, dilute zinc ions', { ...daniell, left: half('Zn', 'Zn', 0.01) }],
+    [
+      'Zn | Ag, mixed',
+      { ...daniell, left: half('Zn', 'Zn', 0.5), right: half('Ag', 'Ag', 0.1) },
+    ],
+    [
+      'Al | Cu',
+      { ...daniell, left: half('Al', 'Al', 0.2), right: half('Cu', 'Cu', 2) },
+    ],
+  ])('agrees with the voltmeter: %s', (_, cell) => {
+    const r = cellReaction(cell)!;
+    const reading = analyzeCell(cell);
+    expect(nernst(reading.standardVoltage!, r.n, r.q)).toBeCloseTo(
+      reading.voltage,
+      9,
+    );
+  });
+
+  it('labels each side of a concentration cell, which has E° = 0', () => {
+    const cell = {
+      left: half('Cu', 'Cu', 0.01),
+      right: half('Cu', 'Cu', 1),
+      saltBridge: true,
+    };
+    const r = cellReaction(cell)!;
+    expect(r.quotient).toBe('[Cu²⁺]anode / [Cu²⁺]cathode');
+    expect(r.q).toBeCloseTo(0.01, 12);
+    expect(nernst(0, r.n, r.q)).toBeCloseTo(analyzeCell(cell).voltage, 9);
+  });
+
+  it('has no reaction to write when the cell doesn’t work', () => {
+    expect(cellReaction({ ...daniell, saltBridge: false })).toBeNull();
+    expect(cellReaction({ ...daniell, right: half('Zn') })).toBeNull();
+  });
+});
+
+describe('the electrodes as the cell runs', () => {
+  it('thins the zinc and plates copper, mole for mole', () => {
+    const later = runCell(daniell, 3600);
+    const change = metalChange(daniell, later);
+    expect(change.left).toBeLessThan(0); // zinc dissolves
+    expect(change.right).toBeGreaterThan(0); // copper plates out
+    expect(change.left).toBeCloseTo(-change.right, 12);
+  });
+
+  it('plates two silver atoms for each zinc atom dissolved', () => {
+    const start = { ...daniell, right: half('Ag') };
+    const change = metalChange(start, runCell(start, 3600));
+    expect(change.right / -change.left).toBeCloseTo(2, 9);
+  });
+
+  it('changes nothing before the cell runs', () => {
+    expect(metalChange(daniell, daniell)).toEqual({ left: 0, right: 0 });
   });
 });
 

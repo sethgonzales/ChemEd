@@ -1,0 +1,169 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import Electrochemistry from '~/pages/electrochemistry';
+
+const button = (name: string | RegExp) => screen.getByRole('button', { name });
+const voltage = () => screen.getByTestId('voltage');
+const status = () => screen.getByRole('status');
+const cellPicture = () => screen.getByRole('img', { name: /cell/i });
+const pick = async (menu: RegExp, option: RegExp) => {
+  await userEvent.click(button(menu));
+  await userEvent.click(button(option));
+};
+const volts = () => Number(voltage().textContent!.match(/[\d.]+/)![0]);
+const grams = (id: string) =>
+  Number(screen.getByTestId(id).textContent!.match(/[\d.]+/)![0]);
+
+describe('Electrochemistry page: Galvanic cell', () => {
+  it('says what to do in one line', () => {
+    render(<Electrochemistry />);
+    expect(
+      screen.getByRole('heading', { name: 'Electrochemistry' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Build a cell from two half-cells/)).toBeVisible();
+  });
+
+  it('starts as an open Daniell cell: zinc and copper, nothing flowing', () => {
+    render(<Electrochemistry />);
+    expect(button('Left electrode: Zinc (Zn)')).toBeInTheDocument();
+    expect(button('Left solution: Zn(NO₃)₂')).toBeInTheDocument();
+    expect(button('Right electrode: Copper (Cu)')).toBeInTheDocument();
+    expect(button('Right solution: Cu(NO₃)₂')).toBeInTheDocument();
+    expect(voltage()).toHaveTextContent('0.00 V');
+    expect(status()).toHaveTextContent(/press Connect/i);
+    expect(button('Connect')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('reads 1.10 V once connected, with zinc oxidised at the anode', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(button('Connect'));
+    expect(button('Connect')).toHaveAttribute('aria-pressed', 'true');
+    expect(voltage()).toHaveTextContent('1.10 V');
+    expect(status()).toHaveTextContent(
+      /zinc is oxidised at the anode.*Cu²⁺ is reduced at the cathode/i,
+    );
+    expect(cellPicture()).toHaveAccessibleName(
+      /electrons flow through the wire from the zinc on the left to the copper on the right/i,
+    );
+  });
+
+  it('keeps zinc as the anode when the metals swap sides', async () => {
+    render(<Electrochemistry />);
+    await pick(/^Left electrode/, /^Copper/);
+    await pick(/^Left solution/, /^Cu\(NO₃\)₂/);
+    await pick(/^Right electrode/, /^Zinc/);
+    await pick(/^Right solution/, /^Zn\(NO₃\)₂/);
+    await userEvent.click(button('Connect'));
+    expect(voltage()).toHaveTextContent('1.10 V');
+    expect(cellPicture()).toHaveAccessibleName(
+      /from the zinc on the right to the copper on the left/i,
+    );
+  });
+
+  it('shows the half-equations and the Nernst equation worked out', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(button('Connect'));
+    expect(screen.getByText('Zn → Zn²⁺ + 2e⁻')).toBeInTheDocument();
+    expect(screen.getByText('Cu²⁺ + 2e⁻ → Cu')).toBeInTheDocument();
+    expect(screen.getByText('Zn + Cu²⁺ → Zn²⁺ + Cu')).toBeInTheDocument();
+    expect(screen.getByTestId('nernst')).toHaveTextContent(
+      /E°cell = 0\.337 − \(−0\.762\) = 1\.099 V/,
+    );
+    expect(screen.getByTestId('nernst')).toHaveTextContent(
+      /Q = \[Zn²⁺\] \/ \[Cu²⁺\] = 1/,
+    );
+
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Show half-equations' }),
+    );
+    expect(screen.queryByText('Zn → Zn²⁺ + 2e⁻')).not.toBeInTheDocument();
+  });
+
+  it('stops without a salt bridge, and says why', async () => {
+    render(<Electrochemistry />);
+    await userEvent.click(button('Connect'));
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Salt bridge' }),
+    );
+    expect(voltage()).toHaveTextContent('0.00 V');
+    expect(status()).toHaveTextContent(/salt bridge/i);
+  });
+
+  it('explains when zinc sits in copper ions: they react in the beaker', async () => {
+    render(<Electrochemistry />);
+    await pick(/^Left solution/, /^Cu\(NO₃\)₂/);
+    await userEvent.click(button('Connect'));
+    expect(voltage()).toHaveTextContent('0.00 V');
+    expect(status()).toHaveTextContent(/copper plates straight onto the zinc/i);
+  });
+
+  it('reads 0 V with the same half-cell on both sides', async () => {
+    render(<Electrochemistry />);
+    await pick(/^Right electrode/, /^Zinc/);
+    await pick(/^Right solution/, /^Zn\(NO₃\)₂/);
+    await userEvent.click(button('Connect'));
+    expect(voltage()).toHaveTextContent('0.00 V');
+    expect(status()).toHaveTextContent(/no difference/i);
+  });
+
+  it('reads higher when the anode’s ions are dilute (Nernst)', async () => {
+    render(<Electrochemistry />);
+    const left = screen.getByRole('slider', { name: /Left concentration/ });
+    fireEvent.change(left, { target: { value: '1' } }); // 0.01 M
+    expect(left).toHaveAccessibleName('Left concentration: 0.01 M');
+    await userEvent.click(button('Connect'));
+    expect(voltage()).toHaveTextContent('1.16 V');
+  });
+});
+
+describe('Electrochemistry page: running the cell', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+  const wait = (ms: number) => act(() => jest.advanceTimersByTime(ms));
+
+  it('runs down: time passes, the voltage falls, the zinc thins and copper plates', () => {
+    render(<Electrochemistry />);
+    fireEvent.click(button('Connect'));
+    wait(10_000);
+    expect(screen.getByTestId('time')).not.toHaveTextContent(/^0 h 0 min$/);
+    expect(volts()).toBeLessThan(1.1);
+    expect(volts()).toBeGreaterThan(1);
+    // equal moles of Zn and Cu, so the masses go as the molar masses
+    const zinc = grams('left-mass');
+    const copper = grams('right-mass');
+    expect(screen.getByTestId('left-mass')).toHaveTextContent('−');
+    expect(screen.getByTestId('right-mass')).toHaveTextContent('+');
+    expect(zinc / copper).toBeCloseTo(65.38 / 63.546, 2);
+  });
+
+  it('goes flat once the Cu²⁺ is used up, faster with Run faster', () => {
+    render(<Electrochemistry />);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Run faster' }));
+    fireEvent.click(button('Connect'));
+    wait(10_000);
+    expect(voltage()).toHaveTextContent('0.00 V');
+    expect(status()).toHaveTextContent(/flat/i);
+  });
+
+  it('pauses when disconnected', () => {
+    render(<Electrochemistry />);
+    fireEvent.click(button('Connect'));
+    wait(5_000);
+    fireEvent.click(button('Connect'));
+    const time = screen.getByTestId('time').textContent;
+    wait(5_000);
+    expect(screen.getByTestId('time')).toHaveTextContent(time!);
+  });
+
+  it('starts over on Reset with fresh electrodes and solutions', () => {
+    render(<Electrochemistry />);
+    fireEvent.click(button('Connect'));
+    wait(10_000);
+    fireEvent.click(button('Reset'));
+    expect(screen.getByTestId('time')).toHaveTextContent(/^0 h 0 min$/);
+    expect(voltage()).toHaveTextContent('0.00 V');
+    expect(button('Connect')).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(button('Connect'));
+    expect(voltage()).toHaveTextContent('1.10 V');
+  });
+});

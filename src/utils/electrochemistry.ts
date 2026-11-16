@@ -100,6 +100,60 @@ export function analyzeCell(cell: Cell): CellReading {
   };
 }
 
+const SUPERSCRIPT = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+const power = (k: number) =>
+  k === 1 ? '' : [...String(k)].map((d) => SUPERSCRIPT[+d]).join('');
+const times = (k: number, species: string) =>
+  k === 1 ? species : `${k}${species}`;
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+
+export interface CellReaction {
+  oxidation: string; // at the anode
+  reduction: string; // at the cathode
+  overall: string;
+  n: number; // electrons transferred in the overall equation
+  quotient: string; // Q, written out
+  q: number;
+}
+
+/** The working cell's reaction, balanced for electrons, with Q for the Nernst equation */
+export function cellReaction(cell: Cell): CellReaction | null {
+  const { status, anode, cathode } = analyzeCell(cell);
+  if (status !== 'working') return null;
+  const ox = coupleFor(cell[anode!].electrode);
+  const red = coupleFor(cell[cathode!].electrode);
+  const e = (k: number) => `${k === 1 ? '' : k}e⁻`;
+
+  // a·M + b·Nᵐ⁺ → a·Mⁿ⁺ + b·N, with both sides moving the same electrons
+  const n = (ox.charge * red.charge) / gcd(ox.charge, red.charge);
+  const [a, b] = [n / ox.charge, n / red.charge];
+  const conc = (side: Side) => Math.max(cell[side].concentration, USED_UP);
+
+  // a concentration cell has the same ion on both sides, so name them
+  const same = ox.id === red.id;
+  const [top, bottom] = same
+    ? [`[${ox.ion}]anode`, `[${red.ion}]cathode`]
+    : [`[${ox.ion}]${power(a)}`, `[${red.ion}]${power(b)}`];
+
+  return {
+    oxidation: `${ox.id} → ${ox.ion} + ${e(ox.charge)}`,
+    reduction: `${red.ion} + ${e(red.charge)} → ${red.id}`,
+    overall: `${times(a, ox.id)} + ${times(b, red.ion)} → ${times(a, ox.ion)} + ${times(b, red.id)}`,
+    n,
+    quotient: `${top} / ${bottom}`,
+    q: conc(anode!) ** a / conc(cathode!) ** b,
+  };
+}
+
+/** Moles of metal each electrode has gained since `start` (negative: dissolved) */
+export function metalChange(start: Cell, now: Cell): Record<Side, number> {
+  // each electrode trades atoms with its own ions, so metal gained = ions lost
+  const change = (side: Side) =>
+    (start[side].concentration - now[side].concentration) * HALF_CELL_VOLUME ||
+    0;
+  return { left: change('left'), right: change('right') };
+}
+
 // moves `electrons` mol of e⁻ through the wire: anode metal → ions, cathode ions → metal
 function transfer(
   cell: Cell,
@@ -201,7 +255,7 @@ export const ELECTROLYSIS: Record<
   },
 };
 
-const molarMass = (symbol: string) =>
+export const molarMass = (symbol: string) =>
   ELEMENTS.find((e) => e.symbol === symbol)!.atomicMass!;
 
 export interface Product {
