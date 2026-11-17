@@ -66,4 +66,22 @@ describe('QuestScene', () => {
     render(<ScenePanel>The Golem waits.</ScenePanel>);
     expect(screen.getByText('The Golem waits.')).toBeInTheDocument();
   });
+
+  it('dresses the wall for the chamber’s boss', () => {
+    const { container } = render(
+      <QuestScene label="The Wyrm’s chamber" backdrop="states">
+        <p>Cold</p>
+      </QuestScene>,
+    );
+    expect(container.querySelector('[data-decor="icicles"]')).not.toBeNull();
+  });
+
+  it('is the plain dungeon wall without one', () => {
+    const { container } = render(
+      <QuestScene label="The map">
+        <p>Doors</p>
+      </QuestScene>,
+    );
+    expect(container.querySelector('[data-decor="icicles"]')).toBeNull();
+  });
 });

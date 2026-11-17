@@ -1,5 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
+import SceneDecor from '~/components/scene-decor';
 import Stage from '~/components/stage';
+import { backdropFor, type Backdrop } from '~/constants/quest-backdrops';
 import { cn } from '~/utils/cn';
 import {
   SHADES,
@@ -14,13 +16,10 @@ interface Props {
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  backdrop?: string; // the chamber whose scenery to use; the plain dungeon without
 }
 
 const WALL_SEED = 11; // one wall for every chamber, so it never shifts
-// dark stone, lit from the torches by the lamplight on top
-const STONE_COLOURS = ['#2b2623', '#332d29', '#26221f', '#3a332e'];
-const MORTAR_COLOUR = '#0f0d0c';
-const MOSS_COLOURS = ['#365314', '#3f6212'];
 const MOSS_CLUMP = 2; // wall units wide
 const MORTAR_REACH = 1; // wall units it creeps down over the mortar
 
@@ -42,7 +41,7 @@ function mossClumps(s: Stone, i: number): [number, number][] {
 }
 
 /** The back wall: staggered stones with moss creeping up from the floor */
-function StoneWall() {
+function StoneWall({ look }: { look: Backdrop }) {
   const { stones } = useMemo(() => stoneWall(WALL_SEED), []);
   return (
     <svg
@@ -53,7 +52,7 @@ function StoneWall() {
       shapeRendering="crispEdges"
       className="pointer-events-none absolute inset-0 h-full w-full"
     >
-      <rect width={WALL_WIDTH} height={WALL_HEIGHT} fill={MORTAR_COLOUR} />
+      <rect width={WALL_WIDTH} height={WALL_HEIGHT} fill={look.mortar} />
       {stones.map((s, i) => (
         <g key={i}>
           <rect
@@ -62,12 +61,12 @@ function StoneWall() {
             y={s.y}
             width={s.w}
             height={s.h}
-            fill={STONE_COLOURS[s.shade % SHADES]}
+            fill={look.stones[s.shade % SHADES]}
           />
           {/* a lighter top edge, as if lit from above */}
-          <rect x={s.x} y={s.y} width={s.w} height={1} fill="#4a423c" />
+          <rect x={s.x} y={s.y} width={s.w} height={1} fill={look.edge} />
           {s.moss > 0 && (
-            <g data-moss fill={MOSS_COLOURS[i % MOSS_COLOURS.length]}>
+            <g data-moss fill={look.growth[i % look.growth.length]}>
               {mossClumps(s, i).map(([x, h], k) => (
                 <rect
                   key={k}
@@ -86,7 +85,13 @@ function StoneWall() {
 }
 
 // A torch on the wall: a bracket and a flickering flame with its glow
-function Torch({ className }: { className: string }) {
+function Torch({
+  className,
+  flame,
+}: {
+  className: string;
+  flame: Backdrop['flame'];
+}) {
   return (
     <div
       data-decor="torch"
@@ -96,7 +101,13 @@ function Torch({ className }: { className: string }) {
         className,
       )}
     >
-      <div className="quest-flame h-4 w-3 rounded-t-full bg-[radial-gradient(circle_at_50%_70%,#fde68a,#f97316_60%,transparent_75%)] shadow-[0_0_48px_22px_rgb(251_146_60/0.25)]" />
+      <div
+        className="quest-flame h-4 w-3 rounded-t-full"
+        style={{
+          background: `radial-gradient(circle at 50% 70%, ${flame.core}, ${flame.outer} 60%, transparent 75%)`,
+          boxShadow: `0 0 48px 22px rgb(${flame.glow} / 0.25)`,
+        }}
+      />
       <div className="h-3 w-1 bg-stone-600" />
     </div>
   );
@@ -133,7 +144,9 @@ export default function QuestScene({
   children,
   footer,
   className,
+  backdrop,
 }: Props) {
+  const look = backdropFor(backdrop);
   return (
     <Stage
       label={label}
@@ -149,18 +162,22 @@ export default function QuestScene({
       // the pixel font, which follows the app's stylized-text setting
       className={cn('relative overflow-hidden font-pixel', className)}
     >
-      <StoneWall />
-      {/* darkness at the edges, and warm light in the middle */}
+      <StoneWall look={look} />
+      {look.decor && <SceneDecor decor={look.decor} />}
+      {/* darkness at the edges, and the torches' light in the middle */}
       <div
         data-decor
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_60%,rgb(255_196_110/0.14),transparent_55%),radial-gradient(ellipse_at_50%_50%,transparent_40%,rgb(0_0_0/0.65))]"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse at 50% 60%, rgb(${look.light} / 0.14), transparent 55%), radial-gradient(ellipse at 50% 50%, transparent 40%, rgb(0 0 0 / 0.65))`,
+        }}
       />
-      <Torch className="top-6 left-5" />
-      <Torch className="top-6 right-5" />
+      <Torch className="top-6 left-5" flame={look.flame} />
+      <Torch className="top-6 right-5" flame={look.flame} />
       {/* two more down the walls, where there's room for them */}
-      <Torch className="top-1/2 left-5 hidden sm:flex" />
-      <Torch className="top-1/2 right-5 hidden sm:flex" />
+      <Torch className="top-1/2 left-5 hidden sm:flex" flame={look.flame} />
+      <Torch className="top-1/2 right-5 hidden sm:flex" flame={look.flame} />
       <div
         data-decor
         aria-hidden="true"

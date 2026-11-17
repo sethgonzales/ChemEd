@@ -34,6 +34,17 @@ jest.mock('~/utils/sounds', () => ({
 }));
 beforeEach(() => Object.values(sounds).forEach((f) => f.mockClear()));
 
+// Mr. G in the corner: on screen on wide screens, away on phones
+const guide = { say: jest.fn(), visible: false };
+jest.mock('~/components/guide', () => ({
+  ...jest.requireActual('~/components/guide'),
+  useGuide: () => guide,
+}));
+beforeEach(() => {
+  guide.say.mockClear();
+  guide.visible = false;
+});
+
 const chamber = findChamber('balancing')!;
 const SEED = 7;
 
@@ -163,7 +174,8 @@ describe('a quest chamber', () => {
     ).toBeInTheDocument();
   });
 
-  it('costs a heart for a wrong answer, and Mr. G explains the one missed', async () => {
+  it('costs a heart for a wrong answer, and Mr. G explains it in his speech bubble, not in the scene', async () => {
+    guide.visible = true;
     setup();
     await walkToBoss();
     const s = atBoss();
@@ -171,20 +183,78 @@ describe('a quest chamber', () => {
     expect(hearts()).toHaveAccessibleName(
       `${MAX_HEARTS - 1} of ${MAX_HEARTS} hearts left`,
     );
-    expect(screen.getByRole('status')).toHaveTextContent(s.question!.explain);
+    expect(guide.say).toHaveBeenCalledWith(s.question!.explain, 'tip');
+    const scene = screen.getByRole('region', { name: /chamber/ });
+    expect(scene).not.toHaveTextContent(s.question!.explain);
   });
 
-  it('starts the fight over with full hearts after the last one is lost', async () => {
+  it('on a phone, where Mr. G isn’t in the corner, has him explain beside his own small sprite', async () => {
     setup();
     await walkToBoss();
-    let s = atBoss();
-    s = await pickAnswer(s, true);
-    for (let i = 0; i < MAX_HEARTS; i++) s = await pickAnswer(s, false);
-    expect(hp()).toHaveAttribute('aria-valuenow', String(chamber.bossHp));
-    expect(hearts()).toHaveAccessibleName(
-      `${MAX_HEARTS} of ${MAX_HEARTS} hearts left`,
+    const s = atBoss();
+    await pickAnswer(s, false);
+    expect(screen.getByRole('note', { name: 'Mr. G' })).toHaveTextContent(
+      s.question!.explain,
     );
-    expect(screen.getByRole('status')).toHaveTextContent(/knocked you down/);
+    expect(screen.getByRole('status')).not.toHaveTextContent(
+      s.question!.explain,
+    );
+  });
+
+  it('leads into each question with what it’s about, before asking it', async () => {
+    setup();
+    await walkToBoss();
+    const q = atBoss().question!;
+    const about = screen.getByText(q.about);
+    const prompt = screen.getByText(q.prompt);
+    expect(
+      about.compareDocumentPosition(prompt) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  describe('losing the last heart', () => {
+    async function knockedOut() {
+      const props = setup();
+      await walkToBoss();
+      let s = atBoss();
+      s = await pickAnswer(s, true);
+      for (let i = 0; i < MAX_HEARTS; i++) s = await pickAnswer(s, false);
+      return props;
+    }
+
+    it('is game over: no more questions, and the hearts don’t come back by themselves', async () => {
+      await knockedOut();
+      expect(
+        screen.getByRole('heading', { name: 'Game over' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('group')).toBeNull();
+      act(() => jest.advanceTimersByTime(10_000));
+      expect(
+        screen.getByRole('heading', { name: 'Game over' }),
+      ).toBeInTheDocument();
+    });
+
+    it('fights the boss again from full hearts and HP', async () => {
+      await knockedOut();
+      await user().click(screen.getByRole('button', { name: 'Fight again' }));
+      expect(hp()).toHaveAttribute('aria-valuenow', String(chamber.bossHp));
+      expect(hearts()).toHaveAccessibleName(
+        `${MAX_HEARTS} of ${MAX_HEARTS} hearts left`,
+      );
+      expect(screen.getByRole('group')).toBeInTheDocument();
+    });
+
+    it('can restart the whole chamber, or go back to the map', async () => {
+      const { onReplay, onExit } = await knockedOut();
+      await user().click(
+        screen.getByRole('button', { name: 'Restart the chamber' }),
+      );
+      expect(onReplay).toHaveBeenCalled();
+      await user().click(
+        screen.getByRole('button', { name: 'Back to the map' }),
+      );
+      expect(onExit).toHaveBeenCalled();
+    });
   });
 
   it('ends with the boss beaten, the stars won, and the way back to the map', async () => {
@@ -205,6 +275,30 @@ describe('a quest chamber', () => {
     expect(onReplay).toHaveBeenCalled();
     await user().click(screen.getByRole('button', { name: 'Back to the map' }));
     expect(onExit).toHaveBeenCalled();
+  });
+});
+
+describe('the chamber’s backdrop', () => {
+  it('dresses every scene for its boss: story, rooms and fight', async () => {
+    const { container } = render(
+      <QuestChamber
+        chamber={chamber}
+        course="general"
+        seed={SEED}
+        onClear={jest.fn()}
+        onExit={jest.fn()}
+        onReplay={jest.fn()}
+      />,
+    );
+    const decor = () => container.querySelectorAll('[data-decor="cracks"]');
+    expect(decor()).toHaveLength(1);
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    expect(decor()).toHaveLength(1);
+    await solve(0);
+    await user().click(screen.getByRole('button', { name: 'Next door' }));
+    await solve(1);
+    await user().click(screen.getByRole('button', { name: 'Face the boss' }));
+    expect(decor()).toHaveLength(1);
   });
 });
 

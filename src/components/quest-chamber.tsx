@@ -6,6 +6,7 @@ import {
   IconStarFilled,
 } from '@tabler/icons-react';
 import Button from '~/components/button';
+import { useGuide } from '~/components/guide';
 import MrG from '~/components/mr-g';
 import QuestScene, { ScenePanel } from '~/components/quest-scene';
 import TypedStory from '~/components/typed-story';
@@ -16,6 +17,7 @@ import {
   MAX_HEARTS,
   answer,
   begin,
+  rematch,
   solveRoom,
   stars,
   startChamber,
@@ -55,6 +57,7 @@ function StoryWall({
 }) {
   return (
     <QuestScene
+      backdrop={chamber.id}
       label={`${chamber.topic}: the story`}
       footer={
         <div className="flex justify-center">
@@ -98,6 +101,7 @@ function Room({
   return (
     <div className="flex flex-col gap-4">
       <QuestScene
+        backdrop={chamber.id}
         label={`Room ${room + 1} of ${chamber.rooms}`}
         footer={
           solved && (
@@ -189,20 +193,17 @@ function Question({
   const id = useId();
   return (
     <div className="flex flex-col items-center gap-2 text-center">
-      <p id={id} className="font-semibold">
+      {/* the lead-in: where the question comes from, then what it's about */}
+      {question.topic && (
+        <p className="text-base text-amber-200">From {question.topic}</p>
+      )}
+      <p className="text-base text-stone-300">{question.about}</p>
+      <p id={id} className="text-xl">
         {question.prompt}
       </p>
       {question.shown && (
-        <p className="text-lg font-semibold text-secondary-500">
-          {question.shown}
-        </p>
+        <p className="text-2xl text-secondary-500">{question.shown}</p>
       )}
-      {question.topic && (
-        <p className="text-xs font-semibold text-amber-200">
-          From {question.topic}
-        </p>
-      )}
-      <p className="text-xs text-stone-300">{question.about}</p>
       <div
         role="group"
         aria-labelledby={id}
@@ -215,6 +216,54 @@ function Question({
         ))}
       </div>
     </div>
+  );
+}
+
+/** Mr. G's note on a phone, where he isn't in the corner: a bubble by his sprite */
+function PhoneNote({ text }: { text: string }) {
+  return (
+    <div role="note" aria-label="Mr. G" className="flex items-end gap-2">
+      <MrG cloak className="h-auto w-12 shrink-0" />
+      <ScenePanel className="relative flex-1 p-3 text-sm before:absolute before:bottom-3 before:-left-2 before:size-3 before:rotate-45 before:border-b-2 before:border-l-2 before:border-stone-700 before:bg-stone-950">
+        {text}
+      </ScenePanel>
+    </div>
+  );
+}
+
+function GameOver({
+  chamber,
+  onRematch,
+  onReplay,
+  onExit,
+}: {
+  chamber: Chamber;
+  onRematch: () => void;
+  onReplay: () => void;
+  onExit: () => void;
+}) {
+  return (
+    <QuestScene
+      backdrop={chamber.id}
+      label="Game over"
+      footer={
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button pressed onClick={onRematch}>
+            Fight again
+          </Button>
+          <Button onClick={onReplay}>Restart the chamber</Button>
+          <Button onClick={onExit}>Back to the map</Button>
+        </div>
+      }
+    >
+      <ScenePanel className="mx-4 mt-12 mb-4 flex flex-col items-center gap-3 text-center sm:mx-12">
+        <h3 className="font-pixel text-3xl text-red-400">Game over</h3>
+        <p>
+          {chamber.villain.name} knocked you down. Fight it again with new
+          questions (the rooms stay cleared), or start the chamber over.
+        </p>
+      </ScenePanel>
+    </QuestScene>
   );
 }
 
@@ -233,6 +282,7 @@ function Loot({
   useEffect(() => playTreasure(), [playTreasure]);
   return (
     <QuestScene
+      backdrop={chamber.id}
       label="Treasure"
       footer={
         <div className="flex flex-wrap justify-center gap-2">
@@ -289,6 +339,9 @@ export default function QuestChamber({
   const playHit = useHitSound();
   const playMiss = useMissSound();
   const playDamage = useDamageSound();
+  const { say, visible: guideShowing } = useGuide();
+  // Mr. G's explanation, for a phone where he isn't in the corner
+  const [note, setNote] = useState('');
   const { villain } = chamber;
 
   // the damage sounds as the boss's attack lands, halfway through its lunge
@@ -318,10 +371,26 @@ export default function QuestChamber({
       <Loot chamber={chamber} won={won} onExit={onExit} onReplay={onReplay} />
     );
 
+  // game over once the boss's last blow has landed
+  if (state.stage === 'defeat' && mode === 'idle')
+    return (
+      <GameOver
+        chamber={chamber}
+        onRematch={() => {
+          setState((s) => rematch(s, chamber));
+          setFeedback('');
+          setNote('');
+        }}
+        onReplay={onReplay}
+        onExit={onExit}
+      />
+    );
+
   const pickChoice = (i: number) => {
     const q = state.question!;
     const right = i === q.answer;
     const next = answer(state, chamber, right);
+    setNote('');
     if (right) {
       playHit();
       setFeedback(
@@ -332,10 +401,13 @@ export default function QuestChamber({
     } else {
       playMiss();
       setFeedback(
-        next.retries > state.retries
-          ? `${villain.name} knocked you down. Your hearts are back, and it has new questions. Mr. G: ${q.explain}`
-          : `Mr. G: ${q.explain}`,
+        next.stage === 'defeat'
+          ? `${villain.name} knocked you down!`
+          : `Missed! ${villain.name} strikes back.`,
       );
+      // Mr. G explains in his speech bubble, or beside his sprite on a phone
+      if (guideShowing) say(q.explain, 'tip');
+      else setNote(q.explain);
     }
     setMode(next.stage === 'loot' ? 'defeat' : right ? 'hit' : 'attack');
     setBlow((b) => b + 1);
@@ -352,6 +424,7 @@ export default function QuestChamber({
 
   return (
     <QuestScene
+      backdrop={chamber.id}
       label={`${villain.name}’s chamber`}
       footer={
         <div className="flex flex-col gap-3">
@@ -361,6 +434,7 @@ export default function QuestChamber({
           >
             {feedback}
           </p>
+          {note && <PhoneNote text={note} />}
           {state.stage === 'boss' && state.question && (
             <Question question={state.question} onPick={pickChoice} />
           )}

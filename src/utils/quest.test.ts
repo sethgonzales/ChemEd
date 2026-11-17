@@ -10,6 +10,7 @@ import {
   numberChoices,
   parseSetup,
   recordClear,
+  rematch,
   setupQuery,
   solveRoom,
   stars,
@@ -147,8 +148,16 @@ describe('the boss fight', () => {
       return s;
     }
 
-    it('refills the hearts and resets the boss, without going back to the rooms', () => {
+    it('is game over: no hearts, no more questions, until the student chooses', () => {
       const s = knockedOut();
+      expect(s.stage).toBe('defeat');
+      expect(s.hearts).toBe(0);
+      expect(s.question).toBeUndefined();
+      expect(answer(s, chamber, true)).toBe(s); // no answering from the floor
+    });
+
+    it('can be fought again: hearts refilled and the boss healed, without going back to the rooms', () => {
+      const s = rematch(knockedOut(), chamber);
       expect(s.stage).toBe('boss');
       expect(s.hearts).toBe(MAX_HEARTS);
       expect(s.bossHp).toBe(chamber.bossHp);
@@ -157,9 +166,14 @@ describe('the boss fight', () => {
 
     it('starts the rematch with fresh questions', () => {
       const first = atBoss();
-      const rematch = knockedOut();
-      expect(rematch.question!.level).toBe(1);
-      expect(rematch.question!.value).not.toBe(first.question!.value);
+      const again = rematch(knockedOut(), chamber);
+      expect(again.question!.level).toBe(1);
+      expect(again.question!.value).not.toBe(first.question!.value);
+    });
+
+    it('only rematches after a defeat', () => {
+      const s = atBoss();
+      expect(rematch(s, chamber)).toBe(s);
     });
   });
 });

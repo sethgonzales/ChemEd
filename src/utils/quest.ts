@@ -20,7 +20,7 @@ export interface Chamber<Q> {
 }
 
 export interface QuestState<Q> {
-  stage: 'story' | 'room' | 'boss' | 'loot';
+  stage: 'story' | 'room' | 'boss' | 'defeat' | 'loot';
   room: number; // the room being played, from 0
   hearts: number;
   bossHp: number;
@@ -166,8 +166,8 @@ export function solveRoom<Q>(s: QuestState<Q>, c: Chamber<Q>): QuestState<Q> {
 
 /**
  * A right answer hits the boss and a wrong one costs a heart; either way a new
- * question follows, so a missed one can't be retried by elimination. Out of hearts,
- * the fight starts over with new questions; cleared rooms stay cleared.
+ * question follows, so a missed one can't be retried by elimination. Out of
+ * hearts, it's game over until the student picks a rematch (or leaves).
  */
 export function answer<Q>(
   s: QuestState<Q>,
@@ -182,8 +182,14 @@ export function answer<Q>(
     return ask({ ...s, bossHp, turn: s.turn + 1 }, c);
   }
   const hearts = s.hearts - 1;
-  if (hearts === 0) return fight({ ...s, retries: s.retries + 1 }, c);
+  if (hearts === 0)
+    return { ...s, hearts, stage: 'defeat', question: undefined };
   return ask({ ...s, hearts, turn: s.turn + 1 }, c);
+}
+
+/** Fight the boss again after a defeat: full hearts, new questions, rooms kept */
+export function rematch<Q>(s: QuestState<Q>, c: Chamber<Q>): QuestState<Q> {
+  return s.stage === 'defeat' ? fight({ ...s, retries: s.retries + 1 }, c) : s;
 }
 
 export const stars = (hearts: number) => hearts;
