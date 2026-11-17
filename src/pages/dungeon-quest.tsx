@@ -70,8 +70,9 @@ export default function DungeonQuest() {
   const inChamber = view?.at === 'chamber';
   const fighting = inChamber && stage === 'boss';
   useMusic(
-    // hushed while the boss's door swings open
-    musicOn && view && stage !== 'door'
+    // hushed while the boss's door swings open, and at game over for its
+    // own tune
+    musicOn && view && stage !== 'door' && stage !== 'defeat'
       ? inChamber
         ? view.id
         : 'dungeon'

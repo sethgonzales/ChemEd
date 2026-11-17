@@ -254,6 +254,49 @@ describe('Dungeon Quest', () => {
     expect(pauses.at(-1)).toBeGreaterThan(0);
   });
 
+  it('goes quiet at game over, for its tune to play alone', async () => {
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit();
+    await user().click(door('not cleared yet'));
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    const rooms = balancingRooms(createRng(SEED), 'general', chamber.rooms);
+    for (const [room, r] of rooms.entries()) {
+      const eq = parseEquation(r.equation);
+      for (const [i, f] of [...eq.reactants, ...eq.products].entries()) {
+        const input = screen.getByRole('textbox', {
+          name: `Coefficient for ${formatFormula(f)}`,
+        });
+        await user().clear(input);
+        await user().type(input, String(r.answer[i]));
+      }
+      await user().click(
+        screen.getByRole('button', {
+          name: room === 0 ? 'Next door' : 'Face the boss',
+        }),
+      );
+    }
+    act(() => jest.advanceTimersByTime(DOOR_MS));
+    let s: QuestState<QuickQuestion> = solveRoom(
+      solveRoom(begin(startChamber(chamber, 'general', SEED)), chamber),
+      chamber,
+    );
+    while (s.stage === 'boss') {
+      const q = s.question!;
+      await user().click(
+        within(screen.getByRole('group', { name: q.prompt })).getByRole(
+          'button',
+          { name: q.choices[(q.answer + 1) % q.choices.length] },
+        ),
+      );
+      act(() => jest.advanceTimersByTime(DURATION_MS.attack + 200));
+      s = answer(s, chamber, false);
+    }
+    expect(
+      screen.getByRole('heading', { name: 'Game over' }),
+    ).toBeInTheDocument();
+    expect(nowPlaying()).toBeNull();
+  });
+
   it('plays a chamber’s own theme, not the dungeon’s', async () => {
     saveSetup({ topics: ['balancing'], course: 'general' });
     visit('?chamber=balancing&course=general');

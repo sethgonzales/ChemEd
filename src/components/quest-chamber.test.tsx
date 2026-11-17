@@ -24,6 +24,7 @@ const sounds = {
   miss: jest.fn(),
   damage: jest.fn(),
   treasure: jest.fn(),
+  gameOver: jest.fn(),
 };
 jest.mock('~/utils/sounds', () => ({
   ...jest.requireActual('~/utils/sounds'),
@@ -31,6 +32,7 @@ jest.mock('~/utils/sounds', () => ({
   useMissSound: () => sounds.miss,
   useDamageSound: () => sounds.damage,
   useTreasureSound: () => sounds.treasure,
+  useGameOverSound: () => sounds.gameOver,
 }));
 beforeEach(() => Object.values(sounds).forEach((f) => f.mockClear()));
 
@@ -289,9 +291,16 @@ describe('a quest chamber', () => {
       ).toBeInTheDocument();
     });
 
-    it('fights the boss again from full hearts and HP', async () => {
+    it('plays the game-over tune once', async () => {
       await knockedOut();
-      await user().click(screen.getByRole('button', { name: 'Fight again' }));
+      expect(sounds.gameOver).toHaveBeenCalledTimes(1);
+      act(() => jest.advanceTimersByTime(10_000));
+      expect(sounds.gameOver).toHaveBeenCalledTimes(1);
+    });
+
+    it('restarts at the boss, from full hearts and HP, not back at the first room', async () => {
+      await knockedOut();
+      await user().click(screen.getByRole('button', { name: 'Restart' }));
       expect(hp()).toHaveAttribute('aria-valuenow', String(chamber.bossHp));
       expect(hearts()).toHaveAccessibleName(
         `${MAX_HEARTS} of ${MAX_HEARTS} hearts left`,
@@ -299,12 +308,11 @@ describe('a quest chamber', () => {
       expect(screen.getByRole('group')).toBeInTheDocument();
     });
 
-    it('can restart the whole chamber, or go back to the map', async () => {
-      const { onReplay, onExit } = await knockedOut();
-      await user().click(
-        screen.getByRole('button', { name: 'Restart the chamber' }),
-      );
-      expect(onReplay).toHaveBeenCalled();
+    it('offers only a restart at the boss, or the way back to the map', async () => {
+      const { onExit } = await knockedOut();
+      expect(
+        screen.queryByRole('button', { name: 'Restart the chamber' }),
+      ).toBeNull();
       await user().click(
         screen.getByRole('button', { name: 'Back to the map' }),
       );

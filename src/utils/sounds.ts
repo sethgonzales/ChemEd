@@ -121,6 +121,29 @@ const CHIME_VOICES: Voice[] = [
     ),
 ];
 
+// game over: the classic slow chromatic slide down, then a low cadence
+// that rings out, played once
+const GAME_OVER_NOTES = [
+  { hz: 392, at: 0, length: 0.3 }, // G4
+  { hz: 370, at: 0.32, length: 0.3 }, // F#4
+  { hz: 349, at: 0.64, length: 0.3 }, // F4
+  { hz: 330, at: 0.96, length: 0.5 }, // E4
+  { hz: 262, at: 1.5, length: 0.25 }, // C4
+  { hz: 196, at: 1.78, length: 0.25 }, // G3
+  { hz: 131, at: 2.06, length: 1.0 }, // C3
+];
+const GAME_OVER_VOICES: Voice[] = [
+  (ctx, out, t) =>
+    GAME_OVER_NOTES.forEach(({ hz, at, length }) =>
+      tone(ctx, out, t + at, {
+        type: 'square',
+        from: hz,
+        volume: 0.05,
+        length,
+      }),
+    ),
+];
+
 // a hit on the boss: a bright strike ringing upwards, over a thump
 const HIT_VOICES: Voice[] = [
   (ctx, out, t) => {
@@ -343,3 +366,6 @@ export const useDamageSound = () => useSound(DAMAGE_VOICES);
 
 /** A door on the map opens: a chime before the chamber's music */
 export const useChimeSound = () => useSound(CHIME_VOICES);
+
+/** Game over: a falling tune, played once */
+export const useGameOverSound = () => useSound(GAME_OVER_VOICES);

@@ -32,6 +32,7 @@ import {
   useHitSound,
   useMissSound,
   useTreasureSound,
+  useGameOverSound,
 } from '~/utils/sounds';
 
 interface Props {
@@ -301,25 +302,24 @@ function PhoneNote({ text }: { text: string }) {
 
 function GameOver({
   chamber,
-  onRematch,
-  onReplay,
+  onRestart,
   onExit,
 }: {
   chamber: Chamber;
-  onRematch: () => void;
-  onReplay: () => void;
+  onRestart: () => void; // back to the boss, the rooms still cleared
   onExit: () => void;
 }) {
+  const playGameOver = useGameOverSound();
+  useEffect(() => playGameOver(), [playGameOver]);
   return (
     <QuestScene
       backdrop={chamber.id}
       label="Game over"
       footer={
         <div className="flex flex-wrap justify-center gap-2">
-          <Button pressed onClick={onRematch}>
-            Fight again
+          <Button pressed onClick={onRestart}>
+            Restart
           </Button>
-          <Button onClick={onReplay}>Restart the chamber</Button>
           <Button onClick={onExit}>Back to the map</Button>
         </div>
       }
@@ -327,8 +327,8 @@ function GameOver({
       <ScenePanel className="mx-4 mt-12 mb-4 flex flex-col items-center gap-3 text-center sm:mx-12">
         <h3 className="font-pixel text-3xl text-red-400">Game over</h3>
         <p>
-          {chamber.villain.name} knocked you down. Fight it again with new
-          questions (the rooms stay cleared), or start the chamber over.
+          {chamber.villain.name} knocked you down. Restart to face it again with
+          new questions; the rooms stay cleared.
         </p>
       </ScenePanel>
     </QuestScene>
@@ -471,12 +471,11 @@ export default function QuestChamber({
       'over',
       <GameOver
         chamber={chamber}
-        onRematch={() => {
+        onRestart={() => {
           setState((s) => rematch(s, chamber));
           setFeedback('');
           setNote('');
         }}
-        onReplay={onReplay}
         onExit={onExit}
       />,
     );

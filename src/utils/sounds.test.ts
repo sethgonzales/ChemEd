@@ -9,6 +9,7 @@ import {
   useHitSound,
   useMissSound,
   useDoorSound,
+  useGameOverSound,
   useMuted,
   useTap,
   useThunk,
@@ -179,6 +180,20 @@ describe('useChimeSound (entering a chamber)', () => {
     expect(hz).toEqual([...hz].sort((a, b) => a - b));
     const times = startTimes(ctx);
     expect(times[times.length - 1]).toBeGreaterThan(times[0]);
+  });
+});
+
+describe('useGameOverSound (knocked out)', () => {
+  it('plays a falling tune once, over a couple of seconds, then stops', () => {
+    const { ctx } = mockAudioContext();
+    renderHook(() => useGameOverSound()).result.current();
+    const notes = ctx.createOscillator.mock.results.length;
+    expect(notes).toBeGreaterThanOrEqual(5);
+    const hz = pitches(ctx);
+    expect(hz[hz.length - 1]).toBeLessThan(hz[0]); // it ends low
+    const times = startTimes(ctx);
+    expect(times[times.length - 1] - times[0]).toBeGreaterThan(1);
+    expect(times[times.length - 1] - times[0]).toBeLessThan(4);
   });
 });
 
