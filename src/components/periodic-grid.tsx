@@ -37,9 +37,11 @@ function ElementCell({
   compact,
   color,
   dimmed,
+  crossed,
   onSelect,
 }: {
   element: IElementData;
+  crossed: boolean; // already tried, and wrong
   isSelected: boolean;
   tabStop: boolean; // the one cell Tab lands on
   compact: boolean;
@@ -61,19 +63,35 @@ function ElementCell({
       }}
       aria-pressed={isSelected}
       // symbols alone don't say much to a screen reader
-      aria-label={compact ? element.name : undefined}
+      aria-label={
+        crossed ? `${element.name}, not it` : compact ? element.name : undefined
+      }
       // one Tab stop for the whole table; arrows move between elements
       tabIndex={tabStop ? 0 : -1}
       data-atomic-number={element.atomicNumber}
       style={{ backgroundColor: color, opacity: dimmed ? DIMMED_OPACITY : 1 }}
       className={cn(
-        'pixel-control flex flex-col items-center justify-center cursor-pointer',
+        'relative pixel-control flex flex-col items-center justify-center cursor-pointer',
         'w-full aspect-square text-white hover:brightness-125',
         'focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_white]',
         compact ? 'p-0' : 'py-2 px-1',
         isSelected && 'brightness-125 shadow-[inset_0_0_0_var(--pixel)_white]',
       )}
     >
+      {crossed && (
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 10 10"
+          className="absolute inset-0 h-full w-full bg-black/40"
+        >
+          <path
+            d="M2 2 8 8M8 2 2 8"
+            stroke="#ef4444"
+            strokeWidth="1.5"
+            strokeLinecap="square"
+          />
+        </svg>
+      )}
       {compact ? (
         <span className="text-[2.4cqi] font-bold leading-none">
           {element.symbol}
@@ -106,6 +124,7 @@ interface Props {
   minWidth: number; // px; narrower screens scroll the table, not the page
   colorMode?: ColorMode;
   matches?: IElementData[] | null; // a search's results; the rest are dimmed
+  crossed?: IElementData[]; // picks already tried and wrong, crossed out
 }
 
 /** All 118 elements in the standard layout, coloured by mode, with arrow keys */
@@ -116,6 +135,7 @@ export default function PeriodicGrid({
   minWidth,
   colorMode = 'block',
   matches = null,
+  crossed = [],
 }: Props) {
   const tableRef = useRef<HTMLDivElement>(null);
   const select = (el: IElementData, focus = false) => {
@@ -147,6 +167,9 @@ export default function PeriodicGrid({
                 compact={compact}
                 color={elementColor(el, colorMode)}
                 dimmed={!!matches && !matches.includes(el)}
+                crossed={crossed.some(
+                  (c) => c.atomicNumber === el.atomicNumber,
+                )}
                 onSelect={select}
               />
             ) : (

@@ -14,6 +14,13 @@ import { titrationPool } from '~/utils/quest-titrations';
 import { analyzeCell, coupleFor, newChallenge } from '~/utils/electrochemistry';
 import { ROOMS, lewisOpens, roomRng } from './quest-rooms';
 
+const sounds = { miss: jest.fn() };
+jest.mock('~/utils/sounds', () => ({
+  ...jest.requireActual('~/utils/sounds'),
+  useMissSound: () => sounds.miss,
+}));
+beforeEach(() => sounds.miss.mockClear());
+
 const SEED = 9;
 const PeriodicRoom = ROOMS.periodic;
 
@@ -59,6 +66,29 @@ describe('the Periodic Table’s rooms', () => {
     );
     await userEvent.click(answerButton());
     expect(onSolve).toHaveBeenCalled();
+  });
+
+  it('make a wrong pick unmistakable: a miss, a “Not quite!”, and the element crossed out', async () => {
+    const { riddle } = setup(1, 'ap');
+    const wrong = ELEMENTS.find((e) => !riddle.fits(e) && e.atomicNumber < 30)!;
+    await userEvent.click(screen.getByRole('button', { name: wrong.name }));
+    await userEvent.click(answerButton());
+    expect(screen.getByRole('status')).toHaveTextContent(/Not quite!/);
+    expect(sounds.miss).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('button', { name: `${wrong.name}, not it` }),
+    ).toBeInTheDocument();
+  });
+
+  it('keep the answer button and its verdict right under the table', () => {
+    setup(0);
+    const table = screen.getByRole('button', { name: 'Hydrogen' });
+    const after = (a: Element, b: Element) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(after(table, answerButton())).toBeTruthy();
+    expect(after(table, screen.getByRole('status'))).toBeTruthy();
+    // no Stage of its own: the table stands in the chamber's scene
+    expect(screen.queryByRole('region', { name: 'Periodic table' })).toBeNull();
   });
 
   it('give each room its own riddle', () => {
@@ -202,6 +232,8 @@ describe('the States of Matter rooms', () => {
     const onSolve = setup();
     await answer();
     expect(onSolve).not.toHaveBeenCalled();
+    expect(screen.getByRole('status')).toHaveTextContent(/Not quite!/);
+    expect(sounds.miss).toHaveBeenCalledTimes(1);
     const point =
       room.goal.kind === 'point' && room.goal.point === 'melting'
         ? room.substance.meltC

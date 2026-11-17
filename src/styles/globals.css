@@ -146,6 +146,26 @@
     transform: scale(0.9, 1.08);
   }
 }
+/* A wrong answer shakes its verdict; still with reduced motion */
+@keyframes quest-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+@utility quest-shake {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: quest-shake 0.4s steps(5);
+  }
+}
 @keyframes quest-fog {
   to {
     transform: translateX(14%);

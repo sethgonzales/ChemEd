@@ -98,48 +98,49 @@ function Room({
   const trial = chamber.trials?.[room];
   const Puzzle = ROOMS[trial?.id ?? chamber.id];
 
+  // the puzzle stands in the chamber, under the story, with the way on
+  // just below it
   return (
-    <div className="flex flex-col gap-4">
-      <QuestScene
-        backdrop={chamber.id}
-        label={`Room ${room + 1} of ${chamber.rooms}`}
-        footer={
-          solved && (
-            <div className="flex flex-col items-center gap-2">
-              <p className="font-semibold text-green-300">The way is open!</p>
-              <Button
-                pressed
-                onClick={() => {
-                  playDoor();
-                  onOpen();
-                }}
-              >
-                {last ? 'Face the boss' : 'Next door'}
-              </Button>
-            </div>
-          )
-        }
-      >
-        <div className="px-4 pt-12 pb-2 sm:px-12">
-          <ScenePanel className="flex gap-3">
-            <PhoneMrG />
-            <div className="flex flex-col gap-2">
-              <h3 className="font-pixel text-2xl">
-                Room {room + 1} of {chamber.rooms}: {door.name}
-              </h3>
-              <TypedStory key={door.name} lines={[door.story]} />
-            </div>
-          </ScenePanel>
-        </div>
-      </QuestScene>
-      <Puzzle
-        seed={seed}
-        course={course}
-        room={trial?.room ?? room}
-        rooms={chamber.rooms}
-        onSolve={() => setSolved(true)}
-      />
-    </div>
+    <QuestScene
+      backdrop={chamber.id}
+      label={`Room ${room + 1} of ${chamber.rooms}`}
+      footer={
+        solved && (
+          <div className="flex flex-col items-center gap-2">
+            <p className="font-semibold text-green-300">The way is open!</p>
+            <Button
+              pressed
+              onClick={() => {
+                playDoor();
+                onOpen();
+              }}
+            >
+              {last ? 'Face the boss' : 'Next door'}
+            </Button>
+          </div>
+        )
+      }
+    >
+      {/* edge to edge on a phone, where every pixel of width counts */}
+      <div className="flex flex-col gap-4 pt-12 pb-2 sm:px-12">
+        <ScenePanel className="flex gap-3">
+          <PhoneMrG />
+          <div className="flex flex-col gap-2">
+            <h3 className="font-pixel text-xl sm:text-2xl">
+              Room {room + 1} of {chamber.rooms}: {door.name}
+            </h3>
+            <TypedStory key={door.name} lines={[door.story]} />
+          </div>
+        </ScenePanel>
+        <Puzzle
+          seed={seed}
+          course={course}
+          room={trial?.room ?? room}
+          rooms={chamber.rooms}
+          onSolve={() => setSolved(true)}
+        />
+      </div>
+    </QuestScene>
   );
 }
 

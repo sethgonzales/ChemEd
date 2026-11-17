@@ -8,6 +8,8 @@ import type { Settings } from '~/components/lewis-builder';
 import LewisChallenge from '~/components/lewis-challenge';
 import PeriodicGrid from '~/components/periodic-grid';
 import PotentialTable from '~/components/potential-table';
+import { ScenePanel } from '~/components/quest-scene';
+import RoomVerdict, { type RoomAnswer } from '~/components/room-verdict';
 import GalvanicCell from '~/components/galvanic-cell';
 import GalvanicPrediction, {
   type Prediction,
@@ -53,6 +55,7 @@ export interface RoomProps {
 
 const RANGE_STEPS = 7; // labels along the thermometer, as on the simulation
 const GRID_MIN_WIDTH = 480; // px; narrower screens scroll the table, not the page
+// (the room's table is capped at max-w-2xl, 672 px, to keep its answer in view)
 
 /** A generator for one room, so each room of a play gets its own puzzle */
 export const roomRng = (seed: number, room: number): Rng =>
@@ -83,30 +86,35 @@ function PeriodicRoom({ seed, course, room, onSolve }: RoomProps) {
     [seed, course, room],
   );
   const [picked, setPicked] = useState<IElementData | null>(null);
-  const [said, setSaid] = useState('');
+  const [verdict, setVerdict] = useState<RoomAnswer | null>(null);
+  const [tried, setTried] = useState<IElementData[]>([]); // wrong picks
 
   const check = () => {
     if (!picked) return;
-    if (riddle.fits(picked)) {
-      setSaid(`Right: it’s ${picked.name}!`);
-      onSolve();
-    } else setSaid(riddle.hint(picked));
+    const right = riddle.fits(picked);
+    setVerdict((v) => ({
+      right,
+      text: right ? `It’s ${picked.name}!` : riddle.hint(picked),
+      attempt: (v?.attempt ?? 0) + 1,
+    }));
+    if (right) onSolve();
+    else setTried((t) => [...t, picked]);
   };
 
+  // the riddle, a compact table, and the answer right beneath it
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-lg font-semibold">{riddle.prompt}</p>
-      <Stage label="Periodic table">
+    <ScenePanel className="flex flex-col gap-3">
+      <p className="text-lg">{riddle.prompt}</p>
+      {/* capped, so the answer stays in view on a wide screen */}
+      <div className="w-full max-w-2xl">
         <PeriodicGrid
           selected={picked}
           onSelect={setPicked}
           compact
+          crossed={tried}
           minWidth={GRID_MIN_WIDTH}
         />
-      </Stage>
-      <p role="status" className="min-h-6 font-semibold">
-        {said}
-      </p>
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button pressed disabled={!picked} onClick={check}>
           That’s my answer
@@ -115,7 +123,8 @@ function PeriodicRoom({ seed, course, room, onSolve }: RoomProps) {
           {picked ? `Your pick: ${picked.name}` : 'Pick an element.'}
         </span>
       </div>
-    </div>
+      <RoomVerdict verdict={verdict} />
+    </ScenePanel>
   );
 }
 
@@ -179,17 +188,19 @@ function StatesRoom({ seed, course, room, onSolve }: RoomProps) {
     [seed, course, room],
   );
   const [temperature, setTemperature] = useState(target.start);
-  const [said, setSaid] = useState('');
+  const [verdict, setVerdict] = useState<RoomAnswer | null>(null);
   const { min, max } = temperatureRange(target.substance);
 
   const check = () => {
-    if (goalMet(target, temperature)) {
-      setSaid('Right! The ice gives way.');
-      onSolve();
-    } else
-      setSaid(
-        `Not yet: at ${temperature} °C it’s a ${phaseOf(target.substance, temperature).toLowerCase()}. Read the curve again.`,
-      );
+    const right = goalMet(target, temperature);
+    setVerdict((v) => ({
+      right,
+      text: right
+        ? 'The ice gives way.'
+        : `At ${temperature} °C it’s a ${phaseOf(target.substance, temperature).toLowerCase()}. Read the curve again.`,
+      attempt: (v?.attempt ?? 0) + 1,
+    }));
+    if (right) onSolve();
   };
 
   return (
@@ -217,14 +228,12 @@ function StatesRoom({ seed, course, room, onSolve }: RoomProps) {
           />
         </div>
       </Stage>
-      <p role="status" className="min-h-6 font-semibold">
-        {said}
-      </p>
       <div>
         <Button pressed onClick={check}>
           That’s my answer
         </Button>
       </div>
+      <RoomVerdict verdict={verdict} />
     </div>
   );
 }

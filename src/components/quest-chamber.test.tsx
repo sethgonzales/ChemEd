@@ -150,6 +150,13 @@ describe('a quest chamber', () => {
     ).toBeInTheDocument();
   });
 
+  it('sets each room’s puzzle inside the chamber’s scene, not in a box below it', async () => {
+    setup();
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    const scene = screen.getByRole('region', { name: 'Room 1 of 2' });
+    expect(within(scene).getAllByRole('textbox').length).toBeGreaterThan(0);
+  });
+
   it('asks the boss’s question, with its HP and the student’s hearts', async () => {
     setup();
     await walkToBoss();
