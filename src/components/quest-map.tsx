@@ -184,7 +184,7 @@ function SealedGate({ cleared, total }: { cleared: number; total: number }) {
   );
 }
 
-const ROW_HEIGHT = 200; // px for each row of doors
+const ROW_HEIGHT = 260; // px for each row of doors, with room between them
 const START_COLUMNS = 3; // before the map's width is known
 
 /** A door's place on the map, centred on its stop */

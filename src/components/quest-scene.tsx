@@ -146,28 +146,72 @@ function Torches({ flame }: { flame: Backdrop['flame'] }) {
   );
 }
 
-// The room, in one-point perspective, as % of the scene: the far wall's
-// edges, and how many tiles the floor is laid in
-const BACK = { left: 15, right: 85, top: 6, floor: 56 };
-const TILES_ACROSS = 8;
-const TILE_ROWS = 6;
-const WALL_COURSES = 9; // courses of stone along each side wall
+// The room's floor: flagstones laid in staggered courses, drawn in
+// perspective from where it meets the wall (HORIZON, % down the scene) to the
+// front edge, narrowing toward the back
+const HORIZON = 54; // % down the scene
+const COURSES = 9; // courses of flagstones, back to front
+const SLABS = 7; // slabs across a course, give or take the stagger
+const SPREAD = 1.9; // the front edge's width over the back edge's
+const DEPTH = 1.6; // how much deeper the front courses look than the back
+const MORTAR = 0.06; // of a slab, the gap around it
 
-/** Side walls, a ceiling and a tiled floor around the wall behind */
-function Room({ look }: { look: Backdrop }) {
-  const { left, right, top, floor } = BACK;
-  const across = Array.from({ length: TILES_ACROSS + 1 }, (_, k) => k);
-  // rows nearer the eye are deeper, as perspective makes them
-  const rows = Array.from(
-    { length: TILE_ROWS - 1 },
-    (_, j) => floor + (100 - floor) * ((j + 1) / TILE_ROWS) ** 1.7,
-  );
-  const line = {
-    stroke: look.edge,
-    strokeOpacity: 0.35,
-    vectorEffect: 'non-scaling-stroke' as const,
-    strokeWidth: 1.5,
+// a point on the floor, from u across (0 to 1) and v from back (0) to front (1)
+function onFloor(u: number, v: number) {
+  const width = 100 * (1 + (SPREAD - 1) * v);
+  return {
+    x: 50 + (u - 0.5) * width,
+    y: HORIZON + (100 - HORIZON) * v ** DEPTH,
   };
+}
+const quad = (u0: number, u1: number, v0: number, v1: number) =>
+  [onFloor(u0, v0), onFloor(u1, v0), onFloor(u1, v1), onFloor(u0, v1)]
+    .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
+    .join(' ');
+
+/** A dungeon's flagstone floor, under the wall behind */
+function Floor({ look }: { look: Backdrop }) {
+  const slabs = Array.from({ length: COURSES }, (_, row) => {
+    const v0 = row / COURSES;
+    const v1 = (row + 1) / COURSES;
+    // each course shifted by its own amount, so the joints never line up
+    const shift = (0.25 + hash(row + 70) * 0.5) / SLABS;
+    const joints = [0];
+    for (
+      let u = shift;
+      u < 1;
+      u += (0.8 + hash(row * 13 + u * 97) * 0.4) / SLABS
+    )
+      joints.push(u);
+    joints.push(1);
+    return joints.slice(0, -1).map((u0, k) => {
+      const u1 = joints[k + 1];
+      const gapU = (MORTAR * (u1 - u0)) / 2;
+      const gapV = (MORTAR * (v1 - v0)) / 2;
+      const n = row * 31 + k;
+      return {
+        row,
+        u0,
+        shade: look.stones[Math.floor(hash(n + 400) * look.stones.length)],
+        body: quad(u0 + gapU, u1 - gapU, v0 + gapV, v1 - gapV),
+        // its worn, lit front edge
+        lip: quad(
+          u0 + gapU,
+          u1 - gapU,
+          v1 - gapV - (v1 - v0) * 0.12,
+          v1 - gapV,
+        ),
+        crack: hash(n + 900) > 0.86,
+        moss: hash(n + 600) > 0.8,
+        mid: onFloor((u0 + u1) / 2, (v0 + v1) / 2),
+        back: onFloor(u0 + (u1 - u0) * 0.3, v0 + gapV),
+        front: onFloor(u0 + (u1 - u0) * 0.6, v1 - gapV),
+        corner: onFloor(u0 + gapU, v1 - gapV),
+        width: onFloor(u1, v1).x - onFloor(u0, v1).x,
+      };
+    });
+  });
+
   return (
     <svg
       aria-hidden="true"
@@ -175,85 +219,44 @@ function Room({ look }: { look: Backdrop }) {
       preserveAspectRatio="none"
       className="pointer-events-none absolute inset-0 h-full w-full"
     >
-      <polygon
-        data-room="ceiling"
-        points={`0,0 100,0 ${right},${top} ${left},${top}`}
-        fill="#000"
-        fillOpacity={0.7}
-      />
-      <polygon
-        data-room="left-wall"
-        points={`0,0 ${left},${top} ${left},${floor} 0,100`}
-        fill="#000"
-        fillOpacity={0.45}
-      />
-      <polygon
-        data-room="right-wall"
-        points={`100,0 ${right},${top} ${right},${floor} 100,100`}
-        fill="#000"
-        fillOpacity={0.45}
-      />
       <g data-room="floor">
-        <polygon
-          points={`${left},${floor} ${right},${floor} 100,100 0,100`}
-          fill={look.stones[0]}
-        />
-        {/* darker toward the far wall, away from the light */}
-        <polygon
-          points={`${left},${floor} ${right},${floor} 100,100 0,100`}
-          fill="#000"
-          fillOpacity={0.25}
-        />
-        {across.map((k) => (
-          <line
-            key={`a${k}`}
-            data-tile-line
-            x1={left + ((right - left) * k) / TILES_ACROSS}
-            y1={floor}
-            x2={(100 * k) / TILES_ACROSS}
-            y2={100}
-            {...line}
-          />
-        ))}
-        {rows.map((y) => {
-          const t = (y - floor) / (100 - floor); // 0 at the back, 1 at the front
-          return (
-            <line
-              key={y}
-              data-tile-line
-              x1={left * (1 - t)}
-              y1={y}
-              x2={right + (100 - right) * t}
-              y2={y}
-              {...line}
+        {/* the mortar, showing between the stones */}
+        <polygon points={quad(0, 1, 0, 1)} fill={look.mortar} />
+        {slabs.flat().map((s, i) => (
+          <g key={i}>
+            <polygon
+              data-flagstone
+              data-course={s.row}
+              data-u={s.u0}
+              points={s.body}
+              fill={s.shade}
             />
-          );
-        })}
-      </g>
-      {/* the side walls' courses, running back to the far wall */}
-      {Array.from({ length: WALL_COURSES - 1 }, (_, k) => {
-        const f = (k + 1) / WALL_COURSES;
-        const near = 100 * f; // where it meets the scene's edge
-        const far = top + (floor - top) * f; // and the far wall's corner
-        return (
-          <g key={k} data-room="course">
-            <line x1={0} y1={near} x2={left} y2={far} {...line} />
-            <line x1={100} y1={near} x2={right} y2={far} {...line} />
+            <polygon points={s.lip} fill={look.edge} fillOpacity={0.35} />
+            {s.crack && (
+              <polyline
+                points={`${s.back.x},${s.back.y} ${s.mid.x + 1},${s.mid.y} ${s.front.x},${s.front.y}`}
+                fill="none"
+                stroke={look.mortar}
+                strokeWidth={1.5}
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+            {s.moss && (
+              <ellipse
+                cx={s.corner.x + s.width * 0.12}
+                cy={s.corner.y - 0.3}
+                rx={s.width * 0.14}
+                ry={0.6 + (s.corner.y - HORIZON) * 0.015}
+                fill={look.growth[i % look.growth.length]}
+                fillOpacity={0.8}
+              />
+            )}
           </g>
-        );
-      })}
-      {/* the corners of the room */}
-      <polyline
-        points={`0,0 ${left},${top} ${left},${floor} 0,100`}
-        fill="none"
-        {...line}
-      />
-      <polyline
-        points={`100,0 ${right},${top} ${right},${floor} 100,100`}
-        fill="none"
-        {...line}
-      />
-      <line x1={left} y1={floor} x2={right} y2={floor} {...line} />
+        ))}
+        {/* dark at the back, where it meets the wall, and a shadow line there */}
+        <polygon points={quad(0, 1, 0, 0.45)} fill="#000" fillOpacity={0.35} />
+        <polygon points={quad(0, 1, 0, 0.08)} fill="#000" fillOpacity={0.45} />
+      </g>
     </svg>
   );
 }
@@ -358,7 +361,7 @@ export default function QuestScene({
         <>
           <StoneWall look={look} />
           {look.decor && <SceneDecor decor={look.decor} />}
-          {room && <Room look={look} />}
+          {room && <Floor look={look} />}
           {/* darkness at the edges, and the torches' light in the middle */}
           <div
             data-decor
