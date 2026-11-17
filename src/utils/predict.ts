@@ -37,6 +37,8 @@ const isElement = (formula: string) =>
 function saltState(formula: string): State {
   const ions = ionsOf(formula);
   if (!ions) return 'l';
+  // the solubility rules are for ionic compounds; these acids all dissolve
+  if (ions.cation.symbol === 'H') return 'aq';
   return isSoluble(ions.cation, ions.anion.symbol) === false ? 's' : 'aq';
 }
 
@@ -258,6 +260,8 @@ const SOLUTIONS = [
   'HNO3',
 ];
 
+const UNMODELLED_WITH_ACID = ['CO3', 'PO4'];
+
 function mixable(a: string, b: string) {
   const [x, y] = [ionsOf(a)!, ionsOf(b)!];
   const acid = (i: typeof x) => i.cation.symbol === 'H';
@@ -265,11 +269,10 @@ function mixable(a: string, b: string) {
     x.cation.symbol !== y.cation.symbol &&
     x.anion.symbol !== y.anion.symbol &&
     !(acid(x) && acid(y)) &&
-    // an acid and a carbonate make CO₂ gas, a reaction this engine doesn't model
-    !(
-      (acid(x) && y.anion.symbol === 'CO3') ||
-      (acid(y) && x.anion.symbol === 'CO3')
-    )
+    // an acid and a carbonate make CO₂ gas, and with a phosphate a weak acid:
+    // reactions this engine doesn't model
+    !(acid(x) && UNMODELLED_WITH_ACID.includes(y.anion.symbol)) &&
+    !(acid(y) && UNMODELLED_WITH_ACID.includes(x.anion.symbol))
   );
 }
 

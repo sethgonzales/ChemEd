@@ -206,6 +206,33 @@ describe('PREDICT_POOL', () => {
       else expect(p.reason.length).toBeGreaterThan(10);
     }
   });
+
+  it('never shows an acid precipitating: the solubility rules are for ionic compounds, and H₃PO₄ is soluble', () => {
+    for (const reactants of PREDICT_POOL) {
+      const solids = predict(reactants).products?.filter(
+        (p) => p.state === 's',
+      );
+      for (const s of solids ?? [])
+        expect(ionsOf(s.formula)?.cation.symbol).not.toBe('H');
+    }
+  });
+
+  it('leaves out an acid with a phosphate, which makes a weak acid it doesn’t model', () => {
+    const phosphateWithAcid = PREDICT_POOL.filter(
+      (pair) =>
+        pair.includes('Na3PO4') &&
+        pair.some((f) => f === 'HCl' || f === 'HNO3'),
+    );
+    expect(phosphateWithAcid).toEqual([]);
+  });
+});
+
+describe('predict with an acid', () => {
+  it('keeps the acid dissolved, however its anion’s salts behave', () => {
+    const p = predict(['Na3PO4', 'HCl']);
+    const acid = p.products?.find((x) => x.formula === 'H3PO4');
+    expect(acid?.state ?? 'aq').toBe('aq');
+  });
 });
 
 describe('pieces: the chips a student builds products from', () => {
