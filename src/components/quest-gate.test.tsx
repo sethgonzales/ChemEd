@@ -45,4 +45,17 @@ describe('QuestGate', () => {
       `http://localhost/dungeon-quest?topics=${CHAMBER_IDS.join('%2C')}&course=ap`,
     );
   });
+
+  it('keeps its words on a panel in front of the wall, so they read clearly', () => {
+    setup();
+    const intro = screen.getByText(/Before you go in/);
+    const panel = intro.closest('[data-panel]');
+    expect(panel).not.toBeNull();
+    expect(panel).toContainElement(
+      screen.getByRole('group', { name: 'Topics' }),
+    );
+    expect(panel).toContainElement(
+      screen.getByRole('group', { name: 'Course' }),
+    );
+  });
 });

@@ -112,6 +112,7 @@ export function ScenePanel({
 }) {
   return (
     <div
+      data-panel
       className={cn(
         'relative rounded-sm border-2 border-stone-700 bg-stone-950/85 p-4 text-stone-100 shadow-[0_6px_24px_rgb(0_0_0/0.7)]',
         className,
@@ -145,7 +146,8 @@ export default function QuestScene({
           </div>
         )
       }
-      className={cn('relative overflow-hidden', className)}
+      // the pixel font, which follows the app's stylized-text setting
+      className={cn('relative overflow-hidden font-pixel', className)}
     >
       <StoneWall />
       {/* darkness at the edges, and warm light in the middle */}

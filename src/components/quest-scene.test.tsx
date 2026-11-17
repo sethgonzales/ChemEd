@@ -12,6 +12,18 @@ describe('QuestScene', () => {
     expect(scene).toHaveTextContent('The Golem waits.');
   });
 
+  it('writes everything in the app’s pixel font, so the stylized-text setting reaches it', () => {
+    render(
+      <QuestScene label="The gate" footer={<p>Enter</p>}>
+        <p>Before you go in</p>
+      </QuestScene>,
+    );
+    // font-pixel turns plain when the student picks the readable font
+    expect(screen.getByRole('region', { name: 'The gate' })).toHaveClass(
+      'font-pixel',
+    );
+  });
+
   it('keeps the torches, lamplight and fog out of the way of screen readers', () => {
     const { container } = render(
       <QuestScene label="Chamber">

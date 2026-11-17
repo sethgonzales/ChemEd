@@ -1,4 +1,4 @@
-import { stoneWall, WALL_HEIGHT, WALL_WIDTH } from './stone-wall';
+import { MIN_OVERLAP, stoneWall, WALL_HEIGHT, WALL_WIDTH } from './stone-wall';
 
 describe('stoneWall', () => {
   const wall = stoneWall(7);
@@ -13,15 +13,29 @@ describe('stoneWall', () => {
     }
   });
 
-  it('staggers the joints from one course of stones to the next', () => {
-    const joints = (y: number) =>
-      new Set(wall.stones.filter((s) => s.y === y).map((s) => s.x));
-    const courses = [...new Set(wall.stones.map((s) => s.y))].sort(
-      (a, b) => a - b,
+  // the courses, bottom to top, each as its stones' joints across the wall
+  const courses = [...new Set(wall.stones.map((s) => s.y))]
+    .sort((a, b) => a - b)
+    .map((y) => wall.stones.filter((s) => s.y === y));
+  const joints = (course: typeof wall.stones) =>
+    course.map((s) => s.x).filter((x) => x > 0);
+
+  it('lays each joint over the middle part of a stone below, as a mason would', () => {
+    for (let i = 1; i < courses.length; i++) {
+      const below = joints(courses[i - 1]);
+      for (const x of joints(courses[i]))
+        for (const j of below)
+          expect(Math.abs(x - j)).toBeGreaterThanOrEqual(MIN_OVERLAP);
+    }
+  });
+
+  it('cuts its blocks to much the same length, not random scraps', () => {
+    const inner = wall.stones.filter(
+      (s) => s.x > 0 && s.x + s.w < WALL_WIDTH, // not trimmed at the edges
     );
-    const [a, b] = [joints(courses[0]), joints(courses[1])];
-    const shared = [...b].filter((x) => x > 0 && a.has(x));
-    expect(shared.length).toBeLessThan(b.size / 2);
+    const widths = inner.map((s) => s.w);
+    expect(Math.min(...widths)).toBeGreaterThanOrEqual(2 * MIN_OVERLAP - 1);
+    expect(Math.max(...widths) / Math.min(...widths)).toBeLessThan(2.5);
   });
 
   it('shades its stones differently', () => {
