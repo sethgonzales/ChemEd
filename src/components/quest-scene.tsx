@@ -94,6 +94,78 @@ function StoneWall({ look }: { look: Backdrop }) {
 const u = (n: number) => `calc(var(--u, 4px) * ${n})`;
 
 // A torch on the wall: a flickering flame with its glow, on a handle
+// A wall torch in 8-bit pixels, one pixel to a wall unit: three frames of
+// flame (O outer, Y middle, C core) over an iron cup and bracket (I, i) and a
+// wooden handle (H, h)
+const FLAMES = [
+  [
+    '....O....',
+    '...OO....',
+    '...OYO...',
+    '..OYYO...',
+    '..OYCYO..',
+    '.OYCCYO..',
+    '.OYCCCYO.',
+    '.OYCCCYO.',
+    '..OYYYO..',
+  ],
+  [
+    '....O....',
+    '....OO...',
+    '...OYO...',
+    '...OYYO..',
+    '..OYCYO..',
+    '..OYCCYO.',
+    '.OYCCCYO.',
+    '.OYCCCYO.',
+    '..OYYYO..',
+  ],
+  [
+    '.........',
+    '....O....',
+    '...OYO...',
+    '..OYYO...',
+    '..OYCYO..',
+    '.OYCCYO..',
+    '.OYCCCYO.',
+    '.OYCCCYO.',
+    '..OYYYO..',
+  ],
+];
+const STICK = [
+  '.IIIIIII.',
+  '..iIIIi..',
+  '...HHh...',
+  '...HHh...',
+  '..IIIII..',
+  '.iIHHhIi.',
+  '...HHh...',
+  '...HHh...',
+  '...hHh...',
+  '....h....',
+];
+const IRON = { I: '#57534e', i: '#292524', H: '#92400e', h: '#5b2a0b' };
+
+// the art's pixels as rectangles, a run of one colour to each
+function pixels(rows: string[], palette: Record<string, string>, top = 0) {
+  return rows.flatMap((row, y) =>
+    [...row].flatMap((c, x) =>
+      c === '.'
+        ? []
+        : [
+            <rect
+              key={`${x}-${y}`}
+              x={x}
+              y={y + top}
+              width={1.02} // a hair over, so no seams show between pixels
+              height={1.02}
+              fill={palette[c]}
+            />,
+          ],
+    ),
+  );
+}
+
 function Torch({
   side,
   flame,
@@ -101,26 +173,46 @@ function Torch({
   side: 'left' | 'right';
   flame: Backdrop['flame'];
 }) {
+  const fire = { O: flame.outer, Y: flame.core, C: '#ffffff' };
+  const w = FLAMES[0][0].length;
+  const h = FLAMES[0].length + STICK.length;
   return (
     <div
       data-decor="torch"
       aria-hidden="true"
-      className="pointer-events-none absolute flex flex-col items-center"
+      className="pointer-events-none absolute"
       style={{ top: u(TORCH.inset), [side]: u(TORCH.inset) }}
     >
+      {/* the light it casts on the wall around it */}
       <div
-        className="quest-flame rounded-t-full"
+        className="quest-flame absolute rounded-full"
         style={{
-          width: u(TORCH.flame.w),
-          height: u(TORCH.flame.h),
-          background: `radial-gradient(circle at 50% 70%, ${flame.core}, ${flame.outer} 60%, transparent 75%)`,
-          boxShadow: `0 0 ${u(12)} ${u(5)} rgb(${flame.glow} / 0.25)`,
+          left: u(w / 2 - 12),
+          top: u(-8),
+          width: u(24),
+          height: u(24),
+          background: `radial-gradient(circle, rgb(${flame.glow} / 0.35), transparent 65%)`,
         }}
       />
-      <div
-        className="bg-stone-600"
-        style={{ width: u(TORCH.handle.w), height: u(TORCH.handle.h) }}
-      />
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        shapeRendering="crispEdges"
+        className="relative block"
+        style={{ width: u(w), height: u(h) }}
+      >
+        {FLAMES.map((rows, i) => (
+          <g
+            key={i}
+            data-frame={i}
+            className="quest-frame"
+            // each frame shows in its turn
+            style={{ animationDelay: `${-i * 0.2}s`, opacity: i ? 0 : 1 }}
+          >
+            {pixels(rows, fire)}
+          </g>
+        ))}
+        {pixels(STICK, IRON, FLAMES[0].length)}
+      </svg>
     </div>
   );
 }

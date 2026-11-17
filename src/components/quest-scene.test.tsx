@@ -130,4 +130,20 @@ describe('QuestScene', () => {
       expect(joints.some((u) => !below.has(u.toFixed(2)))).toBe(true);
     }
   });
+
+  it('draws its torches as 8-bit sprites, their flames flickering frame by frame', () => {
+    const { container } = render(
+      <QuestScene label="Chamber">
+        <p>Hi</p>
+      </QuestScene>,
+    );
+    for (const torch of container.querySelectorAll('[data-decor="torch"]')) {
+      const sprite = torch.querySelector('svg')!;
+      expect(sprite).toHaveAttribute('shape-rendering', 'crispEdges');
+      expect(
+        sprite.querySelectorAll('[data-frame]').length,
+      ).toBeGreaterThanOrEqual(3);
+      expect(sprite.querySelectorAll('rect').length).toBeGreaterThan(20);
+    }
+  });
 });

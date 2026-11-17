@@ -18,8 +18,8 @@ const MOSS_FLOOR = 0.55; // chance one by the floor is
 
 // a wall torch, in wall units: a flame on a handle, about two courses tall
 export const TORCH = {
-  flame: { w: 5, h: 8 },
-  handle: { w: 1.5, h: 10 },
+  flame: { w: 9, h: 9 },
+  handle: { w: 9, h: 10 },
   inset: 8, // from the scene's edge
 };
 
