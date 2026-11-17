@@ -233,6 +233,12 @@ describe('a quest chamber', () => {
     );
     await user().click(screen.getByRole('button', { name: 'Begin' }));
     const title = screen.getByRole('heading', { name: /Room 1 of 2/ });
+    // a banner up between the two torches, not a block below them
+    const banner = title.closest('[data-panel]')!;
+    expect(banner).toHaveClass('mx-8', 'sm:mx-20');
+    // level with the torches' flames, with room below it
+    expect(banner.parentElement).toHaveClass('pt-2', 'sm:pt-5');
+    expect(banner).toHaveClass('mb-2', 'sm:mb-4');
     const door = screen.getByRole('region', { name: 'The door' });
     expect(
       title.compareDocumentPosition(door) & Node.DOCUMENT_POSITION_FOLLOWING,

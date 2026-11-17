@@ -208,13 +208,19 @@ function Room({
       backdrop={chamber.id}
       label={`Room ${room + 1} of ${chamber.rooms}`}
     >
-      <div className="flex flex-col gap-4 pt-12 pb-2 sm:px-6">
-        <ScenePanel>
-          <div className="flex flex-col gap-2">
-            <h3 className="font-pixel text-xl sm:text-2xl">
+      <div className="flex flex-col gap-4 pt-2 pb-2 sm:px-6 sm:pt-5">
+        {/* a banner up between the torches, level with them, so the room
+            starts right below */}
+        <ScenePanel className="mx-8 mb-2 px-3 py-2 sm:mx-20 sm:mb-4 sm:px-4">
+          <div className="flex flex-col gap-1">
+            <h3 className="font-pixel text-sm sm:text-xl">
               Room {room + 1} of {chamber.rooms}: {door.name}
             </h3>
-            <TypedStory key={door.name} lines={[door.story]} />
+            <TypedStory
+              key={door.name}
+              lines={[door.story]}
+              className="text-xs sm:text-sm"
+            />
           </div>
         </ScenePanel>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
