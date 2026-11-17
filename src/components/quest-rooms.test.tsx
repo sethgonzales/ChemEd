@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ELEMENTS } from '~/constants/elements';
 import { createRng } from '~/utils/quest';
@@ -11,7 +11,10 @@ import { goalMet, statesRooms } from '~/utils/quest-states';
 import { PREDICT_POOL, predict } from '~/utils/predict';
 import { reactionRooms } from '~/utils/quest-reactions';
 import { titrationPool } from '~/utils/quest-titrations';
+import { newUnknown } from '~/utils/titrations';
+import { ANALYTE_VOLUME, TITRANT_CONCENTRATION } from '~/constants/titrations';
 import { analyzeCell, coupleFor, newChallenge } from '~/utils/electrochemistry';
+import { CheckSlot, type SlotCheck } from './check-slot';
 import { ROOMS, lewisOpens, roomRng } from './quest-rooms';
 
 const sounds = { miss: jest.fn() };
@@ -309,6 +312,60 @@ describe('the Titrations rooms', () => {
   );
 });
 
+describe('the Titrations rooms, as data and a finished curve', () => {
+  const TitrationRoom = ROOMS.titrations;
+  const { analyte, concentration } = newUnknown(
+    roomRng(SEED, 0),
+    titrationPool('general'),
+  );
+  const equivalence = (concentration * ANALYTE_VOLUME) / TITRANT_CONCENTRATION;
+  const setup = () => {
+    const onSolve = jest.fn();
+    render(
+      <TitrationRoom
+        seed={SEED}
+        course="general"
+        room={0}
+        rooms={2}
+        onSolve={onSolve}
+      />,
+    );
+    return onSolve;
+  };
+  const answer = async (value: string) => {
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Concentration (M)' }),
+      value,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Check' }));
+  };
+
+  it('shows the finished curve and its data, with no burette to pour', () => {
+    setup();
+    expect(
+      screen.getByRole('img', {
+        name: new RegExp(`Equivalence point at ${equivalence.toFixed(2)} mL`),
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(analyte.name, 'i'))).toBeInTheDocument();
+    expect(screen.queryByRole('slider')).toBeNull();
+    expect(screen.queryByRole('button', { name: /drop|pour/i })).toBeNull();
+  });
+
+  it('opens for the right concentration', async () => {
+    const onSolve = setup();
+    await answer(concentration.toFixed(4));
+    expect(onSolve).toHaveBeenCalled();
+  });
+
+  it('stays shut for a slip in the maths, saying so', async () => {
+    const onSolve = setup();
+    await answer((concentration * 2).toFixed(4));
+    expect(onSolve).not.toHaveBeenCalled();
+    expect(screen.getByText(/Not quite/)).toBeInTheDocument();
+  });
+});
+
 describe('the Electrochemistry rooms', () => {
   const VoltaicRoom = ROOMS.electrochemistry;
   const cell = newChallenge(roomRng(SEED, 0));
@@ -360,4 +417,44 @@ describe('the Electrochemistry rooms', () => {
     await predict(reading.anode!, reading.standardVoltage!);
     expect(onSolve).toHaveBeenCalled();
   });
+});
+
+describe('in a room beside its door', () => {
+  // the room's own check, which goes on the door instead
+  const CHECKS: Record<string, string | null> = {
+    periodic: 'That’s my answer',
+    states: 'That’s my answer',
+    electrons: 'Check',
+    lewis: 'Check your work',
+    reactions: 'Check',
+    titrations: 'Check',
+    electrochemistry: 'Check',
+    balancing: null, // it opens by itself once balanced
+  };
+
+  it.each(Object.entries(CHECKS))(
+    '%s hands its check to the door, and draws no button of its own',
+    async (id, label) => {
+      const Room = ROOMS[id];
+      let check: SlotCheck | null = null;
+      render(
+        <CheckSlot onChange={(c) => (check = c)}>
+          <Room
+            seed={SEED}
+            course="general"
+            room={0}
+            rooms={2}
+            onSolve={jest.fn()}
+          />
+        </CheckSlot>,
+      );
+      await act(async () => {}); // rooms dealt after mount
+      if (label === null) {
+        expect(check).toBeNull();
+        return;
+      }
+      expect(check!.label).toBe(label);
+      expect(screen.queryByRole('button', { name: label })).toBeNull();
+    },
+  );
 });

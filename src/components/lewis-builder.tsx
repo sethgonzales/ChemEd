@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import Button from '~/components/button';
+import { useCheckSlot } from '~/components/check-slot';
 import { useGuide } from '~/components/guide';
 import Setting from '~/components/setting';
 import Stage from '~/components/stage';
@@ -309,6 +310,16 @@ export default function LewisBuilder({
     </div>
   );
 
+  const checkWork = () => {
+    setChecked(state.forms);
+    const { verdict, feedback } = assess(state.forms.map((f) => f.structure));
+    const { text, mood } = checkMessage(verdict, feedback);
+    say(text, mood);
+    onCheck?.(verdict);
+  };
+  // in a quest room the check goes on the door
+  const slotted = useCheckSlot({ label: 'Check your work', run: checkWork });
+
   const actions = (
     <div className="flex flex-wrap items-center gap-2">
       <Button
@@ -330,22 +341,13 @@ export default function LewisBuilder({
       >
         Clean Up
       </Button>
-      <span className="sm:ml-auto">
-        <Button
-          pressed
-          onClick={() => {
-            setChecked(state.forms);
-            const { verdict, feedback } = assess(
-              state.forms.map((f) => f.structure),
-            );
-            const { text, mood } = checkMessage(verdict, feedback);
-            say(text, mood);
-            onCheck?.(verdict);
-          }}
-        >
-          Check your work
-        </Button>
-      </span>
+      {!slotted && (
+        <span className="sm:ml-auto">
+          <Button pressed onClick={checkWork}>
+            Check your work
+          </Button>
+        </span>
+      )}
     </div>
   );
 

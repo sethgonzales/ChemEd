@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { IconMinus, IconPlus } from '@tabler/icons-react';
 import Button from '~/components/button';
+import { useCheckSlot } from '~/components/check-slot';
 import { useGuide } from '~/components/guide';
 import OrbitalDiagram from '~/components/orbital-diagram';
 import PeriodicGrid from '~/components/periodic-grid';
@@ -99,7 +100,9 @@ export default function ConfigurationBuilder({
     // a cheer also plays the treasure sound
     const { text, mood } = configurationMessage(result, label);
     say(text, mood);
-  };
+  }; // in a quest room the check goes on the door
+  const slotted = useCheckSlot({ label: 'Check', run: check });
+
   const showAnswer = () => {
     if (!target) return;
     const filled = orbitalDiagram(target);
@@ -234,9 +237,11 @@ export default function ConfigurationBuilder({
         </Stage>
 
         <div className="flex flex-wrap gap-2">
-          <Button pressed onClick={check}>
-            Check
-          </Button>
+          {!slotted && (
+            <Button pressed onClick={check}>
+              Check
+            </Button>
+          )}
           {!set && (
             <Button onClick={showAnswer} disabled={!element}>
               Show answer

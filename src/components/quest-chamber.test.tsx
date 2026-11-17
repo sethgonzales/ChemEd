@@ -174,6 +174,36 @@ describe('a quest chamber', () => {
     );
   });
 
+  it('sets each room beside its door, the check on the door, which opens once it’s solved', async () => {
+    const periodic = findChamber('periodic')!;
+    render(
+      <QuestChamber
+        chamber={periodic}
+        course="general"
+        seed={SEED}
+        onClear={jest.fn()}
+        onExit={jest.fn()}
+        onReplay={jest.fn()}
+        devTools
+      />,
+    );
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    const door = screen.getByRole('region', { name: 'The door' });
+    expect(within(door).getByRole('img', { name: /shut/ })).toBeInTheDocument();
+    // the puzzle's own check, handed to the door
+    expect(
+      within(door).getByRole('button', { name: 'That’s my answer' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: 'That’s my answer' }),
+    ).toHaveLength(1);
+    await user().click(screen.getByRole('button', { name: 'Solve (dev)' }));
+    expect(within(door).getByRole('img', { name: /open/ })).toBeInTheDocument();
+    expect(
+      within(door).getByRole('button', { name: 'Next door' }),
+    ).toBeInTheDocument();
+  });
+
   it('swings the boss’s door open, then fades into the fight', async () => {
     const onStage = jest.fn();
     render(

@@ -6,6 +6,8 @@ import {
   IconStarFilled,
 } from '@tabler/icons-react';
 import Button from '~/components/button';
+import { cn } from '~/utils/cn';
+import { CheckSlot, type SlotCheck } from '~/components/check-slot';
 import { useGuide } from '~/components/guide';
 import MrG from '~/components/mr-g';
 import PixelArt from '~/components/pixel-art';
@@ -138,6 +140,31 @@ function StoryWall({
   );
 }
 
+/** A room's door: shut until its puzzle is solved, then swung open on light */
+function RoomDoor({ open }: { open: boolean }) {
+  return (
+    <div
+      role="img"
+      aria-label={open ? 'The door is open' : 'The door is shut'}
+      className="relative h-36 w-24 shrink-0 overflow-hidden bg-amber-200 pixel-frame [--frame-fill:#fde68a] [--frame-outline:#44403c] [perspective:400px] sm:h-52 sm:w-36"
+    >
+      {/* the light beyond, seen once it opens */}
+      <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_60%,#fef3c7,#f59e0b_70%)]" />
+      <span
+        className={cn(
+          'absolute inset-0 origin-left bg-[repeating-linear-gradient(90deg,#78350f_0_14px,#5b2a0b_14px_17px)] transition-transform duration-700 ease-in',
+          open && '[transform:rotateY(-75deg)]',
+        )}
+      >
+        {/* iron bands and a ring to pull */}
+        <span className="absolute inset-x-0 top-[18%] h-2 bg-stone-700" />
+        <span className="absolute inset-x-0 bottom-[18%] h-2 bg-stone-700" />
+        <span className="absolute top-1/2 right-[14%] size-3 rounded-full border-2 border-stone-400" />
+      </span>
+    </div>
+  );
+}
+
 function Room({
   chamber,
   course,
@@ -154,6 +181,8 @@ function Room({
   devTools: boolean;
 }) {
   const [solved, setSolved] = useState(false);
+  // the puzzle's check, handed over to go on the door
+  const [check, setCheck] = useState<SlotCheck | null>(null);
   const playDoor = useDoorSound();
   const door = chamber.doors[room];
   const last = room + 1 === chamber.rooms;
@@ -161,52 +190,68 @@ function Room({
   const trial = chamber.trials?.[room];
   const Puzzle = ROOMS[trial?.id ?? chamber.id];
 
-  // the puzzle stands in the chamber, under the story, with the way on
-  // just below it
+  // the door on the left with the check on it, the puzzle on the right; on a
+  // phone the door comes after the puzzle, right where it's finished
   return (
     <QuestScene
       backdrop={chamber.id}
       label={`Room ${room + 1} of ${chamber.rooms}`}
-      footer={
-        solved && (
-          <div className="flex flex-col items-center gap-2">
-            <p className="font-semibold text-green-300">The way is open!</p>
-            <Button
-              pressed
-              onClick={() => {
-                playDoor();
-                onOpen();
-              }}
-            >
-              {last ? 'Face the boss' : 'Next door'}
-            </Button>
-          </div>
-        )
-      }
     >
-      {/* edge to edge on a phone, where every pixel of width counts */}
-      <div className="flex flex-col gap-4 pt-12 pb-2 sm:px-12">
-        <ScenePanel className="flex gap-3">
-          <PhoneMrG />
-          <div className="flex flex-col gap-2">
-            <h3 className="font-pixel text-xl sm:text-2xl">
-              Room {room + 1} of {chamber.rooms}: {door.name}
-            </h3>
-            <TypedStory key={door.name} lines={[door.story]} />
+      <div className="flex flex-col-reverse gap-4 pt-12 pb-2 sm:flex-row sm:items-start sm:px-6">
+        <section
+          aria-label="The door"
+          // below the torch, on a wide screen
+          className="flex shrink-0 items-center justify-center gap-4 sm:mt-24 sm:w-44 sm:flex-col"
+        >
+          <RoomDoor open={solved} />
+          <div className="flex flex-col items-center gap-2 text-center">
+            {solved ? (
+              <>
+                <p className="font-semibold text-green-300">The way is open!</p>
+                <Button
+                  pressed
+                  onClick={() => {
+                    playDoor();
+                    onOpen();
+                  }}
+                >
+                  {last ? 'Face the boss' : 'Next door'}
+                </Button>
+              </>
+            ) : check ? (
+              <Button pressed disabled={check.disabled} onClick={check.run}>
+                <span className="whitespace-nowrap">{check.label}</span>
+              </Button>
+            ) : (
+              <p className="text-sm text-stone-200">
+                Solve the room and the door opens.
+              </p>
+            )}
+            {devTools && !solved && (
+              <DevButton label="Solve" onClick={() => setSolved(true)} />
+            )}
           </div>
-        </ScenePanel>
-        <Puzzle
-          seed={seed}
-          course={course}
-          room={trial?.room ?? room}
-          rooms={chamber.rooms}
-          onSolve={() => setSolved(true)}
-        />
-        {devTools && !solved && (
-          <div>
-            <DevButton label="Solve" onClick={() => setSolved(true)} />
-          </div>
-        )}
+        </section>
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <ScenePanel className="flex gap-3">
+            <PhoneMrG />
+            <div className="flex flex-col gap-2">
+              <h3 className="font-pixel text-xl sm:text-2xl">
+                Room {room + 1} of {chamber.rooms}: {door.name}
+              </h3>
+              <TypedStory key={door.name} lines={[door.story]} />
+            </div>
+          </ScenePanel>
+          <CheckSlot onChange={setCheck}>
+            <Puzzle
+              seed={seed}
+              course={course}
+              room={trial?.room ?? room}
+              rooms={chamber.rooms}
+              onSolve={() => setSolved(true)}
+            />
+          </CheckSlot>
+        </div>
       </div>
     </QuestScene>
   );

@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import BeakerParticles from '~/components/beaker-particles';
 import Button from '~/components/button';
+import { useCheckSlot } from '~/components/check-slot';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
 import Setting from '~/components/setting';
 import Stage from '~/components/stage';
@@ -143,6 +144,13 @@ export default function ReactionPredict({
     record(graded.verdict === 'correct');
     if (graded.verdict === 'correct') onCorrect?.();
   };
+  const ready = answers.every((a) => a.text.trim() && a.state);
+  // in a quest room the check goes on the door
+  const slotted = useCheckSlot({
+    label: 'Check',
+    disabled: locked || !ready,
+    run: () => grade(answers),
+  });
   const next = () => {
     setIndex(deal(index));
     setAnswers(EMPTY);
@@ -151,7 +159,6 @@ export default function ReactionPredict({
   };
 
   const shown = (p: Product) => `${formatFormula(p.formula)}(${p.state})`;
-  const ready = answers.every((a) => a.text.trim() && a.state);
   const verdict = result?.verdict;
 
   return (
@@ -307,13 +314,15 @@ export default function ReactionPredict({
       </Stage>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          pressed={!!ready && !locked}
-          disabled={locked || !ready}
-          onClick={() => grade(answers)}
-        >
-          Check
-        </Button>
+        {!slotted && (
+          <Button
+            pressed={!!ready && !locked}
+            disabled={locked || !ready}
+            onClick={() => grade(answers)}
+          >
+            Check
+          </Button>
+        )}
         <Button disabled={locked} onClick={() => grade('none')}>
           No reaction
         </Button>

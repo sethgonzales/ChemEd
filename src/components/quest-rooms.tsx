@@ -3,6 +3,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Button from '~/components/button';
+import { useCheckSlot } from '~/components/check-slot';
 import ConfigurationBuilder from '~/components/configuration-builder';
 import type { Settings } from '~/components/lewis-builder';
 import LewisChallenge from '~/components/lewis-challenge';
@@ -10,7 +11,6 @@ import PeriodicGrid from '~/components/periodic-grid';
 import PotentialTable from '~/components/potential-table';
 import { ScenePanel } from '~/components/quest-scene';
 import RoomVerdict, { type RoomAnswer } from '~/components/room-verdict';
-import GalvanicCell from '~/components/galvanic-cell';
 import GalvanicPrediction, {
   type Prediction,
 } from '~/components/galvanic-prediction';
@@ -19,11 +19,21 @@ import ReactionBalancer from '~/components/reaction-balancer';
 import ReactionPredict from '~/components/reaction-predict';
 import Slider from '~/components/slider';
 import Stage from '~/components/stage';
-import TitrationUnknown from '~/components/titration-unknown';
-import { INDICATORS } from '~/constants/titrations';
+import PhCurve from '~/components/ph-curve';
+import {
+  ANALYTE_VOLUME,
+  INDICATORS,
+  TITRANT_CONCENTRATION,
+  titrantFor,
+} from '~/constants/titrations';
+import {
+  curveMarkers,
+  curvePoints,
+  newUnknown,
+  unknownFeedback,
+} from '~/utils/titrations';
 import type { IElementData } from '~/types';
 import {
-  analyzeCell,
   checkPrediction,
   newChallenge,
   type Side,
@@ -100,6 +110,11 @@ function PeriodicRoom({ seed, course, room, onSolve }: RoomProps) {
     if (right) onSolve();
     else setTried((t) => [...t, picked]);
   };
+  const slotted = useCheckSlot({
+    label: 'That’s my answer',
+    disabled: !picked,
+    run: check,
+  });
 
   // the riddle, a compact table, and the answer right beneath it
   return (
@@ -116,9 +131,11 @@ function PeriodicRoom({ seed, course, room, onSolve }: RoomProps) {
         />
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <Button pressed disabled={!picked} onClick={check}>
-          That’s my answer
-        </Button>
+        {!slotted && (
+          <Button pressed disabled={!picked} onClick={check}>
+            That’s my answer
+          </Button>
+        )}
         <span className="text-sm">
           {picked ? `Your pick: ${picked.name}` : 'Pick an element.'}
         </span>
@@ -202,6 +219,7 @@ function StatesRoom({ seed, course, room, onSolve }: RoomProps) {
     }));
     if (right) onSolve();
   };
+  const slotted = useCheckSlot({ label: 'That’s my answer', run: check });
 
   return (
     <div className="flex flex-col gap-4">
@@ -228,11 +246,13 @@ function StatesRoom({ seed, course, room, onSolve }: RoomProps) {
           />
         </div>
       </Stage>
-      <div>
-        <Button pressed onClick={check}>
-          That’s my answer
-        </Button>
-      </div>
+      {!slotted && (
+        <div>
+          <Button pressed onClick={check}>
+            That’s my answer
+          </Button>
+        </div>
+      )}
       <RoomVerdict verdict={verdict} />
     </div>
   );
@@ -262,21 +282,84 @@ function ReactionRoom({ seed, course, room, onSolve }: RoomProps) {
   );
 }
 
-/** The Hydra's rooms: titrate an unknown and work out its concentration */
+const REVEAL_PAST = 8; // mL of curve past the equivalence point
+
+/**
+ * The Hydra's rooms: an unknown already titrated, as its data and finished pH
+ * curve; work out its concentration from the equivalence point
+ */
 function TitrationRoom({ seed, course, room, onSolve }: RoomProps) {
-  const random = useMemo(() => roomRng(seed, room), [seed, room]);
-  const [indicator, setIndicator] = useState(
-    INDICATORS.find((i) => i.id === 'phenolphthalein')!,
+  const { analyte, concentration } = useMemo(
+    () => newUnknown(roomRng(seed, room), titrationPool(course)),
+    [seed, course, room],
   );
+  const markers = curveMarkers(analyte, concentration);
+  const equivalence = markers.equivalences[0];
+  const [answer, setAnswer] = useState('');
+  const [verdict, setVerdict] = useState<RoomAnswer | null>(null);
+
+  const check = () => {
+    const right =
+      unknownFeedback(parseFloat(answer), equivalence, concentration) ===
+      'correct';
+    setVerdict((v) => ({
+      right,
+      text: right
+        ? `Right: ${concentration.toFixed(4)} M.`
+        : `Moles of titrant = ${TITRANT_CONCENTRATION.toFixed(3)} M × the volume at the equivalence point, in L; at 1:1 that’s the moles in the flask, so divide by ${(ANALYTE_VOLUME / 1000).toFixed(5)} L.`,
+      attempt: (v?.attempt ?? 0) + 1,
+    }));
+    if (right) onSolve();
+  };
+  const slotted = useCheckSlot({
+    label: 'Check',
+    disabled: !answer.trim(),
+    run: check,
+  });
+
   return (
-    <TitrationUnknown
-      key={`${seed}-${room}`}
-      indicator={indicator}
-      onIndicator={setIndicator}
-      random={random}
-      choices={titrationPool(course)}
-      onCorrect={onSolve}
-    />
+    <ScenePanel className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-1 text-sm">
+        <li>
+          Flask: {ANALYTE_VOLUME.toFixed(2)} mL of {analyte.name.toLowerCase()}{' '}
+          ({analyte.formula}), concentration unknown.
+        </li>
+        <li>
+          Titrant: {TITRANT_CONCENTRATION.toFixed(3)} M {titrantFor(analyte)}.
+        </li>
+        <li>Equivalence point: {equivalence.toFixed(2)} mL of titrant.</li>
+      </ul>
+      <div className="flex justify-center pixel-control bg-primary-800 p-3">
+        <PhCurve
+          points={curvePoints(
+            analyte,
+            concentration,
+            equivalence + REVEAL_PAST,
+          )}
+          indicator={INDICATORS.find((i) => i.id === 'phenolphthalein')!}
+          markers={{ equivalences: markers.equivalences, halves: [] }}
+        />
+      </div>
+      <label className="flex flex-col gap-1 text-sm">
+        Concentration (M)
+        <input
+          type="text"
+          inputMode="decimal"
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          className="pixel-control w-36 bg-primary-700 px-3 pt-2 pb-2.5 text-base text-white placeholder:text-white/60 focus-visible:outline-none focus-visible:shadow-[inset_0_0_0_2px_white]"
+          placeholder="e.g. 0.0950"
+        />
+      </label>
+      {!slotted && (
+        <div>
+          <Button pressed disabled={!answer.trim()} onClick={check}>
+            Check
+          </Button>
+        </div>
+      )}
+      <RoomVerdict verdict={verdict} />
+    </ScenePanel>
   );
 }
 
@@ -285,7 +368,6 @@ function VoltaicRoom({ seed, room, onSolve }: RoomProps) {
   const random = useMemo(() => roomRng(seed, room), [seed, room]);
   const [cell, setCell] = useState(() => newChallenge(random));
   const [result, setResult] = useState<Prediction | null>(null);
-  const reading = analyzeCell(cell);
 
   const check = (guess: { anode: Side; volts: number }) => {
     const graded = checkPrediction(cell, guess);
@@ -299,17 +381,9 @@ function VoltaicRoom({ seed, room, onSolve }: RoomProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <Stage label="Voltaic cell">
-        <GalvanicCell
-          start={cell}
-          cell={cell}
-          reading={reading}
-          flowing={result?.verdict === 'correct'}
-          zoomed={null}
-          onZoom={() => {}}
-        />
-      </Stage>
+    // the question and the table to answer it from; the cell's drawing is
+    // left to the simulation
+    <ScenePanel className="flex flex-col gap-4">
       <GalvanicPrediction
         cell={cell}
         result={result}
@@ -317,7 +391,7 @@ function VoltaicRoom({ seed, room, onSolve }: RoomProps) {
         onNew={next}
       />
       <PotentialTable inUse={cell} />
-    </div>
+    </ScenePanel>
   );
 }
 

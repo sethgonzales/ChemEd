@@ -188,7 +188,7 @@ export const CHAMBERS: QuestChamber[] = [
     villain: HYDRA,
     story: [
       'Acid fumes sting your eyes. Three heads rise from the dark, each one a flask: the Acid Hydra.',
-      'Its doors hold flasks of unknown concentration. Titrate each one to its endpoint and work out how strong it is.',
+      'Its doors hold flasks of unknown concentration, already titrated. Read each curve and work out how strong it is.',
       'Get past two doors, then answer the Hydra’s questions to neutralise it. Ready?',
     ],
     rooms: 2,
@@ -196,12 +196,12 @@ export const CHAMBERS: QuestChamber[] = [
       {
         name: 'The burette door',
         story:
-          'A burette hangs over a flask of unknown concentration. Pick an indicator, titrate to the colour change, then calculate the concentration.',
+          'A flask of unknown concentration has been titrated to its equivalence point. From the data and the curve, calculate its concentration.',
       },
       {
         name: 'The Hydra’s den',
         story:
-          'One more unknown guards the den. Go slowly near the endpoint, a drop at a time.',
+          'One more unknown guards the den. Moles of titrant at the equivalence point, then divide by the flask’s volume.',
       },
     ],
     bossHp: 5,

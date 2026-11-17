@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import Button from '~/components/button';
+import { useCheckSlot } from '~/components/check-slot';
 import {
   coupleFor,
   type Cell,
@@ -35,6 +36,12 @@ export default function GalvanicPrediction({
     e.preventDefault();
     if (ready) onCheck({ anode, volts: parseFloat(volts) });
   };
+  // in a quest room the check goes on the door
+  const slotted = useCheckSlot({
+    label: 'Check',
+    disabled: !!result || !ready,
+    run: () => ready && onCheck({ anode, volts: parseFloat(volts) }),
+  });
   const next = () => {
     setAnode(null);
     setVolts('');
@@ -78,9 +85,11 @@ export default function GalvanicPrediction({
             placeholder="e.g. 1.10"
           />
         </label>
-        <Button type="submit" pressed disabled={!!result || !ready}>
-          Check
-        </Button>
+        {!slotted && (
+          <Button type="submit" pressed disabled={!!result || !ready}>
+            Check
+          </Button>
+        )}
         <Button onClick={next}>New challenge</Button>
       </form>
       {result && (
