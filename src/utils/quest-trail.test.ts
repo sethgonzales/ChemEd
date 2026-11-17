@@ -32,6 +32,23 @@ describe('the map’s layout', () => {
 });
 
 describe('the trail between two stops', () => {
+  it('runs nearly straight along a row, bending only a little', () => {
+    const { stops } = mapLayout(2, 3);
+    const [a, b] = stops;
+    const n = trailPath(a, b, 3)
+      .match(/-?[\d.]+/g)!
+      .map(Number);
+    const [c1y, c2y] = [n[3], n[5]];
+    // the control points sit near the straight line from one door to the next
+    const line = (k: number) => a.y + (b.y - a.y) * k;
+    expect(Math.abs(c1y - line(1 / 3))).toBeLessThan(
+      Math.abs(b.y - a.y) * 0.15,
+    );
+    expect(Math.abs(c2y - line(2 / 3))).toBeLessThan(
+      Math.abs(b.y - a.y) * 0.15,
+    );
+  });
+
   it('runs from one to the other', () => {
     const { stops } = mapLayout(2, 3);
     const d = trailPath(stops[0], stops[1], 3);

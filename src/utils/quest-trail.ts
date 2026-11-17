@@ -5,8 +5,9 @@
 const DOOR_ROOM = 175; // px of map width each door needs
 const MIN_COLUMNS = 2;
 const MAX_COLUMNS = 4;
-const CURVE = 0.22; // rows: how far a row bows between its middle and ends
-const SWING = 0.45; // columns: how far the trail swings out to turn a row
+const CURVE = 0.11; // rows: how far a row bows between its middle and ends
+const SWING = 0.3; // columns: how far the trail swings out to turn a row
+const BEND = 0.25; // how much a stretch along a row bends, 0 straight to 1 an S
 
 export interface MapStop {
   row: number;
@@ -42,8 +43,14 @@ export function mapLayout(n: number, cols: number) {
 /** An SVG path for the trail from one stop to the next */
 export function trailPath(a: MapStop, b: MapStop, cols: number) {
   if (a.row === b.row) {
-    const mid = round((a.x + b.x) / 2);
-    return `M ${a.x} ${a.y} C ${mid} ${a.y} ${mid} ${b.y} ${b.x} ${b.y}`;
+    // control points a third and two thirds along, eased level a little
+    const at = (k: number, level: number) => ({
+      x: round(a.x + (b.x - a.x) * k),
+      y: round(a.y + (b.y - a.y) * (k + (level - k) * BEND)),
+    });
+    const c1 = at(1 / 3, 0);
+    const c2 = at(2 / 3, 1);
+    return `M ${a.x} ${a.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}`;
   }
   // turning down into the next row: swing out past the edge door and back
   const out = round((a.col === cols - 1 ? 1 : -1) * (100 / cols) * SWING);
