@@ -164,7 +164,7 @@ describe('useThunk (a wrong answer)', () => {
 
 describe('sharing and spacing sounds', () => {
   it('uses one AudioContext for every sound on the page', () => {
-    const { AudioContext, ctx } = mockAudioContext();
+    const { AudioContext } = mockAudioContext();
     for (const useSound of [useTick, useTap, useBloop, useThunk]) {
       renderHook(() => useSound()).result.current();
       jest.advanceTimersByTime(1000);
