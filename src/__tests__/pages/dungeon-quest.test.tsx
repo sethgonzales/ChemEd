@@ -212,6 +212,7 @@ describe('Dungeon Quest', () => {
     await user().click(screen.getByRole('button', { name: 'Back to the map' }));
     expect(door('beaten, 3 of 3 stars')).toBeInTheDocument();
     expect(nowPlaying()).toBe('dungeon');
+    expect(pauses.at(-1)).toBe(0); // straight back to it, no wait
   });
 
   it('cites where the chosen chambers’ facts come from', () => {
@@ -241,6 +242,8 @@ describe('Dungeon Quest', () => {
     saveSetup({ topics: ['balancing'], course: 'general' });
     visit();
     expect(nowPlaying()).toBe('dungeon');
+    // waiting out the home card's click before it starts
+    expect(pauses.at(-1)).toBeGreaterThanOrEqual(500);
     expect(screen.queryByRole('checkbox', { name: 'Music' })).toBeNull();
   });
 

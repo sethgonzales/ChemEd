@@ -33,6 +33,9 @@ const newSeed = () => Math.floor(Math.random() * 2 ** 32);
 
 const ALL: QuestSetup = { topics: CHAMBER_IDS, course: 'general' };
 const ENTER_PAUSE = 1800; // ms of quiet, with a chime, before a chamber's theme
+// ms before the lobby's theme on arrival, so it doesn't play over the home
+// card's door thud (useDoorSound rings for 1.65 s)
+const ARRIVE_PAUSE = 1700;
 
 /**
  * Where a visit starts: a chamber link opens its story, a setup link fills in
@@ -67,6 +70,11 @@ export default function DungeonQuest() {
   // in the boss fight, and quicker still on the boss's last hit point
   const inChamber = view?.at === 'chamber';
   const fighting = inChamber && stage === 'boss';
+  // once into a chamber, coming back to the map needs no wait
+  const [arrived, setArrived] = useState(false);
+  useEffect(() => {
+    if (inChamber) setArrived(true);
+  }, [inChamber]);
   useMusic(
     // hushed while the boss's door swings open, and at game over for its
     // own tune
@@ -77,7 +85,7 @@ export default function DungeonQuest() {
       : null,
     fighting && (bossHp === 1 ? 'finale' : true),
     // stepping into a chamber: a hush and a chime before its theme
-    inChamber && !fighting ? ENTER_PAUSE : 0,
+    inChamber ? (fighting ? 0 : ENTER_PAUSE) : arrived ? 0 : ARRIVE_PAUSE,
   );
   const playChime = useChimeSound();
 

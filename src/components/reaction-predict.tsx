@@ -93,6 +93,7 @@ interface Props {
   deal?: (previous: number) => number; // how the next pair is chosen
   balance?: boolean; // fixes whether balancing is asked, and hides its setting
   onCorrect?: () => void;
+  onMiss?: () => void; // graded wrong
 }
 
 export default function ReactionPredict({
@@ -100,6 +101,7 @@ export default function ReactionPredict({
   deal = dealPredict,
   balance,
   onCorrect,
+  onMiss,
 }: Props = {}) {
   // the first deal waits for the browser, so the static page matches it
   const [index, setIndex] = useState(first ?? 0);
@@ -143,6 +145,7 @@ export default function ReactionPredict({
     setResult(graded);
     record(graded.verdict === 'correct');
     if (graded.verdict === 'correct') onCorrect?.();
+    else onMiss?.();
   };
   const ready = answers.every((a) => a.text.trim() && a.state);
   // in a quest room the check goes on the door

@@ -145,13 +145,18 @@ function StoryWall({
 }
 
 /** A room's door: shut until its puzzle is solved, then swung open on light */
-function RoomDoor({ open }: { open: boolean }) {
+function RoomDoor({ open, misses }: { open: boolean; misses: number }) {
   return (
     <div
+      // a fresh element each miss, so it shakes again
+      key={misses}
       role="img"
       aria-label={open ? 'The door is open' : 'The door is shut'}
       // arched, in a stone frame
-      className="relative h-36 w-24 shrink-0 overflow-hidden rounded-t-full border-4 border-stone-600 bg-black [perspective:400px] sm:h-52 sm:w-36"
+      className={cn(
+        'relative h-36 w-24 shrink-0 overflow-hidden rounded-t-full border-4 border-stone-600 bg-black [perspective:400px] sm:h-52 sm:w-36',
+        misses > 0 && !open && 'quest-shake',
+      )}
     >
       {/* the dark beyond, seen once it opens */}
       <span data-beyond className="absolute inset-0 bg-black" />
@@ -188,6 +193,7 @@ function Room({
   const [solved, setSolved] = useState(false);
   // the puzzle's check, handed over to go on the door
   const [check, setCheck] = useState<SlotCheck | null>(null);
+  const [misses, setMisses] = useState(0); // each one shakes the door
   const playDoor = useDoorSound();
   const door = chamber.doors[room];
   const last = room + 1 === chamber.rooms;
@@ -195,67 +201,70 @@ function Room({
   const trial = chamber.trials?.[room];
   const Puzzle = ROOMS[trial?.id ?? chamber.id];
 
-  // the door on the left with the check on it, the puzzle on the right; on a
-  // phone the door comes after the puzzle, right where it's finished
+  // the room's title and story across the top; below, the door with the
+  // check on it, then the puzzle (beside it where there's room)
   return (
     <QuestScene
       backdrop={chamber.id}
       label={`Room ${room + 1} of ${chamber.rooms}`}
     >
-      <div className="flex flex-col-reverse gap-4 pt-12 pb-2 sm:flex-row sm:items-start sm:px-6">
-        <section
-          aria-label="The door"
-          // below the torch, on a wide screen
-          className="flex shrink-0 items-center justify-center gap-4 sm:mt-24 sm:w-44 sm:flex-col"
-        >
-          <RoomDoor open={solved} />
-          <div className="flex flex-col items-center gap-2 text-center">
-            {solved ? (
-              <>
-                <p className="font-semibold text-green-300">The way is open!</p>
-                <Button
-                  pressed
-                  onClick={() => {
-                    playDoor();
-                    onOpen();
-                  }}
-                >
-                  {last ? 'Face the boss' : 'Next door'}
-                </Button>
-              </>
-            ) : check ? (
-              <Button pressed disabled={check.disabled} onClick={check.run}>
-                <span className="whitespace-nowrap">{check.label}</span>
-              </Button>
-            ) : (
-              <p className="text-sm text-stone-200">
-                Solve the room and the door opens.
-              </p>
-            )}
-            {devTools && !solved && (
-              <DevButton label="Solve" onClick={() => setSolved(true)} />
-            )}
+      <div className="flex flex-col gap-4 pt-12 pb-2 sm:px-6">
+        <ScenePanel>
+          <div className="flex flex-col gap-2">
+            <h3 className="font-pixel text-xl sm:text-2xl">
+              Room {room + 1} of {chamber.rooms}: {door.name}
+            </h3>
+            <TypedStory key={door.name} lines={[door.story]} />
           </div>
-        </section>
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <ScenePanel className="flex gap-3">
-            <PhoneMrG />
-            <div className="flex flex-col gap-2">
-              <h3 className="font-pixel text-xl sm:text-2xl">
-                Room {room + 1} of {chamber.rooms}: {door.name}
-              </h3>
-              <TypedStory key={door.name} lines={[door.story]} />
+        </ScenePanel>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <section
+            aria-label="The door"
+            className="flex shrink-0 items-center justify-center gap-4 sm:w-44 sm:flex-col"
+          >
+            <RoomDoor open={solved} misses={misses} />
+            <div className="flex flex-col items-center gap-2 text-center">
+              {solved ? (
+                <>
+                  <p className="font-semibold text-green-300">
+                    The way is open!
+                  </p>
+                  <Button
+                    pressed
+                    onClick={() => {
+                      playDoor();
+                      onOpen();
+                    }}
+                  >
+                    {last ? 'Face the boss' : 'Next door'}
+                  </Button>
+                </>
+              ) : check ? (
+                <Button pressed disabled={check.disabled} onClick={check.run}>
+                  <span className="whitespace-nowrap">{check.label}</span>
+                </Button>
+              ) : (
+                <p className="text-sm text-stone-200">
+                  Solve the room and the door opens.
+                </p>
+              )}
+              {devTools && !solved && (
+                <DevButton label="Solve" onClick={() => setSolved(true)} />
+              )}
             </div>
-          </ScenePanel>
-          <CheckSlot onChange={setCheck}>
-            <Puzzle
-              seed={seed}
-              course={course}
-              room={trial?.room ?? room}
-              rooms={chamber.rooms}
-              onSolve={() => setSolved(true)}
-            />
-          </CheckSlot>
+          </section>
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            <CheckSlot onChange={setCheck}>
+              <Puzzle
+                seed={seed}
+                course={course}
+                room={trial?.room ?? room}
+                rooms={chamber.rooms}
+                onSolve={() => setSolved(true)}
+                onMiss={() => setMisses((n) => n + 1)}
+              />
+            </CheckSlot>
+          </div>
         </div>
       </div>
     </QuestScene>

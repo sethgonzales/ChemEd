@@ -419,6 +419,58 @@ describe('the Electrochemistry rooms', () => {
   });
 });
 
+describe('every room with a check tells its door of a miss', () => {
+  it.each([
+    [
+      'periodic',
+      async () => {
+        const riddle = elementRiddle(roomRng(SEED, 0), 'general', 0);
+        const wrong = ELEMENTS.find(
+          (e) => !riddle.fits(e) && e.atomicNumber < 30,
+        )!;
+        await userEvent.click(screen.getByRole('button', { name: wrong.name }));
+        await userEvent.click(
+          screen.getByRole('button', { name: 'That’s my answer' }),
+        );
+      },
+    ],
+    [
+      'states',
+      async () => {
+        // its starting temperature never meets the goal
+        await userEvent.click(
+          screen.getByRole('button', { name: 'That’s my answer' }),
+        );
+      },
+    ],
+    [
+      'titrations',
+      async () => {
+        await userEvent.type(
+          screen.getByRole('textbox', { name: 'Concentration (M)' }),
+          '9',
+        );
+        await userEvent.click(screen.getByRole('button', { name: 'Check' }));
+      },
+    ],
+  ] as const)('%s', async (id, miss) => {
+    const Room = ROOMS[id];
+    const onMiss = jest.fn();
+    render(
+      <Room
+        seed={SEED}
+        course="general"
+        room={0}
+        rooms={2}
+        onSolve={jest.fn()}
+        onMiss={onMiss}
+      />,
+    );
+    await miss();
+    expect(onMiss).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('in a room beside its door', () => {
   // the room's own check, which goes on the door instead
   const CHECKS: Record<string, string | null> = {

@@ -61,6 +61,7 @@ export interface RoomProps {
   room: number;
   rooms: number;
   onSolve: () => void;
+  onMiss?: () => void; // a wrong answer, so the door can shake
 }
 
 const RANGE_STEPS = 7; // labels along the thermometer, as on the simulation
@@ -90,7 +91,7 @@ function BalancingRoom({ seed, course, room, rooms, onSolve }: RoomProps) {
 }
 
 /** The Sphinx's riddle: pick the element it describes */
-function PeriodicRoom({ seed, course, room, onSolve }: RoomProps) {
+function PeriodicRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
   const riddle = useMemo(
     () => elementRiddle(roomRng(seed, room), course, room),
     [seed, course, room],
@@ -108,7 +109,10 @@ function PeriodicRoom({ seed, course, room, onSolve }: RoomProps) {
       attempt: (v?.attempt ?? 0) + 1,
     }));
     if (right) onSolve();
-    else setTried((t) => [...t, picked]);
+    else {
+      setTried((t) => [...t, picked]);
+      onMiss?.();
+    }
   };
   const slotted = useCheckSlot({
     label: 'That’s my answer',
@@ -146,7 +150,7 @@ function PeriodicRoom({ seed, course, room, onSolve }: RoomProps) {
 }
 
 /** The Lich's rooms: draw an atom's (or ion's) orbital diagram and notation */
-function ElectronRoom({ seed, course, room, onSolve }: RoomProps) {
+function ElectronRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
   // chosen together, from one generator, like the balancing rooms
   const target = useMemo(
     () => configurationRooms(createRng(seed), course)[room],
@@ -158,6 +162,7 @@ function ElectronRoom({ seed, course, room, onSolve }: RoomProps) {
         key={`${target.element.symbol}${target.charge}`}
         target={target}
         onCorrect={onSolve}
+        onMiss={onMiss}
       />
     </div>
   );
@@ -168,7 +173,7 @@ export const lewisOpens = (verdict: Verdict) =>
   verdict === 'best' || verdict === 'accepted';
 
 /** The Weaver's rooms: draw a molecule's whole Lewis structure, from a blank page */
-function LewisRoom({ seed, course, room, onSolve }: RoomProps) {
+function LewisRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
   const molecule = useMemo(
     () => lewisRooms(createRng(seed), course)[room],
     [seed, course, room],
@@ -185,7 +190,7 @@ function LewisRoom({ seed, course, room, onSolve }: RoomProps) {
       start="empty"
       settings={settings}
       onSettings={(change) => setSettings((now) => ({ ...now, ...change }))}
-      onCheck={(verdict) => lewisOpens(verdict) && onSolve()}
+      onCheck={(verdict) => (lewisOpens(verdict) ? onSolve() : onMiss?.())}
     />
   );
 }
@@ -199,7 +204,7 @@ function goalText({ substance, goal }: StatesRoomData) {
 }
 
 /** The Wyrm's rooms: read the heating curve and set the thermometer */
-function StatesRoom({ seed, course, room, onSolve }: RoomProps) {
+function StatesRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
   const target = useMemo(
     () => statesRooms(createRng(seed), course)[room],
     [seed, course, room],
@@ -218,6 +223,7 @@ function StatesRoom({ seed, course, room, onSolve }: RoomProps) {
       attempt: (v?.attempt ?? 0) + 1,
     }));
     if (right) onSolve();
+    else onMiss?.();
   };
   const slotted = useCheckSlot({ label: 'That’s my answer', run: check });
 
@@ -259,7 +265,7 @@ function StatesRoom({ seed, course, room, onSolve }: RoomProps) {
 }
 
 /** The Slime's rooms: predict what a pair of reactants makes, or that nothing happens */
-function ReactionRoom({ seed, course, room, onSolve }: RoomProps) {
+function ReactionRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
   const first = useMemo(
     () => reactionRooms(createRng(seed))[room],
     [seed, room],
@@ -278,6 +284,7 @@ function ReactionRoom({ seed, course, room, onSolve }: RoomProps) {
       deal={deal}
       balance={course === 'ap'}
       onCorrect={onSolve}
+      onMiss={onMiss}
     />
   );
 }
@@ -288,7 +295,7 @@ const REVEAL_PAST = 8; // mL of curve past the equivalence point
  * The Hydra's rooms: an unknown already titrated, as its data and finished pH
  * curve; work out its concentration from the equivalence point
  */
-function TitrationRoom({ seed, course, room, onSolve }: RoomProps) {
+function TitrationRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
   const { analyte, concentration } = useMemo(
     () => newUnknown(roomRng(seed, room), titrationPool(course)),
     [seed, course, room],
@@ -310,6 +317,7 @@ function TitrationRoom({ seed, course, room, onSolve }: RoomProps) {
       attempt: (v?.attempt ?? 0) + 1,
     }));
     if (right) onSolve();
+    else onMiss?.();
   };
   const slotted = useCheckSlot({
     label: 'Check',
@@ -364,7 +372,7 @@ function TitrationRoom({ seed, course, room, onSolve }: RoomProps) {
 }
 
 /** The Wraith's rooms: name a cell's anode and predict its voltage */
-function VoltaicRoom({ seed, room, onSolve }: RoomProps) {
+function VoltaicRoom({ seed, room, onSolve, onMiss }: RoomProps) {
   const random = useMemo(() => roomRng(seed, room), [seed, room]);
   const [cell, setCell] = useState(() => newChallenge(random));
   const [result, setResult] = useState<Prediction | null>(null);
@@ -373,6 +381,7 @@ function VoltaicRoom({ seed, room, onSolve }: RoomProps) {
     const graded = checkPrediction(cell, guess);
     setResult(graded);
     if (graded.verdict === 'correct') onSolve();
+    else onMiss?.();
   };
   // the answer's been shown, so a miss brings a fresh pair of metals
   const next = () => {

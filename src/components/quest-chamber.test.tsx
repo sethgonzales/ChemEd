@@ -1,7 +1,10 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DURATION_MS } from '~/components/villain';
+import { ELEMENTS } from '~/constants/elements';
 import { findChamber } from '~/constants/quest-chambers';
+import { roomRng } from '~/components/quest-rooms';
+import { elementRiddle } from '~/utils/quest-periodic';
 import { alchemistChamber } from '~/constants/quest-final';
 import { formatFormula } from '~/utils/lewis';
 import {
@@ -214,6 +217,42 @@ describe('a quest chamber', () => {
     expect(
       within(door).getByRole('button', { name: 'Next door' }),
     ).toBeInTheDocument();
+  });
+
+  it('heads each room with its title, the door below it, and shakes the door at every wrong answer', async () => {
+    const periodic = findChamber('periodic')!;
+    render(
+      <QuestChamber
+        chamber={periodic}
+        course="general"
+        seed={SEED}
+        onClear={jest.fn()}
+        onExit={jest.fn()}
+        onReplay={jest.fn()}
+      />,
+    );
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    const title = screen.getByRole('heading', { name: /Room 1 of 2/ });
+    const door = screen.getByRole('region', { name: 'The door' });
+    expect(
+      title.compareDocumentPosition(door) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    const riddle = elementRiddle(roomRng(SEED, 0), 'general', 0);
+    const wrong = ELEMENTS.find((e) => !riddle.fits(e) && e.atomicNumber < 30)!;
+    const shut = () => within(door).getByRole('img', { name: /shut/ });
+    expect(shut()).not.toHaveClass('quest-shake');
+    await user().click(screen.getByRole('button', { name: wrong.name }));
+    await user().click(
+      within(door).getByRole('button', { name: 'That’s my answer' }),
+    );
+    expect(shut()).toHaveClass('quest-shake');
+    // shaken afresh at the next miss: a new element, so the animation replays
+    const first = shut();
+    await user().click(
+      within(door).getByRole('button', { name: 'That’s my answer' }),
+    );
+    expect(shut()).not.toBe(first);
   });
 
   it('swings the boss’s door open, then fades into the fight', async () => {

@@ -47,11 +47,13 @@ interface Props {
   // no charge buttons and no Show answer
   target?: { element: IElementData; charge: number };
   onCorrect?: () => void; // checked and right
+  onMiss?: () => void; // checked and wrong
 }
 
 export default function ConfigurationBuilder({
   target: set,
   onCorrect,
+  onMiss,
 }: Props) {
   const [picked, setElement] = useState<IElementData | null>(null);
   const [chosenCharge, setCharge] = useState(0);
@@ -96,7 +98,7 @@ export default function ConfigurationBuilder({
       label && target ? checkDiagram(target, diagram, typed, label) : 'pick';
     setFeedback(result);
     setChecked(true);
-    if (result !== 'pick' && result.correct) onCorrect?.();
+    if (result !== 'pick') (result.correct ? onCorrect : onMiss)?.();
     // a cheer also plays the treasure sound
     const { text, mood } = configurationMessage(result, label);
     say(text, mood);
