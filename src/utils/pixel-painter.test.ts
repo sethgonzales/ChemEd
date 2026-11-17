@@ -57,3 +57,23 @@ describe('Painter', () => {
     expect(p.rows()).toEqual(Array(4).fill('....'));
   });
 });
+
+describe('Painter.rotatedEllipse', () => {
+  const draw = (f: (p: Painter) => void) => {
+    const p = new Painter(20, 20);
+    f(p);
+    return p.rows();
+  };
+
+  it('matches a plain ellipse when it isn’t turned', () => {
+    expect(draw((p) => p.rotatedEllipse(10, 10, 6, 3, 0, 'L', false))).toEqual(
+      draw((p) => p.ellipse(10, 10, 6, 3, 'L', false)),
+    );
+  });
+
+  it('stands a wide ellipse on end when turned a quarter turn', () => {
+    expect(
+      draw((p) => p.rotatedEllipse(10, 10, 6, 3, Math.PI / 2, 'L', false)),
+    ).toEqual(draw((p) => p.ellipse(10, 10, 3, 6, 'L', false)));
+  });
+});

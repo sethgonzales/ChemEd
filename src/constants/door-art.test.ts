@@ -215,3 +215,9 @@ describe('electrochemistry door', () => {
     expect(column('S').length).toBeGreaterThan(5); // the salt bridge
   });
 });
+
+describe('dungeon door', () => {
+  it('has a pair of eyes glowing in the dark', () => {
+    expect(clusters(DOOR_ART.dungeon.rows, 'Y')).toHaveLength(2);
+  });
+});

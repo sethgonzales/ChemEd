@@ -1,6 +1,6 @@
 # Dungeon Quest — plan
 
-Status: **planned** (17 Nov 2026), see Decisions
+Status: **phases 1–5 built** (17 Nov 2026): the engine, the look, the gate, map and home door, a question source for every simulation, and all eight chambers with their villains and rooms. Next: phase 6, the Alchemist. See Decisions
 
 A step-by-step dungeon crawl that strings the simulations' quizzes together as levels. Each level is a chamber: a wall of story text sets up a problem, a few rooms each pose a challenge, and a chemistry boss waits at the end. The dungeon grows with the app: every new simulation adds its questions to the bank and its own chamber to the quest.
 
@@ -8,7 +8,7 @@ A step-by-step dungeon crawl that strings the simulations' quizzes together as l
 
 1. **Story wall**: a short scene in the pixel frame, told by Mr. G ("The bridge over the acid moat only holds if the equation balances…"). One screen, with a Begin button. The story is fiction, but any real chemistry it states is cited like the rest of the app.
 2. **Rooms** (2–3): each room is one challenge on the chamber's topic. Solving it opens the door to the next room. A wrong answer shows Mr. G's hint and lets the student try again, with no hearts lost in rooms.
-3. **Boss**: a pixel-art boss with an HP bar, and the student's hearts. Each right answer hits the boss and each wrong one costs a heart. Questions get harder as the boss weakens, using the difficulty levels the banks already have (`REACTIONS` and `MOLECULES` both have `level`).
+3. **Boss**: a pixel-art boss with an HP bar, and the student's hearts. Each right answer hits the boss and each wrong one costs a heart. Either way a new question follows, so a missed one can't be answered by ruling out choices. Questions get harder as the boss weakens, using the difficulty levels the banks already have (`REACTIONS` and `MOLECULES` both have `level`).
 4. **Loot**: a treasure screen with the treasure sound, a star rating (hearts left) and the next door unsealed.
 
 **Running out of hearts:** the hearts refill and the boss resets with fresh questions. Cleared rooms stay cleared, and Mr. G says what went wrong.
@@ -22,14 +22,14 @@ There are two kinds, both from a shared question bank:
 
 ### The question bank
 
-- Every simulation contributes a **question source** under `src/constants/quest/` (or beside its data), built from the data it already uses and cites. **No separate general chemistry bank:** questions come only from the simulations.
+- Every simulation contributes a **question source** (`src/utils/quest-<topic>.ts`, listed in `src/utils/quest-sources.ts`), built from the data it already uses and cites. **No separate general chemistry bank:** questions come only from the simulations.
 - A source generates questions from a seeded random generator, so tests are deterministic and retries get new questions.
-- **Every question source covers both courses.** It says which of its levels or question types are General Chemistry and which are AP / IB. The existing banks already have levels (`REACTIONS` and `MOLECULES` have `level`, and Chemical Reactions has AP tags), so each bank maps its levels onto the two courses, for example:
-  - balancing levels 1–2 for General Chemistry, and 2–4 for AP / IB
-  - Predict's net ionic equations for AP / IB only
+- **Every question source covers both courses.** It says which of its levels or question types are General Chemistry and which are AP. The existing banks already have levels (`REACTIONS` and `MOLECULES` have `level`, and Chemical Reactions has AP tags), so each bank maps its levels onto the two courses, for example:
+  - balancing levels 1–2 for General Chemistry, and 2–4 for AP
+  - Predict's net ionic equations for AP only
 
   A test checks that every source asks something in each course.
-- **Adding a simulation means adding its questions.** A test checks that every `ready` simulation in `SIMULATIONS` has a question source and a chamber, so a new simulation can't ship without them. This rule goes in CLAUDE.md.
+- **Adding a simulation means adding its questions.** A test checks that every `ready` simulation in `SIMULATIONS` (except the Dungeon Quest's own door) has a question source and a chamber, so a new simulation can't ship without them. This rule goes in CLAUDE.md.
 
 ## The start screen
 
@@ -38,7 +38,7 @@ There are two kinds, both from a shared question bank:
 Before the map, a short setup screen at the dungeon's gate asks two things. A general chemistry class partway through the year hasn't seen every topic, so the quest only covers what the class has.
 
 1. **Topics**: a checklist of the chambers' topics, all ticked to start, with "All" and "None" shortcuts. Only the ticked topics get a chamber and a boss, and only their questions are asked. At least one topic must stay ticked.
-2. **Course**: **General Chemistry** or **AP / IB Chemistry**. It sets which questions each bank asks: the level range a boss's questions ramp through, and which question types appear at all.
+2. **Course**: **General Chemistry** or **AP Chemistry**. It sets which questions each bank asks: the level range a boss's questions ramp through, and which question types appear at all.
 
 **Remembering the setup:**
 - It's saved in the browser and shown on the map ("4 topics · General Chemistry · Change"), so a student isn't asked again each visit.
@@ -48,7 +48,7 @@ Before the map, a short setup screen at the dungeon's gate asks two things. A ge
 
 - A **dungeon map** of the chosen chambers' doors in topic order, joined by a path down to the final chamber's sealed gate. Each door shows its stars.
 - **Any chosen level can be picked from the start.** The order is a suggested route, not a lock.
-- **The final chamber** unseals once every chosen chamber is cleared. The Alchemist asks questions from the chosen topics only, at the chosen course's level.
+- **The final chamber** unseals once every chosen chamber is cleared (its gate joins the map in phase 6). The Alchemist asks questions from the chosen topics only, at the chosen course's level.
 - **Teacher links** to one chamber still work: `/dungeon-quest?chamber=<id>&course=<course>` skips the gate and the map and opens that chamber's story wall. These are static query strings, so the app stays a static export.
 - **Replays**: a cleared chamber can be played again with new questions. The best star score is kept **for each course**, so an AP student's stars don't fill in a general class's map, and the other way round.
 
@@ -149,4 +149,18 @@ Logins and Firestore progress, avatars and unlocks, free movement around a map, 
 9. **Look:** dark and spooky, with animated chemistry villains and Mr. G in a hooded cape with a lamp (see The look).
 10. **Villains approved** (17 Nov 2026): Seth approved the first sketches of all nine villains ([gallery](https://claude.ai/artifact/1YeQUEDur3dWx4UB9YcSzd)). They're drawn on a 40 × 40 grid with an automatic dark outline. Defeat breaks each villain into its substance: gravel, bone dust, steam, loose atoms, yellow sludge, acid, sparks or smoke. Before a villain goes in the app, its chemistry gets cited, for example lead(II) iodide's yellow, and the direction electrons flow in a zinc–copper cell. The Golem's atom colours are art, so the app doesn't call them CPK (decided 17 Nov 2026).
 11. **Mr. G's quest outfit approved** (17 Nov 2026), [gallery](https://claude.ai/artifact/1YeQUEDur3dWx4UB9YcSzd): a deep hood that covers his hair and ears, goggles down over his eyes, and a cloak with a gold clasp, closed round the front except for a sliver of coat and flannel at the chest. He holds a flickering lantern in front of him in both hands, a little right of centre.
-12. **Topics and course** (17 Nov 2026): entering the dungeon, students tick the topics their class has covered and choose General Chemistry or AP / IB Chemistry. The ticked topics decide which chambers, bosses and questions appear, and the course decides how hard the questions are. The final boss asks about the chosen topics only, and stars are kept for each course.
+12. **Topics and course** (17 Nov 2026): entering the dungeon, students tick the topics their class has covered and choose General Chemistry or AP Chemistry. The ticked topics decide which chambers, bosses and questions appear, and the course decides how hard the questions are. The final boss asks about the chosen topics only, and stars are kept for each course.
+13. **A new question after a miss** (17 Nov 2026): a wrong answer costs a heart and brings a new question at the same level, so the student can't work through the choices on one question.
+14. **The question sources** (17 Nov 2026), each built from its simulation's data and functions, so an answer always matches what the simulation shows:
+
+    | Simulation | General Chemistry | AP adds |
+    | --- | --- | --- |
+    | Periodic Table | find an element by group and period, atomic numbers, blocks | electronegativity |
+    | Electron Configurations | configurations to krypton, valence and unpaired electrons | ions' configurations |
+    | Lewis Structures | total valence electrons, central lone pairs, shared pairs | ions, resonance, octet exceptions |
+    | States of Matter | water's phases, then every substance's phases and melting and boiling points | heat to melt or boil n mol |
+    | Reaction Balancing | fill the coefficient, pick the balanced equation, count atoms | replacement and redox equations |
+    | Chemical Reactions | reaction types, precipitates | net ionic equations |
+    | Titrations | the equivalence pH, indicators, concentration from a reading | pH halfway to equivalence (pKa) |
+    | Electrochemistry | which metal is oxidized, which way electrons flow | E°cell |
+

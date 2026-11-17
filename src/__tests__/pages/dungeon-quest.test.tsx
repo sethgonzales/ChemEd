@@ -1,48 +1,142 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DURATION_MS } from '~/components/villain';
+import { findChamber } from '~/constants/quest-chambers';
+import { SOURCES } from '~/constants/sources';
 import DungeonQuest from '~/pages/dungeon-quest';
+import { formatFormula } from '~/utils/lewis';
+import {
+  answer,
+  begin,
+  createRng,
+  solveRoom,
+  startChamber,
+  type QuestState,
+  type QuickQuestion,
+} from '~/utils/quest';
+import { balancingRooms } from '~/utils/quest-balancing';
+import { loadProgress, loadSetup, saveSetup } from '~/utils/quest-storage';
+import { parseEquation } from '~/utils/reactions';
 
-const golem = () => screen.getByRole('img', { name: 'The Unbalanced Golem' });
+const chamber = findChamber('balancing')!;
+const RANDOM = 0.25; // Math.random, so the page's seed is known
+const SEED = Math.floor(RANDOM * 2 ** 32);
+
 const user = () => userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
 
-beforeEach(() => jest.useFakeTimers());
-afterEach(() => jest.useRealTimers());
+function visit(query = '') {
+  window.history.pushState({}, '', `/dungeon-quest${query}`);
+  render(<DungeonQuest />);
+}
 
-describe('Dungeon Quest preview', () => {
-  it('is titled, with the Golem waiting in its dark chamber', () => {
-    render(<DungeonQuest />);
+beforeEach(() => {
+  jest.useFakeTimers();
+  jest.spyOn(Math, 'random').mockReturnValue(RANDOM);
+  localStorage.clear();
+});
+afterEach(() => {
+  jest.useRealTimers();
+  jest.restoreAllMocks();
+});
+
+const storyWall = () =>
+  screen.getByRole('region', { name: 'Reaction Balancing: the story' });
+const door = (stars: string) =>
+  screen.getByRole('button', {
+    name: `Reaction Balancing: The Unbalanced Golem, ${stars}`,
+  });
+
+describe('Dungeon Quest', () => {
+  it('is titled', () => {
+    visit();
     expect(
       screen.getByRole('heading', { name: 'Dungeon Quest' }),
     ).toBeInTheDocument();
-    const chamber = screen.getByRole('region', {
-      name: 'The Unbalanced Golem’s chamber',
+  });
+
+  it('asks for the topics and course at the gate on a first visit, then remembers them', async () => {
+    visit();
+    await user().click(screen.getByRole('button', { name: 'AP Chemistry' }));
+    await user().click(
+      screen.getByRole('button', { name: 'Enter the dungeon' }),
+    );
+    expect(
+      screen.getByRole('region', { name: 'The dungeon map' }),
+    ).toBeInTheDocument();
+    expect(loadSetup(['balancing'])).toEqual({
+      topics: ['balancing'],
+      course: 'ap',
     });
-    expect(chamber).toContainElement(golem());
-    expect(golem()).toHaveAttribute('data-frame', 'idle');
   });
 
-  it('shows the Golem being hit by a right answer, then waiting again', async () => {
-    render(<DungeonQuest />);
-    await user().click(screen.getByRole('button', { name: 'Right answer' }));
-    expect(golem()).toHaveAttribute('data-frame', 'hit');
-    act(() => jest.advanceTimersByTime(DURATION_MS.hit + 200));
-    expect(golem()).toHaveAttribute('data-frame', 'idle');
+  it('goes straight to the map with a saved setup, and opens a chamber’s story', async () => {
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit();
+    await user().click(door('not cleared yet'));
+    expect(storyWall()).toBeInTheDocument();
   });
 
-  it('shows the Golem attacking after a wrong answer', async () => {
-    render(<DungeonQuest />);
-    await user().click(screen.getByRole('button', { name: 'Wrong answer' }));
-    expect(golem()).toHaveAttribute('data-frame', 'attack');
+  it('fills in the gate from a teacher’s setup link', () => {
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit('?topics=balancing&course=ap');
+    expect(
+      screen.getByRole('button', { name: 'AP Chemistry' }),
+    ).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('shows the Golem beaten, then reforming for another look', async () => {
-    render(<DungeonQuest />);
-    await user().click(screen.getByRole('button', { name: 'Defeat' }));
-    expect(golem()).toHaveAttribute('data-frame', 'defeat');
-    act(() => jest.advanceTimersByTime(DURATION_MS.defeat + 200)); // beaten
-    expect(golem()).toHaveAttribute('data-frame', 'defeat');
-    act(() => jest.advanceTimersByTime(1500)); // and back
-    expect(golem()).toHaveAttribute('data-frame', 'idle');
+  it('opens one chamber’s story straight from a chamber link', () => {
+    visit('?chamber=balancing&course=ap');
+    expect(storyWall()).toBeInTheDocument();
+  });
+
+  it('keeps the stars from a cleared chamber, and shows them on the map', async () => {
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit();
+    await user().click(door('not cleared yet'));
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+
+    const rooms = balancingRooms(createRng(SEED), 'general', chamber.rooms);
+    for (const [room, r] of rooms.entries()) {
+      const eq = parseEquation(r.equation);
+      for (const [i, f] of [...eq.reactants, ...eq.products].entries()) {
+        const input = screen.getByRole('textbox', {
+          name: `Coefficient for ${formatFormula(f)}`,
+        });
+        await user().clear(input);
+        await user().type(input, String(r.answer[i]));
+      }
+      await user().click(
+        screen.getByRole('button', {
+          name: room === 0 ? 'Next door' : 'Face the boss',
+        }),
+      );
+    }
+
+    let s: QuestState<QuickQuestion> = solveRoom(
+      solveRoom(begin(startChamber(chamber, 'general', SEED)), chamber),
+      chamber,
+    );
+    while (s.stage === 'boss') {
+      const q = s.question!;
+      await user().click(
+        within(screen.getByRole('group', { name: q.prompt })).getByRole(
+          'button',
+          { name: q.choices[q.answer] },
+        ),
+      );
+      act(() => jest.advanceTimersByTime(DURATION_MS.defeat + 200));
+      s = answer(s, chamber, true);
+    }
+
+    expect(loadProgress()).toEqual({ general: { balancing: 3 } });
+    await user().click(screen.getByRole('button', { name: 'Back to the map' }));
+    expect(door('beaten, 3 of 3 stars')).toBeInTheDocument();
+  });
+
+  it('cites where the chosen chambers’ facts come from', () => {
+    saveSetup({ topics: ['periodic'], course: 'general' });
+    visit();
+    const sources = screen.getByRole('region', { name: 'Sources' });
+    expect(sources).toHaveTextContent(SOURCES.paulingEN.title);
   });
 });

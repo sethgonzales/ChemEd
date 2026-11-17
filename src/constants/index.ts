@@ -65,4 +65,11 @@ export const SIMULATIONS: Simulation[] = [
     color: '#f59e0b', // amber
     ready: true,
   },
+  {
+    title: 'Dungeon Quest',
+    path: '/dungeon-quest',
+    art: 'dungeon',
+    color: '#64748b', // slate, like the dungeon's stone
+    ready: true,
+  },
 ];

@@ -42,6 +42,7 @@ Bug fixes start with a test that reproduces the bug.
 - Use the `~/` import alias for `src/`.
 - Keep changes scoped to the task; mention unrelated issues rather than fixing them silently.
 - **Every fact must be checked and cited before it goes in the app.** Any real-world value or property (element data, constants, configurations, pKa, E°, phase data and so on) is checked against an authoritative source first: IUPAC, NIST, CRC or a peer-reviewed paper, or a Wikipedia page that cites one. Its source is added to `src/constants/sources.ts`, referenced next to the data, and listed in the page's Sources footer. Never add an uncited value, or an estimate that isn't labelled as one.
+- **A new simulation adds its Dungeon Quest questions.** Give it a question source in `src/utils/quest-sources.ts`, built from the data the simulation already uses and cites, with levels for both General Chemistry and AP. A test fails until it has one.
 - Every simulation must work on a phone: touch input, narrow screens, no horizontal page scroll.
 - Accessibility: interactive elements need accessible names, and controls must work by keyboard.
 

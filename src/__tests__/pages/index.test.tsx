@@ -33,6 +33,14 @@ describe('Home page', () => {
     expect(push).toHaveBeenCalledWith('/titrations');
   });
 
+  it('opens the Dungeon Quest behind its own door', async () => {
+    render(<Home />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Dungeon Quest' }),
+    );
+    expect(push).toHaveBeenCalledWith('/dungeon-quest');
+  });
+
   it('opens Reaction Balancing behind its own door', async () => {
     render(<Home />);
     await userEvent.click(

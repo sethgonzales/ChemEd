@@ -66,6 +66,12 @@ export const PAGE_TIPS: Record<string, string[]> = {
     'Ions that look the same on both sides are spectators. Cross them out to get the net ionic equation.',
     'Build a formula by crossing the charges: Al³⁺ and SO₄²⁻ make Al₂(SO₄)₃.',
   ],
+  '/dungeon-quest': [
+    'Welcome to the dungeon. Pick your topics at the gate, then choose a chamber on the map.',
+    'Rooms cost no hearts, so take your time. At the boss, every wrong answer costs a heart.',
+    'Out of hearts? The boss starts over with new questions, and your cleared rooms stay cleared.',
+    'Teachers: the gate has a link to share, so the class gets the same topics and course.',
+  ],
 };
 
 /** For pages without their own tips */

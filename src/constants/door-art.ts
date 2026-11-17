@@ -417,6 +417,59 @@ export const DOOR_ART = {
       T: '#475569', // bench
     },
   },
+  // the Dungeon Quest: stairs down into the dark, torches either side, and
+  // a pair of eyes waiting
+  dungeon: {
+    rows: [
+      '................................................',
+      '..................SSsSSSSsSSSS..................',
+      '................SSSSsSSSSsSSSSsS................',
+      '..............ssssssssssssssssssss..............',
+      '.............sSSSSsDDDDDDDDDDSSSSsS.............',
+      '............SsSSSDDDDDDDDDDDDDDSSsSS............',
+      '...........ssssDDDDDDDDDDDDDDDDDDssss...........',
+      '..........sSSSDDDDDDDDDDDDDDDDDDDDSsSS..........',
+      '..........sSSDDDDDDDDDDDDDDDDDDDDDDsSS..........',
+      '.........ssssDDDDDDDDDDDDDDDDDDDDDDssss.........',
+      '.........SSSDDDDDDDDDDDDDDDDDDDDDDDDSSs.........',
+      '........sSSDDDDDDDDDDDDDDDDDDDDDDDDDDSsS........',
+      '...F....sssDDDDDDDDDDDDDDDDDDDDDDDDDDsss....F...',
+      '..FfF..SSSsDDDDDDDDDDDDDDDDDDDDDDDDDDSSSs..FfF..',
+      '..FfF..SSSDDDDDDDDDDDDDDDDDDDDDDDDDDDDSSs..FfF..',
+      '...F...sssDDDDDDDDDDDDDDDDDDDDDDDDDDDDsss...F...',
+      '...b...SsSDDDDDDDDDDDDDDDDDDDDDDDDDDDDsSS...b...',
+      '...b...SsSDDDDDDDDDDDDDDDDDDDDDDDDDDDDsSS...b...',
+      '...b...sssDDDDDDDDDDDDDDDDDDDDDDDDDDDDsss...b...',
+      '...b...SSSDDDDDDDDDDDDDDDDDDDDDDDDDDDDSSs...b...',
+      '...b...SSSDDDDDDDDDDDDDDDDDDDDDDDDDDDDSSs...b...',
+      '.......sssDDDDDDDDDDYYDDDDYYDDDDDDDDDDsss.......',
+      '.......SsSDDDDDDDDDDDDDDDDDDDDDDDDDDDDsSS.......',
+      '.......SsSDDDDDDDDDDDDDDDDDDDDDDDDDDDDsSS.......',
+      '.......sssDDDDDDDDDDDDDDDDDDDDDDDDDDDDsss.......',
+      '.......SSSDDDDDDDDDDDDDDDDDDDDDDDDDDDDSSs.......',
+      '.......SSSDDDDDDDDDDDDDDDDDDDDDDDDDDDDSSs.......',
+      '.......sssDDDDDDDDDDDDDDDDDDDDDDDDDDDDsss.......',
+      '.......SsSDDDDDDDDDeeeeeeeeeeDDDDDDDDDsSS.......',
+      '.......SsSDDDDDDDDDddddddddddDDDDDDDDDsSS.......',
+      '.......sssDDDDDDeeeeeeeeeeeeeeeeDDDDDDsss.......',
+      '.......SSSDDDDDDddddddddddddddddDDDDDDSSs.......',
+      '.......SSSDDDeeeeeeeeeeeeeeeeeeeeeeDDDSSs.......',
+      '.......sssDDDddddddddddddddddddddddDDDsss.......',
+      '.......SsSeeeeeeeeeeeeeeeeeeeeeeeeeeeesSS.......',
+      '.......SsSddddddddddddddddddddddddddddsSS.......',
+    ],
+    palette: {
+      S: '#57534e', // stone
+      s: '#44403c', // mortar
+      D: '#0c0a09', // the dark
+      d: '#292524', // stairs
+      e: '#44403c', // each stair’s edge
+      Y: '#fde047', // eyes
+      F: '#f97316', // torch flame
+      f: '#fde68a', // its core
+      b: '#78716c', // torch bracket
+    },
+  },
 } satisfies Record<string, DoorArt>;
 
 export type DoorArtName = keyof typeof DOOR_ART;

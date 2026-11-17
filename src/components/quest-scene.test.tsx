@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import QuestScene from './quest-scene';
+import QuestScene, { ScenePanel } from './quest-scene';
 
 describe('QuestScene', () => {
   it('is a named region holding what happens in the dungeon', () => {
@@ -21,5 +21,37 @@ describe('QuestScene', () => {
     const decor = container.querySelectorAll('[data-decor]');
     expect(decor.length).toBeGreaterThanOrEqual(3);
     decor.forEach((d) => expect(d).toHaveAttribute('aria-hidden', 'true'));
+  });
+
+  it('is built of mossy stone, lit by more than two torches', () => {
+    const { container } = render(
+      <QuestScene label="Chamber">
+        <p>Hi</p>
+      </QuestScene>,
+    );
+    const wall = container.querySelector('[data-decor="wall"]')!;
+    expect(wall.querySelectorAll('[data-stone]').length).toBeGreaterThan(40);
+    expect(wall.querySelectorAll('[data-moss]').length).toBeGreaterThan(0);
+    expect(
+      container.querySelectorAll('[data-decor="torch"]').length,
+    ).toBeGreaterThan(2);
+  });
+
+  // the wall is positioned, so anything unpositioned would be painted under it
+  it('keeps its content and its footer in front of the wall', () => {
+    render(
+      <QuestScene label="Chamber" footer={<p>Which is it?</p>}>
+        <p>The Golem waits.</p>
+      </QuestScene>,
+    );
+    for (const text of ['Which is it?', 'The Golem waits.'])
+      expect(
+        screen.getByText(text).closest('[data-layer="front"]'),
+      ).not.toBeNull();
+  });
+
+  it('holds its words on a panel in front of the wall', () => {
+    render(<ScenePanel>The Golem waits.</ScenePanel>);
+    expect(screen.getByText('The Golem waits.')).toBeInTheDocument();
   });
 });

@@ -1,55 +1,134 @@
 import { useEffect, useState } from 'react';
 import Button from '~/components/button';
 import Container from '~/components/container';
-import QuestScene from '~/components/quest-scene';
-import Villain, { type VillainMode } from '~/components/villain';
-import { GOLEM } from '~/constants/villains/golem';
+import QuestChamber from '~/components/quest-chamber';
+import QuestGate from '~/components/quest-gate';
+import QuestMap from '~/components/quest-map';
+import { CHAMBERS, CHAMBER_IDS, findChamber } from '~/constants/quest-chambers';
+import {
+  COURSES,
+  parseSetup,
+  recordClear,
+  type Course,
+  type Progress,
+  type QuestSetup,
+} from '~/utils/quest';
+import {
+  loadProgress,
+  loadSetup,
+  saveProgress,
+  saveSetup,
+} from '~/utils/quest-storage';
+import { QUESTION_SOURCES } from '~/utils/quest-sources';
 
-const REFORM_MS = 1000; // a beaten villain stays gone this long in the preview
+type View =
+  | { at: 'gate' }
+  | { at: 'map' }
+  | { at: 'chamber'; id: string; course: Course; seed: number };
 
-/** A first look at the dungeon: the Golem in its chamber, and its frames */
+// a fresh seed for each play: new rooms and new questions
+const newSeed = () => Math.floor(Math.random() * 2 ** 32);
+
+const ALL: QuestSetup = { topics: CHAMBER_IDS, course: 'general' };
+
+/**
+ * Where a visit starts: a chamber link opens its story, a setup link fills in
+ * the gate, and otherwise the saved setup goes straight to the map
+ */
+function arrive(query: string): { setup: QuestSetup; view: View } {
+  const params = new URLSearchParams(query);
+  const saved = loadSetup(CHAMBER_IDS);
+  const chamber = params.get('chamber');
+  if (chamber && findChamber(chamber)) {
+    const { course } = parseSetup(query, CHAMBER_IDS);
+    return {
+      setup: saved ?? { ...ALL, course },
+      view: { at: 'chamber', id: chamber, course, seed: newSeed() },
+    };
+  }
+  if (params.has('topics') || params.has('course'))
+    return { setup: parseSetup(query, CHAMBER_IDS), view: { at: 'gate' } };
+  return saved
+    ? { setup: saved, view: { at: 'map' } }
+    : { setup: ALL, view: { at: 'gate' } };
+}
+
 export default function DungeonQuest() {
-  const [mode, setMode] = useState<VillainMode>('idle');
-  const [gone, setGone] = useState(false);
+  const [setup, setSetup] = useState<QuestSetup>(ALL);
+  const [progress, setProgress] = useState<Progress>({});
+  const [view, setView] = useState<View | null>(null); // read on mount
 
   useEffect(() => {
-    if (!gone) return;
-    const id = setTimeout(() => {
-      setGone(false);
-      setMode('idle');
-    }, REFORM_MS);
-    return () => clearTimeout(id);
-  }, [gone]);
+    const start = arrive(window.location.search);
+    setSetup(start.setup);
+    setView(start.view);
+    setProgress(loadProgress());
+  }, []);
 
-  const done = () => (mode === 'defeat' ? setGone(true) : setMode('idle'));
+  const enter = (s: QuestSetup) => {
+    saveSetup(s);
+    setSetup(s);
+    setView({ at: 'map' });
+  };
+
+  const clear = (id: string, course: Course, stars: number) =>
+    setProgress((p) => {
+      const next = recordClear(p, course, id, stars);
+      saveProgress(next);
+      return next;
+    });
+
+  const chamber = view?.at === 'chamber' ? findChamber(view.id) : undefined;
+  // cite the facts behind the chambers in play: this one, or every chosen one
+  const cited = (
+    chamber ? [chamber] : CHAMBERS.filter((c) => setup.topics.includes(c.id))
+  ).flatMap((c) => QUESTION_SOURCES[c.page].sources);
 
   return (
     <Container
       header="Dungeon Quest"
-      description="A first look at the dungeon. A right answer hits the boss; a wrong one and it attacks."
+      description="Fight through the chambers: solve each room, then answer the boss’s questions to beat it."
       backHref="/"
+      sources={cited}
+      className="gap-4"
     >
-      <QuestScene
-        label={`${GOLEM.name}’s chamber`}
-        className="min-h-80"
-        footer={
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button onClick={() => setMode('hit')}>Right answer</Button>
-            <Button onClick={() => setMode('attack')}>Wrong answer</Button>
-            <Button onClick={() => setMode('defeat')}>Defeat</Button>
+      {view?.at === 'gate' && <QuestGate initial={setup} onEnter={enter} />}
+      {view?.at === 'map' && (
+        <QuestMap
+          setup={setup}
+          progress={progress}
+          onPick={(id) =>
+            setView({
+              at: 'chamber',
+              id,
+              course: setup.course,
+              seed: newSeed(),
+            })
+          }
+          onChange={() => setView({ at: 'gate' })}
+        />
+      )}
+      {view?.at === 'chamber' && chamber && (
+        <>
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <Button onClick={() => setView({ at: 'map' })}>
+              Leave the chamber
+            </Button>
+            <span>
+              {chamber.topic} · {COURSES[view.course]}
+            </span>
           </div>
-        }
-      >
-        <div className="flex justify-center pt-8 pb-4">
-          <Villain
-            villain={GOLEM}
-            mode={mode}
-            onDone={done}
-            scale={1.5}
-            className="max-w-full h-auto"
+          <QuestChamber
+            key={view.seed}
+            chamber={chamber}
+            course={view.course}
+            seed={view.seed}
+            onClear={(stars) => clear(chamber.id, view.course, stars)}
+            onExit={() => setView({ at: 'map' })}
+            onReplay={() => setView({ ...view, seed: newSeed() })}
           />
-        </div>
-      </QuestScene>
+        </>
+      )}
     </Container>
   );
 }

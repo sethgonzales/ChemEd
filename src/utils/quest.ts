@@ -7,7 +7,7 @@ export type Rng = () => number;
 
 export const COURSES = {
   general: 'General Chemistry',
-  ap: 'AP / IB Chemistry',
+  ap: 'AP Chemistry',
 } as const;
 export type Course = keyof typeof COURSES;
 
@@ -29,6 +29,65 @@ export interface QuestState<Q> {
   seed: number;
   turn: number; // boss questions asked in this fight
   question?: Q;
+}
+
+/** A boss question: pick one of a few choices */
+export interface QuickQuestion {
+  prompt: string;
+  shown?: string; // an equation or formula the question is about
+  about: string; // what it's drawn from, e.g. a reaction's name
+  choices: string[];
+  answer: number; // index of the right choice
+  explain: string; // why that's the answer, for Mr. G after a miss
+}
+
+/** One item from a list, by the seeded generator */
+export const pick = <T>(rng: Rng, items: readonly T[]): T =>
+  items[Math.floor(rng() * items.length)];
+
+/** A shuffled copy (Fisher–Yates) */
+export function shuffle<T>(rng: Rng, items: readonly T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const DISTRACTORS = 3; // wrong choices beside the right one
+
+/**
+ * Wrong numbers near the right one, sorted with it. Values below `min`, or
+ * that would read the same as another once formatted, are left out.
+ */
+export function numberChoices(
+  rng: Rng,
+  right: number,
+  near: number[],
+  format: (n: number) => string = String,
+  min = Number.MIN_VALUE, // the smallest allowed; positive by default
+) {
+  const shown = new Set([format(right)]);
+  const wrong: number[] = [];
+  for (const n of shuffle(rng, near)) {
+    if (n < min || shown.has(format(n)) || wrong.length === DISTRACTORS)
+      continue;
+    shown.add(format(n));
+    wrong.push(n);
+  }
+  const all = [right, ...wrong].sort((a, b) => a - b);
+  return { choices: all.map(format), answer: all.indexOf(right) };
+}
+
+/** The right answer among a few wrong ones, shuffled */
+export function textChoices(rng: Rng, right: string, wrong: string[]) {
+  const others = shuffle(
+    rng,
+    [...new Set(wrong)].filter((w) => w !== right),
+  ).slice(0, DISTRACTORS);
+  const choices = shuffle(rng, [right, ...others]);
+  return { choices, answer: choices.indexOf(right) };
 }
 
 // best stars for each chamber, kept apart for each course
@@ -105,7 +164,8 @@ export function solveRoom<Q>(s: QuestState<Q>, c: Chamber<Q>): QuestState<Q> {
 }
 
 /**
- * A right answer hits the boss and a wrong one costs a heart. Out of hearts,
+ * A right answer hits the boss and a wrong one costs a heart; either way a new
+ * question follows, so a missed one can't be retried by elimination. Out of hearts,
  * the fight starts over with new questions; cleared rooms stay cleared.
  */
 export function answer<Q>(
@@ -122,7 +182,7 @@ export function answer<Q>(
   }
   const hearts = s.hearts - 1;
   if (hearts === 0) return fight({ ...s, retries: s.retries + 1 }, c);
-  return { ...s, hearts };
+  return ask({ ...s, hearts, turn: s.turn + 1 }, c);
 }
 
 export const stars = (hearts: number) => hearts;

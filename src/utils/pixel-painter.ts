@@ -52,6 +52,29 @@ export class Painter {
       }
   }
 
+  /** An ellipse turned by angle (radians, clockwise on screen), like an orbital's lobe */
+  rotatedEllipse(
+    cx: number,
+    cy: number,
+    rx: number,
+    ry: number,
+    angle: number,
+    key: string,
+    outline = true,
+  ) {
+    const r = Math.max(rx, ry) + 1;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    for (let y = Math.floor(cy - r); y <= cy + r; y++)
+      for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+        const dx = x + 0.5 - cx;
+        const dy = y + 0.5 - cy;
+        const u = (dx * cos + dy * sin) / rx;
+        const v = (-dx * sin + dy * cos) / ry;
+        if (u * u + v * v <= 1) this.set(x, y, key, outline);
+      }
+  }
+
   line(
     x0: number,
     y0: number,

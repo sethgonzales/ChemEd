@@ -1,0 +1,169 @@
+import { IconStar, IconStarFilled } from '@tabler/icons-react';
+import Button from '~/components/button';
+import PixelArt from '~/components/pixel-art';
+import { useEffect, useRef, useState } from 'react';
+import QuestScene, { ScenePanel } from '~/components/quest-scene';
+import { CHAMBERS } from '~/constants/quest-chambers';
+import { cn } from '~/utils/cn';
+import { useEscape } from '~/utils/use-escape';
+import {
+  COURSES,
+  MAX_HEARTS,
+  type Progress,
+  type QuestSetup,
+} from '~/utils/quest';
+
+interface Props {
+  setup: QuestSetup;
+  progress: Progress;
+  onPick: (id: string) => void;
+  onChange: () => void; // back to the gate
+}
+
+/** Asks before replaying a beaten chamber; it floats over the map, so nothing moves */
+function ReplayPrompt({
+  name,
+  stars,
+  onRestart,
+  onCancel,
+}: {
+  name: string;
+  stars: number;
+  onRestart: () => void;
+  onCancel: () => void;
+}) {
+  // focus moves to the question, so keyboard and screen reader users meet it
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => box.current?.focus(), []);
+  useEscape(onCancel);
+  return (
+    <div
+      ref={box}
+      tabIndex={-1}
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="replay-title"
+      aria-describedby="replay-text"
+      className="absolute inset-x-4 top-12 z-10 flex justify-center focus:outline-none"
+    >
+      <ScenePanel className="flex max-w-sm flex-col items-center gap-3 text-center">
+        <h3 id="replay-title" className="font-pixel text-2xl text-amber-200">
+          Replay this chamber?
+        </h3>
+        <p id="replay-text">
+          You’ve already beaten {name}, with {stars} of {MAX_HEARTS} stars.
+          Restarting starts it over from the first door; you keep your best
+          stars.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button pressed onClick={onRestart}>
+            Restart the chamber
+          </Button>
+          <Button onClick={onCancel}>Not now</Button>
+        </div>
+      </ScenePanel>
+    </div>
+  );
+}
+
+/** The chosen chambers' doors, in topic order; any one can be played */
+export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
+  const chosen = CHAMBERS.filter((c) => setup.topics.includes(c.id));
+  const best = progress[setup.course] ?? {};
+  const n = chosen.length;
+  // a beaten chamber the student tapped, waiting for them to confirm a replay
+  const [replaying, setReplaying] = useState<(typeof CHAMBERS)[number] | null>(
+    null,
+  );
+
+  return (
+    <QuestScene
+      label="The dungeon map"
+      footer={
+        <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-stone-200">
+          <span>
+            {n} {n === 1 ? 'topic' : 'topics'} · {COURSES[setup.course]}
+          </span>
+          <Button onClick={onChange}>Change</Button>
+        </div>
+      }
+    >
+      {replaying && (
+        <ReplayPrompt
+          name={replaying.villain.name}
+          stars={best[replaying.id] ?? 0}
+          onRestart={() => onPick(replaying.id)}
+          onCancel={() => setReplaying(null)}
+        />
+      )}
+      <ol className="flex flex-col items-center gap-6 px-6 pt-12 pb-4">
+        {chosen.map((c) => {
+          const stars = best[c.id] ?? 0;
+          return (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => (stars ? setReplaying(c) : onPick(c.id))}
+                aria-label={`${c.topic}: ${c.villain.name}, ${
+                  stars
+                    ? `beaten, ${stars} of ${MAX_HEARTS} stars`
+                    : 'not cleared yet'
+                }`}
+                className={cn(
+                  'stone-wall pixel-frame flex w-64 cursor-pointer flex-col items-center gap-2 p-3 focus-visible:outline-none',
+                  // beaten chambers grey out, but can still be replayed
+                  stars > 0 && 'opacity-80 saturate-50 hover:opacity-100',
+                )}
+              >
+                <span className="door-arch flex w-full justify-center p-2">
+                  {stars ? (
+                    <span
+                      role="img"
+                      aria-label={`${c.villain.name}, defeated`}
+                      className="relative inline-block"
+                    >
+                      <PixelArt
+                        rows={c.villain.draw(0, 0)}
+                        palette={c.villain.palette}
+                      />
+                      <svg
+                        data-cross
+                        aria-hidden="true"
+                        viewBox="0 0 10 10"
+                        className="absolute inset-0 h-full w-full"
+                      >
+                        <path
+                          d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"
+                          stroke="#dc2626"
+                          strokeWidth="1"
+                          strokeLinecap="square"
+                        />
+                      </svg>
+                    </span>
+                  ) : (
+                    <PixelArt
+                      rows={c.villain.draw(0, 0)}
+                      palette={c.villain.palette}
+                    />
+                  )}
+                </span>
+                <span className="pixel-control bg-stone-800 px-3 pt-1 pb-1.5 font-pixel text-lg text-stone-100">
+                  {c.topic}
+                </span>
+                <span className="flex gap-1 text-amber-300" aria-hidden="true">
+                  {Array.from({ length: MAX_HEARTS }, (_, i) =>
+                    i < stars ? (
+                      <IconStarFilled key={i} size={18} />
+                    ) : (
+                      <IconStar key={i} size={18} />
+                    ),
+                  )}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </QuestScene>
+  );
+}

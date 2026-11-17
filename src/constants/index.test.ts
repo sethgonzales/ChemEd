@@ -16,6 +16,7 @@ describe('SIMULATIONS', () => {
       'Titrations',
       'Electrochemistry',
       'Chemical Reactions',
+      'Dungeon Quest',
     ]);
   });
 

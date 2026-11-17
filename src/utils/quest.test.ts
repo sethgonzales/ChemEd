@@ -7,12 +7,14 @@ import {
   begin,
   createRng,
   finalOpen,
+  numberChoices,
   parseSetup,
   recordClear,
   setupQuery,
   solveRoom,
   stars,
   startChamber,
+  textChoices,
 } from './quest';
 
 // A stand-in question: which level it was asked at, and a random number
@@ -103,6 +105,13 @@ describe('the boss fight', () => {
     const next = answer(s, chamber, false);
     expect(next.hearts).toBe(MAX_HEARTS - 1);
     expect(next.bossHp).toBe(s.bossHp);
+  });
+
+  it('asks a new question at the same level after a wrong answer, so choices can’t be ruled out', () => {
+    const s = atBoss();
+    const next = answer(s, chamber, false);
+    expect(next.question).not.toEqual(s.question);
+    expect(next.question!.level).toBe(s.question!.level);
   });
 
   it('is won when the boss runs out of HP', () => {
@@ -225,5 +234,46 @@ describe('the setup: topics and course', () => {
   it('writes a setup back into a link that reads the same', () => {
     const setup = { topics: ['lewis', 'balancing'], course: 'ap' as const };
     expect(parseSetup(setupQuery(setup), all)).toEqual(setup);
+  });
+});
+
+describe('choices', () => {
+  it('sorts numbers around the right one, each shown once, with no zero or negatives', () => {
+    for (let seed = 1; seed < 30; seed++) {
+      const { choices, answer } = numberChoices(
+        createRng(seed),
+        2,
+        [1, 3, 3, 0, -1, 4, 6],
+      );
+      expect(choices).toHaveLength(4);
+      expect(choices[answer]).toBe('2');
+      expect(new Set(choices).size).toBe(4);
+      expect(choices.map(Number)).toEqual(
+        [...choices.map(Number)].sort((a, b) => a - b),
+      );
+      expect(choices.every((c) => Number(c) > 0)).toBe(true);
+    }
+  });
+
+  it('formats numbers, never showing a wrong one that reads like the right one', () => {
+    const { choices, answer } = numberChoices(
+      createRng(1),
+      1.1,
+      [1.1001, 2.2, 0.55, 3.3],
+      (n) => `${n.toFixed(2)} V`,
+    );
+    expect(choices[answer]).toBe('1.10 V');
+    expect(choices.filter((c) => c === '1.10 V')).toHaveLength(1);
+  });
+
+  it('shuffles words, keeping track of the right one', () => {
+    const seen = new Set<number>();
+    for (let seed = 1; seed < 30; seed++) {
+      const q = textChoices(createRng(seed), 'Gas', ['Solid', 'Liquid', 'Gas']);
+      expect(q.choices).toHaveLength(3);
+      expect(q.choices[q.answer]).toBe('Gas');
+      seen.add(q.answer);
+    }
+    expect(seen.size).toBe(3);
   });
 });

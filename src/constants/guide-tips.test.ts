@@ -10,6 +10,7 @@ const PAGES = [
   '/electron-configurations',
   '/electrochemistry',
   '/chemical-reactions',
+  '/dungeon-quest',
 ];
 
 describe('Mr. G page tips', () => {
