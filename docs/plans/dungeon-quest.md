@@ -24,14 +24,33 @@ There are two kinds, both from a shared question bank:
 
 - Every simulation contributes a **question source** under `src/constants/quest/` (or beside its data), built from the data it already uses and cites. **No separate general chemistry bank:** questions come only from the simulations.
 - A source generates questions from a seeded random generator, so tests are deterministic and retries get new questions.
+- **Every question source covers both courses.** It says which of its levels or question types are General Chemistry and which are AP / IB. The existing banks already have levels (`REACTIONS` and `MOLECULES` have `level`, and Chemical Reactions has AP tags), so each bank maps its levels onto the two courses, for example:
+  - balancing levels 1–2 for General Chemistry, and 2–4 for AP / IB
+  - Predict's net ionic equations for AP / IB only
+
+  A test checks that every source asks something in each course.
 - **Adding a simulation means adding its questions.** A test checks that every `ready` simulation in `SIMULATIONS` has a question source and a chamber, so a new simulation can't ship without them. This rule goes in CLAUDE.md.
 
 ## The start screen
 
-- A **dungeon map** of chamber doors in topic order, joined by a path down to the final chamber's sealed gate. Each door shows its stars.
-- **Any level can be picked from the start.** The order is a suggested route, not a lock. The final chamber unseals once every other chamber is cleared.
-- **Teacher links**: `/dungeon-quest?chamber=<id>` skips the map and opens that chamber's story wall. It's a static query string, so the app stays a static export.
-- **Replays**: a cleared chamber can be played again with new questions. The best star score is kept.
+### Entering the dungeon: topics and course
+
+Before the map, a short setup screen at the dungeon's gate asks two things. A general chemistry class partway through the year hasn't seen every topic, so the quest only covers what the class has.
+
+1. **Topics**: a checklist of the chambers' topics, all ticked to start, with "All" and "None" shortcuts. Only the ticked topics get a chamber and a boss, and only their questions are asked. At least one topic must stay ticked.
+2. **Course**: **General Chemistry** or **AP / IB Chemistry**. It sets which questions each bank asks: the level range a boss's questions ramp through, and which question types appear at all.
+
+**Remembering the setup:**
+- It's saved in the browser and shown on the map ("4 topics · General Chemistry · Change"), so a student isn't asked again each visit.
+- A teacher can share a setup as a link, for example `/dungeon-quest?topics=periodic,lewis,balancing&course=general`. The link opens the gate with the setup filled in, and the student just enters.
+
+### The map
+
+- A **dungeon map** of the chosen chambers' doors in topic order, joined by a path down to the final chamber's sealed gate. Each door shows its stars.
+- **Any chosen level can be picked from the start.** The order is a suggested route, not a lock.
+- **The final chamber** unseals once every chosen chamber is cleared. The Alchemist asks questions from the chosen topics only, at the chosen course's level.
+- **Teacher links** to one chamber still work: `/dungeon-quest?chamber=<id>&course=<course>` skips the gate and the map and opens that chamber's story wall. These are static query strings, so the app stays a static export.
+- **Replays**: a cleared chamber can be played again with new questions. The best star score is kept **for each course**, so an AP student's stars don't fill in a general class's map, and the other way round.
 
 ## Chambers (in topic order; names and bosses to review)
 
@@ -123,10 +142,11 @@ Logins and Firestore progress, avatars and unlocks, free movement around a map, 
 3. **Failure:** running out of hearts refills them and resets the boss with new questions. Cleared rooms stay cleared.
 4. **Topics:** questions come only from the simulations. Each new simulation adds its questions to the bank.
 
-5. **Path:** the chambers are levels in topic order, leading to a final boss. Students can pick any level from the start screen, and the final chamber opens once every other chamber is cleared.
+5. **Path:** the chambers are levels in topic order, leading to a final boss. Students can pick any level from the start screen. The final chamber opens once every chosen chamber is cleared (see decision 12).
 6. **Teacher links:** each chamber has its own link (e.g. `/dungeon-quest?chamber=balancing`) that opens straight to its story wall, so a teacher can send the class to one topic.
 7. **Length:** about 5 minutes per chamber.
 8. **Replays:** cleared chambers can be replayed with new questions for more stars. The best score is kept.
 9. **Look:** dark and spooky, with animated chemistry villains and Mr. G in a hooded cape with a lamp (see The look).
 10. **Villains approved** (17 Nov 2026): Seth approved the first sketches of all nine villains ([gallery](https://claude.ai/artifact/1YeQUEDur3dWx4UB9YcSzd)). They're drawn on a 40 × 40 grid with an automatic dark outline. Defeat breaks each villain into its substance: gravel, bone dust, steam, loose atoms, yellow sludge, acid, sparks or smoke. Before a villain goes in the app, its chemistry gets cited, for example lead(II) iodide's yellow, the direction electrons flow in a zinc–copper cell, and CPK colours.
 11. **Mr. G's quest outfit approved** (17 Nov 2026), [gallery](https://claude.ai/artifact/1YeQUEDur3dWx4UB9YcSzd): a deep hood that covers his hair and ears, goggles down over his eyes, and a cloak with a gold clasp, closed round the front except for a sliver of coat and flannel at the chest. He holds a flickering lantern in front of him in both hands, a little right of centre.
+12. **Topics and course** (17 Nov 2026): entering the dungeon, students tick the topics their class has covered and choose General Chemistry or AP / IB Chemistry. The ticked topics decide which chambers, bosses and questions appear, and the course decides how hard the questions are. The final boss asks about the chosen topics only, and stars are kept for each course.

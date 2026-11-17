@@ -5,11 +5,17 @@ export const MAX_HEARTS = 3;
 
 export type Rng = () => number;
 
+export const COURSES = {
+  general: 'General Chemistry',
+  ap: 'AP / IB Chemistry',
+} as const;
+export type Course = keyof typeof COURSES;
+
 export interface Chamber<Q> {
   id: string;
   rooms: number; // challenges before the boss
   bossHp: number; // right answers needed to beat it
-  levels: number; // question difficulty levels, 1 (easiest) to levels
+  courses: Record<Course, [number, number]>; // easiest and hardest question level
   bossQuestion: (rng: Rng, level: number) => Q;
 }
 
@@ -19,12 +25,19 @@ export interface QuestState<Q> {
   hearts: number;
   bossHp: number;
   retries: number; // boss fights lost, each one a rematch with new questions
+  course: Course;
   seed: number;
   turn: number; // boss questions asked in this fight
   question?: Q;
 }
 
-export type Progress = Record<string, number>; // chamber id → best stars
+// best stars for each chamber, kept apart for each course
+export type Progress = Partial<Record<Course, Record<string, number>>>;
+
+export interface QuestSetup {
+  topics: string[]; // chamber ids, in the dungeon's order
+  course: Course;
+}
 
 /** mulberry32: a small, fast seeded generator, so questions can be replayed */
 export function createRng(seed: number): Rng {
@@ -42,16 +55,18 @@ export function createRng(seed: number): Rng {
 const questionSeed = (seed: number, fight: number, turn: number) =>
   (Math.imul(seed, 0x9e3779b1) ^ Math.imul(fight + 1, 0x85ebca6b) ^ turn) >>> 0;
 
-// Questions get harder as the boss weakens: level 1 first, the top level last
-function level<Q>(c: Chamber<Q>, bossHp: number): number {
-  if (c.bossHp <= 1) return 1;
+// Questions get harder as the boss weakens, from the course's easiest level
+// to its hardest
+function level<Q>(c: Chamber<Q>, course: Course, bossHp: number): number {
+  const [easiest, hardest] = c.courses[course];
+  if (c.bossHp <= 1) return easiest;
   const hits = c.bossHp - bossHp;
-  return 1 + Math.round((hits * (c.levels - 1)) / (c.bossHp - 1));
+  return easiest + Math.round((hits * (hardest - easiest)) / (c.bossHp - 1));
 }
 
 function ask<Q>(s: QuestState<Q>, c: Chamber<Q>): QuestState<Q> {
   const rng = createRng(questionSeed(s.seed, s.retries, s.turn));
-  return { ...s, question: c.bossQuestion(rng, level(c, s.bossHp)) };
+  return { ...s, question: c.bossQuestion(rng, level(c, s.course, s.bossHp)) };
 }
 
 function fight<Q>(s: QuestState<Q>, c: Chamber<Q>): QuestState<Q> {
@@ -61,8 +76,13 @@ function fight<Q>(s: QuestState<Q>, c: Chamber<Q>): QuestState<Q> {
   );
 }
 
-export function startChamber<Q>(c: Chamber<Q>, seed: number): QuestState<Q> {
+export function startChamber<Q>(
+  c: Chamber<Q>,
+  course: Course,
+  seed: number,
+): QuestState<Q> {
   return {
+    course,
     stage: 'story',
     room: 0,
     hearts: MAX_HEARTS,
@@ -107,11 +127,36 @@ export function answer<Q>(
 
 export const stars = (hearts: number) => hearts;
 
-/** Keep each chamber's best star score */
-export function recordClear(p: Progress, id: string, n: number): Progress {
-  return { ...p, [id]: Math.max(p[id] ?? 0, n) };
+/** Keep each chamber's best star score, for the course it was played in */
+export function recordClear(
+  p: Progress,
+  course: Course,
+  id: string,
+  n: number,
+): Progress {
+  const stars = p[course] ?? {};
+  return { ...p, [course]: { ...stars, [id]: Math.max(stars[id] ?? 0, n) } };
 }
 
-/** The final chamber opens once every other chamber has been cleared */
-export const finalOpen = (p: Progress, ids: string[]) =>
-  ids.every((id) => (p[id] ?? 0) > 0);
+/** The final chamber opens once every chosen chamber is cleared in this course */
+export const finalOpen = (p: Progress, course: Course, chosen: string[]) =>
+  chosen.every((id) => (p[course]?.[id] ?? 0) > 0);
+
+/**
+ * The topics and course from a link such as ?topics=lewis,balancing&course=ap.
+ * Unknown values are dropped; with no known topics, every topic is in.
+ */
+export function parseSetup(query: string, all: string[]): QuestSetup {
+  const params = new URLSearchParams(query);
+  const asked = params.get('topics')?.split(',') ?? [];
+  const topics = all.filter((id) => asked.includes(id));
+  const course = params.get('course');
+  return {
+    topics: topics.length ? topics : all,
+    course: course && course in COURSES ? (course as Course) : 'general',
+  };
+}
+
+/** A setup as a link's query string, for a teacher to share */
+export const setupQuery = ({ topics, course }: QuestSetup) =>
+  '?' + new URLSearchParams({ topics: topics.join(','), course }).toString();
