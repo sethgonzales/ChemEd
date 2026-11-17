@@ -151,4 +151,20 @@ describe('the map’s layout', () => {
     expect(across).toHaveLength(4);
     expect(new Set(across).size).toBeGreaterThan(2);
   });
+
+  it('floats in space, with every open door glowing', () => {
+    const { container } = render(
+      <QuestMap
+        setup={{ topics: ['periodic', 'lewis'], course: 'general' }}
+        progress={{ general: { periodic: 2 } }}
+        onPick={jest.fn()}
+        onChange={jest.fn()}
+      />,
+    );
+    expect(container.querySelector('[data-decor="stars"]')).not.toBeNull();
+    expect(container.querySelector('[data-decor="wall"]')).toBeNull();
+    expect(container.querySelector('[data-decor="torch"]')).toBeNull();
+    // both chambers glow; the sealed gate doesn't
+    expect(container.querySelectorAll('[data-glow]')).toHaveLength(2);
+  });
 });

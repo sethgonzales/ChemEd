@@ -76,6 +76,9 @@ interface DoorInfo {
   villain: VillainArt;
 }
 
+// the map is zoomed out: 3 px per art pixel, not the usual 4
+const MAP_ART = 0.75;
+
 const FINAL: DoorInfo = {
   id: ALCHEMIST_ID,
   topic: 'The Final Chamber',
@@ -101,7 +104,7 @@ function Door({
         stars ? `beaten, ${stars} of ${MAX_HEARTS} stars` : 'not cleared yet'
       }`}
       className={cn(
-        'stone-wall pixel-frame flex w-64 cursor-pointer flex-col items-center gap-2 p-3 focus-visible:outline-none',
+        'stone-wall pixel-frame flex w-48 cursor-pointer flex-col items-center gap-2 p-2 focus-visible:outline-none',
         // beaten chambers fade, but can still be replayed
         stars > 0 && 'opacity-80 saturate-50 hover:opacity-100',
       )}
@@ -113,7 +116,11 @@ function Door({
             aria-label={`${villain.name}, defeated`}
             className="relative inline-block"
           >
-            <PixelArt rows={villain.draw(0, 0)} palette={villain.palette} />
+            <PixelArt
+              rows={villain.draw(0, 0)}
+              palette={villain.palette}
+              scale={MAP_ART}
+            />
             <svg
               data-cross
               aria-hidden="true"
@@ -129,10 +136,14 @@ function Door({
             </svg>
           </span>
         ) : (
-          <PixelArt rows={villain.draw(0, 0)} palette={villain.palette} />
+          <PixelArt
+            rows={villain.draw(0, 0)}
+            palette={villain.palette}
+            scale={MAP_ART}
+          />
         )}
       </span>
-      <span className="pixel-control bg-stone-800 px-3 pt-1 pb-1.5 font-pixel text-lg text-stone-100">
+      <span className="pixel-control bg-stone-800 px-3 pt-1 pb-1.5 text-center font-pixel text-base text-stone-100">
         {topic}
       </span>
       <span className="flex gap-1 text-amber-300" aria-hidden="true">
@@ -151,9 +162,13 @@ function Door({
 /** The final gate while it's sealed: the Alchemist in shadow, and how far off it is */
 function SealedGate({ cleared, total }: { cleared: number; total: number }) {
   return (
-    <div className="stone-wall pixel-frame flex w-64 flex-col items-center gap-2 p-3 opacity-70">
+    <div className="stone-wall pixel-frame flex w-48 flex-col items-center gap-2 p-2 opacity-70">
       <span className="door-arch flex w-full justify-center p-2 brightness-0">
-        <PixelArt rows={ALCHEMIST.draw(0, 0)} palette={ALCHEMIST.palette} />
+        <PixelArt
+          rows={ALCHEMIST.draw(0, 0)}
+          palette={ALCHEMIST.palette}
+          scale={MAP_ART}
+        />
       </span>
       <p className="text-center text-sm text-stone-100">
         The Alchemist’s gate is sealed. Clear every chamber to open it:{' '}
@@ -182,22 +197,25 @@ function along(from: number, to: number, t: number) {
 function Stop({
   x: x0,
   next,
+  glow = true,
   children,
 }: {
   x: number;
   next?: number;
+  glow?: boolean; // an open door glows; the sealed gate doesn't
   children: ReactNode;
 }) {
   return (
     <li data-x={x0} className="flex w-full flex-col items-center">
       <div
-        className="relative"
+        data-glow={glow || undefined}
+        className={cn('relative', glow && 'quest-glow')}
         style={{ left: `calc((${x0}% - 50%) * var(--sway))` }}
       >
         {children}
       </div>
       {next !== undefined && (
-        <div data-trail aria-hidden="true" className="relative h-16 w-full">
+        <div data-trail aria-hidden="true" className="relative h-12 w-full">
           {Array.from({ length: STEPS }, (_, k) => {
             const { x, y } = along(x0, next, (k + 0.5) / STEPS);
             return (
@@ -251,6 +269,7 @@ export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
 
   return (
     <QuestScene
+      space
       label="The dungeon map"
       footer={
         <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-stone-200">
@@ -274,7 +293,7 @@ export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
         {open ? (
           door(FINAL, n)
         ) : (
-          <Stop key={FINAL.id} {...at(n)}>
+          <Stop key={FINAL.id} {...at(n)} glow={false}>
             <SealedGate cleared={cleared} total={n} />
           </Stop>
         )}

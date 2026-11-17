@@ -19,6 +19,7 @@ interface Props {
   footer?: ReactNode;
   className?: string;
   backdrop?: string; // the chamber whose scenery to use; the plain dungeon without
+  space?: boolean; // floating in a starry void instead, as the map does
 }
 
 const WALL_SEED = 11; // one wall for every chamber, so it never shifts
@@ -151,6 +152,49 @@ function Torches({ flame }: { flame: Backdrop['flame'] }) {
   );
 }
 
+const STARS = 140;
+const SKY = 200; // units square, sliced to fill the scene
+
+/** A starry void, with a faint nebula, for the map to float in */
+function Starfield() {
+  return (
+    <div
+      data-decor="stars"
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0"
+      style={{
+        background:
+          'radial-gradient(ellipse at 25% 30%, rgb(124 58 237 / 0.22), transparent 45%), radial-gradient(ellipse at 75% 70%, rgb(14 165 233 / 0.16), transparent 50%), #05060f',
+      }}
+    >
+      <svg
+        viewBox={`0 0 ${SKY} ${SKY}`}
+        preserveAspectRatio="xMidYMid slice"
+        shapeRendering="crispEdges"
+        className="h-full w-full"
+      >
+        {Array.from({ length: STARS }, (_, i) => {
+          const size = hash(i + 500) > 0.9 ? 1.2 : 0.6;
+          return (
+            <rect
+              key={i}
+              x={hash(i) * SKY}
+              y={hash(i + 1000) * SKY}
+              width={size}
+              height={size}
+              fill={hash(i + 2000) > 0.8 ? '#fde68a' : '#e2e8f0'}
+              opacity={0.4 + hash(i + 3000) * 0.6}
+              // some twinkle, each in its own time
+              className={i % 5 ? undefined : 'quest-twinkle'}
+              style={{ animationDelay: `${hash(i + 4000) * 3}s` }}
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 /** A dark panel standing in front of the wall, holding the scene's words */
 export function ScenePanel({
   children,
@@ -183,6 +227,7 @@ export default function QuestScene({
   footer,
   className,
   backdrop,
+  space = false,
 }: Props) {
   const look = backdropFor(backdrop);
   return (
@@ -200,23 +245,29 @@ export default function QuestScene({
       // the pixel font, which follows the app's stylized-text setting
       className={cn('relative overflow-hidden font-pixel', className)}
     >
-      <StoneWall look={look} />
-      {look.decor && <SceneDecor decor={look.decor} />}
-      {/* darkness at the edges, and the torches' light in the middle */}
-      <div
-        data-decor
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at 50% 60%, rgb(${look.light} / 0.14), transparent 55%), radial-gradient(ellipse at 50% 50%, transparent 40%, rgb(0 0 0 / 0.65))`,
-        }}
-      />
-      <Torches flame={look.flame} />
-      <div
-        data-decor
-        aria-hidden="true"
-        className="quest-fog pointer-events-none absolute inset-x-[-40%] bottom-0 h-1/4 bg-[radial-gradient(ellipse_at_30%_100%,rgb(148_163_184/0.18),transparent_60%),radial-gradient(ellipse_at_75%_100%,rgb(148_163_184/0.14),transparent_55%)]"
-      />
+      {space ? (
+        <Starfield />
+      ) : (
+        <>
+          <StoneWall look={look} />
+          {look.decor && <SceneDecor decor={look.decor} />}
+          {/* darkness at the edges, and the torches' light in the middle */}
+          <div
+            data-decor
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: `radial-gradient(ellipse at 50% 60%, rgb(${look.light} / 0.14), transparent 55%), radial-gradient(ellipse at 50% 50%, transparent 40%, rgb(0 0 0 / 0.65))`,
+            }}
+          />
+          <Torches flame={look.flame} />
+          <div
+            data-decor
+            aria-hidden="true"
+            className="quest-fog pointer-events-none absolute inset-x-[-40%] bottom-0 h-1/4 bg-[radial-gradient(ellipse_at_30%_100%,rgb(148_163_184/0.18),transparent_60%),radial-gradient(ellipse_at_75%_100%,rgb(148_163_184/0.14),transparent_55%)]"
+          />
+        </>
+      )}
       <div data-layer="front" className="relative">
         {children}
       </div>

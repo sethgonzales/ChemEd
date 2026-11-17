@@ -84,4 +84,15 @@ describe('QuestScene', () => {
     );
     expect(container.querySelector('[data-decor="icicles"]')).toBeNull();
   });
+
+  it('can float in space instead: stars, no wall and no torches', () => {
+    const { container } = render(
+      <QuestScene label="The map" space>
+        <p>Doors</p>
+      </QuestScene>,
+    );
+    expect(container.querySelector('[data-decor="stars"]')).not.toBeNull();
+    expect(container.querySelector('[data-decor="wall"]')).toBeNull();
+    expect(container.querySelector('[data-decor="torch"]')).toBeNull();
+  });
 });
