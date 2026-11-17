@@ -170,6 +170,14 @@ describe('a quest chamber', () => {
     );
   });
 
+  it('fights the boss in a room of its own, not in front of a flat wall', async () => {
+    setup();
+    const floor = () => document.querySelector('[data-room="floor"]');
+    expect(floor()).toBeNull(); // the story, against the wall
+    await walkToBoss();
+    expect(floor()).not.toBeNull();
+  });
+
   it('hits the boss for a right answer, and asks the next question', async () => {
     setup();
     await walkToBoss();

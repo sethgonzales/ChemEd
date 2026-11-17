@@ -459,6 +459,7 @@ export default function QuestChamber({
 
   return (
     <QuestScene
+      room
       backdrop={chamber.id}
       label={`${villain.name}’s chamber`}
       footer={
@@ -497,13 +498,16 @@ export default function QuestChamber({
         <HpBar name={villain.name} hp={state.bossHp} max={chamber.bossHp} />
         <Hearts hearts={state.hearts} />
       </div>
-      <div className="flex justify-center pt-4 pb-2">
+      {/* room above it to come up close; its feet on the floor */}
+      {/* a little smaller on a phone, so it fits even up close */}
+      <div className="flex origin-bottom scale-[0.7] justify-center pt-20 pb-6 sm:scale-100">
         <Villain
           key={blow}
           villain={villain}
           mode={mode}
           onDone={done}
-          scale={1.5}
+          prowl
+          scale={1.25}
           className="max-w-full h-auto"
         />
       </div>

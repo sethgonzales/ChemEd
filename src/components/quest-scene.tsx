@@ -20,6 +20,7 @@ interface Props {
   className?: string;
   backdrop?: string; // the chamber whose scenery to use; the plain dungeon without
   space?: boolean; // floating in a starry void instead, as the map does
+  room?: boolean; // a room in perspective, with a floor for a boss to stand on
 }
 
 const WALL_SEED = 11; // one wall for every chamber, so it never shifts
@@ -145,6 +146,118 @@ function Torches({ flame }: { flame: Backdrop['flame'] }) {
   );
 }
 
+// The room, in one-point perspective, as % of the scene: the far wall's
+// edges, and how many tiles the floor is laid in
+const BACK = { left: 15, right: 85, top: 6, floor: 56 };
+const TILES_ACROSS = 8;
+const TILE_ROWS = 6;
+const WALL_COURSES = 9; // courses of stone along each side wall
+
+/** Side walls, a ceiling and a tiled floor around the wall behind */
+function Room({ look }: { look: Backdrop }) {
+  const { left, right, top, floor } = BACK;
+  const across = Array.from({ length: TILES_ACROSS + 1 }, (_, k) => k);
+  // rows nearer the eye are deeper, as perspective makes them
+  const rows = Array.from(
+    { length: TILE_ROWS - 1 },
+    (_, j) => floor + (100 - floor) * ((j + 1) / TILE_ROWS) ** 1.7,
+  );
+  const line = {
+    stroke: look.edge,
+    strokeOpacity: 0.35,
+    vectorEffect: 'non-scaling-stroke' as const,
+    strokeWidth: 1.5,
+  };
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-0 h-full w-full"
+    >
+      <polygon
+        data-room="ceiling"
+        points={`0,0 100,0 ${right},${top} ${left},${top}`}
+        fill="#000"
+        fillOpacity={0.7}
+      />
+      <polygon
+        data-room="left-wall"
+        points={`0,0 ${left},${top} ${left},${floor} 0,100`}
+        fill="#000"
+        fillOpacity={0.45}
+      />
+      <polygon
+        data-room="right-wall"
+        points={`100,0 ${right},${top} ${right},${floor} 100,100`}
+        fill="#000"
+        fillOpacity={0.45}
+      />
+      <g data-room="floor">
+        <polygon
+          points={`${left},${floor} ${right},${floor} 100,100 0,100`}
+          fill={look.stones[0]}
+        />
+        {/* darker toward the far wall, away from the light */}
+        <polygon
+          points={`${left},${floor} ${right},${floor} 100,100 0,100`}
+          fill="#000"
+          fillOpacity={0.25}
+        />
+        {across.map((k) => (
+          <line
+            key={`a${k}`}
+            data-tile-line
+            x1={left + ((right - left) * k) / TILES_ACROSS}
+            y1={floor}
+            x2={(100 * k) / TILES_ACROSS}
+            y2={100}
+            {...line}
+          />
+        ))}
+        {rows.map((y) => {
+          const t = (y - floor) / (100 - floor); // 0 at the back, 1 at the front
+          return (
+            <line
+              key={y}
+              data-tile-line
+              x1={left * (1 - t)}
+              y1={y}
+              x2={right + (100 - right) * t}
+              y2={y}
+              {...line}
+            />
+          );
+        })}
+      </g>
+      {/* the side walls' courses, running back to the far wall */}
+      {Array.from({ length: WALL_COURSES - 1 }, (_, k) => {
+        const f = (k + 1) / WALL_COURSES;
+        const near = 100 * f; // where it meets the scene's edge
+        const far = top + (floor - top) * f; // and the far wall's corner
+        return (
+          <g key={k} data-room="course">
+            <line x1={0} y1={near} x2={left} y2={far} {...line} />
+            <line x1={100} y1={near} x2={right} y2={far} {...line} />
+          </g>
+        );
+      })}
+      {/* the corners of the room */}
+      <polyline
+        points={`0,0 ${left},${top} ${left},${floor} 0,100`}
+        fill="none"
+        {...line}
+      />
+      <polyline
+        points={`100,0 ${right},${top} ${right},${floor} 100,100`}
+        fill="none"
+        {...line}
+      />
+      <line x1={left} y1={floor} x2={right} y2={floor} {...line} />
+    </svg>
+  );
+}
+
 const STARS = 140;
 const SKY = 200; // units square, sliced to fill the scene
 
@@ -221,6 +334,7 @@ export default function QuestScene({
   className,
   backdrop,
   space = false,
+  room = false,
 }: Props) {
   const look = backdropFor(backdrop);
   return (
@@ -244,6 +358,7 @@ export default function QuestScene({
         <>
           <StoneWall look={look} />
           {look.decor && <SceneDecor decor={look.decor} />}
+          {room && <Room look={look} />}
           {/* darkness at the edges, and the torches' light in the middle */}
           <div
             data-decor

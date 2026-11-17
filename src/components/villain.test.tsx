@@ -37,6 +37,24 @@ describe('Villain', () => {
     expect(seen.size).toBeGreaterThan(1);
   });
 
+  it('can prowl about the room, coming closer and backing away', () => {
+    render(<Villain villain={GOLEM} mode="idle" prowl />);
+    const sizes = new Set<string>();
+    for (let i = 0; i < 30; i++) {
+      sizes.add(picture().style.transform.match(/scale\(([\d.]+)\)/)![1]);
+      act(() => jest.advanceTimersByTime(300));
+    }
+    expect(sizes.size).toBeGreaterThan(3);
+  });
+
+  it('holds its ground with reduced motion, even when prowling', () => {
+    reducedMotion(true);
+    render(<Villain villain={GOLEM} mode="idle" prowl />);
+    const first = picture().style.transform;
+    act(() => jest.advanceTimersByTime(3000));
+    expect(picture().style.transform).toBe(first);
+  });
+
   it('holds still with reduced motion', () => {
     reducedMotion(true);
     render(<Villain villain={GOLEM} mode="idle" />);

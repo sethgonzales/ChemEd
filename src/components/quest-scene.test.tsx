@@ -93,4 +93,17 @@ describe('QuestScene', () => {
     expect(container.querySelector('[data-decor="wall"]')).toBeNull();
     expect(container.querySelector('[data-decor="torch"]')).toBeNull();
   });
+
+  it('can be a room: a back wall, side walls and a tiled floor to stand on', () => {
+    const { container } = render(
+      <QuestScene label="The fight" room>
+        <p>Boss</p>
+      </QuestScene>,
+    );
+    for (const part of ['floor', 'left-wall', 'right-wall', 'ceiling'])
+      expect(container.querySelector(`[data-room="${part}"]`)).not.toBeNull();
+    expect(
+      container.querySelectorAll('[data-room="floor"] [data-tile-line]').length,
+    ).toBeGreaterThan(6);
+  });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import PixelArt from '~/components/pixel-art';
 import { PIXEL } from '~/utils/pixel';
+import { stance } from '~/utils/prowl';
 import { useMedia } from '~/utils/use-media';
 import { HIT_SHAKE, defeatRows, hitPalette } from '~/utils/villain-effects';
 
@@ -25,6 +26,7 @@ interface Props {
   mode: VillainMode;
   onDone?: () => void; // when an attack, hit or defeat has played
   scale?: number; // app pixels per art pixel
+  prowl?: boolean; // stalks about its room, closer and further, as it waits
   className?: string;
 }
 
@@ -37,6 +39,7 @@ export default function Villain({
   mode,
   onDone,
   scale = 1,
+  prowl = false,
   className,
 }: Props) {
   const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
@@ -86,8 +89,14 @@ export default function Villain({
           Math.min(HIT_SHAKE.length - 1, Math.floor(elapsed / FRAME_MS))
         ]
       : 0;
-  const lungeY = reducedMotion ? 0 : Math.round(attack * LUNGE);
   const px = PIXEL * scale;
+  // prowling, it rushes up close to attack; otherwise it lunges down a little
+  const at = prowl
+    ? stance(reducedMotion ? 0 : now / 1000, reducedMotion ? 0 : attack)
+    : { x: 0, y: reducedMotion ? 0 : Math.round(attack * LUNGE), scale: 1 };
+  const transform =
+    `translate(${(shakeX + at.x) * px}px, ${at.y * px}px)` +
+    (prowl ? ` scale(${at.scale})` : '');
 
   return (
     <PixelArt
@@ -99,7 +108,8 @@ export default function Villain({
       scale={scale}
       className={className}
       data-frame={mode}
-      style={{ transform: `translate(${shakeX * px}px, ${lungeY * px}px)` }}
+      // scaled from its feet, so it stays standing on the floor
+      style={{ transform, transformOrigin: '50% 100%' }}
     />
   );
 }
