@@ -134,6 +134,34 @@
   );
 }
 
+/* The Dungeon Quest's torches and fog; still with reduced motion */
+@keyframes quest-flame {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(0.9, 1.08);
+  }
+}
+@keyframes quest-fog {
+  to {
+    transform: translateX(14%);
+  }
+}
+@utility quest-flame {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: quest-flame 1.3s steps(3) infinite;
+  }
+}
+@utility quest-fog {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: quest-fog 9s ease-in-out infinite alternate;
+  }
+}
+
 /* Torchlight round an open door on hover or keyboard focus; flickers unless motion is reduced */
 @keyframes torch-flicker {
   0%,

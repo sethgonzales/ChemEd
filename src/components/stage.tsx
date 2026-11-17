@@ -6,6 +6,7 @@ interface Props {
   children: ReactNode;
   header?: ReactNode; // readouts or controls above the visual
   footer?: ReactNode; // readouts or controls below it
+  dark?: boolean; // the Dungeon Quest's unlit chambers, tinted by the theme
   className?: string;
 }
 
@@ -15,13 +16,16 @@ export default function Stage({
   children,
   header,
   footer,
+  dark = false,
   className,
 }: Props) {
   return (
     <section
       aria-label={label}
       className={cn(
-        'pixel-frame [--frame-fill:var(--color-primary-600)] [--frame-outline:var(--color-primary-800)]',
+        dark
+          ? 'pixel-frame [--frame-fill:color-mix(in_srgb,var(--color-primary-900)_25%,black)] [--frame-outline:black]'
+          : 'pixel-frame [--frame-fill:var(--color-primary-600)] [--frame-outline:var(--color-primary-800)]',
         'p-4 flex flex-col gap-3',
         className,
       )}

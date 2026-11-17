@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { PIXEL } from '~/utils/pixel';
 
 interface Props {
@@ -6,6 +7,7 @@ interface Props {
   label?: string; // describes the picture; without one it's decorative
   scale?: number; // app pixels (PIXEL) per art pixel; whole numbers keep the grid
   className?: string;
+  style?: CSSProperties; // e.g. a shake or lunge
   'data-frame'?: string;
 }
 
