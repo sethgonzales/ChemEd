@@ -5,57 +5,29 @@ import { ELECTRONEGATIVITY_SOURCE } from '~/constants/electronegativity';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
 import ElementPicker from '~/components/element-picker';
 import LewisBuilder, { type Settings } from '~/components/lewis-builder';
+import LewisChallenge, {
+  HowToDraw,
+  elementIcon,
+} from '~/components/lewis-challenge';
 import Tabs from '~/components/tabs';
 import type { ToolItem } from '~/components/lewis-toolbar';
 import { COMMON_ELEMENTS, DRAWABLE_ELEMENTS } from '~/constants/lewis-elements';
 import { LEVELS, MOLECULES } from '~/constants/molecules';
-import { cn } from '~/utils/cn';
 import {
   electronsUsed,
   formatFormula,
   formulaOf,
   netCharge,
   octetStatus,
-  parseFormula,
-  totalValenceElectrons,
   type LewisStructure,
   type Molecule,
 } from '~/utils/lewis';
-import { assessDrawing, assessResonance } from '~/utils/lewis-arrows';
-import { emptyEditor, skeletonEditor } from '~/utils/lewis-editor';
+import { assessDrawing } from '~/utils/lewis-arrows';
+import { emptyEditor } from '~/utils/lewis-editor';
 import type { Tool } from '~/utils/lewis-tools';
 
 type Mode = 'draw' | 'quiz';
 type Start = 'given' | 'empty';
-
-const HOW_TO_DRAW = [
-  'Pick a tool and your cursor becomes it. Click the drawing to place atoms or apply the tool, as many times as you like.',
-  'Bonds are connectors: click empty space or an atom to add one, then drop an element onto each open end.',
-  'You can also drag a tool from the toolbar onto an atom or bond.',
-  'With Select, drag atoms to move them, and lone pairs from one atom to another.',
-  'Curved arrows go from a lone pair or bond to an atom or bond. Add resonance forms to show where the electrons move.',
-  'Undo and redo with Ctrl/⌘+Z and Ctrl/⌘+Shift+Z.',
-];
-
-/** The full instructions, folded away until wanted */
-function HowToDraw() {
-  return (
-    <details className="text-sm">
-      <summary className="cursor-pointer font-semibold w-fit">
-        How to draw
-      </summary>
-      <ul className="list-disc pl-5 mt-2 space-y-1">
-        {HOW_TO_DRAW.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-    </details>
-  );
-}
-
-const elementIcon = (symbol: string) => (
-  <span className="text-sm font-bold">{symbol}</span>
-);
 
 type ModeProps = {
   active: boolean;
@@ -145,37 +117,7 @@ function QuizMode({ active, settings, onSettings }: ModeProps) {
   const [molecule, setMolecule] = useState(DEFAULT_MOLECULE);
   const [start, setStart] = useState<Start>('given');
 
-  const total = totalValenceElectrons(molecule.formula, molecule.charge);
-  const needed = parseFormula(molecule.formula);
-
-  // the formula's atoms, with how many it has as a guide (not a limit;
-  // checking points out extras)
   const shown = formatFormula(molecule.formula, molecule.charge);
-  const elementTools = (): ToolItem[] =>
-    Object.keys(needed).map((symbol) => ({
-      tool: `element:${symbol}`,
-      label: `Add ${symbol} (${needed[symbol]} in ${shown})`,
-      icon: elementIcon(symbol),
-      draggable: true,
-    }));
-
-  const counter = (s: LewisStructure) => {
-    const used = electronsUsed(s);
-    return (
-      <>
-        <div className="h-2 rounded-full bg-primary-700 overflow-hidden mb-1">
-          <div
-            className={cn(
-              'h-full transition-all',
-              used > total ? 'bg-red-500' : 'bg-secondary-500',
-            )}
-            style={{ width: `${Math.min(100, (used / total) * 100)}%` }}
-          />
-        </div>
-        {used} of {total} valence electrons placed
-      </>
-    );
-  };
 
   const levelMolecules = MOLECULES.filter((m) => m.level === molecule.level);
   const choose = (m: Molecule) => setMolecule(m);
@@ -233,23 +175,12 @@ function QuizMode({ active, settings, onSettings }: ModeProps) {
         </div>
       </div>
 
-      <h3 className="text-lg font-semibold">
-        {molecule.name}, {formatFormula(molecule.formula, molecule.charge)}
-      </h3>
-      <HowToDraw />
-
       {/* a new molecule or starting point starts a fresh drawing */}
-      <LewisBuilder
+      <LewisChallenge
         key={`${molecule.id}-${start}`}
-        initial={start === 'given' ? skeletonEditor(molecule) : emptyEditor()}
-        initialTool={
-          start === 'given' ? 'lonePair' : `element:${Object.keys(needed)[0]}`
-        }
+        molecule={molecule}
+        start={start}
         active={active}
-        elementTools={elementTools}
-        assess={(forms) => assessResonance(forms, molecule)}
-        counter={counter}
-        chargesReady={(s) => electronsUsed(s) === total}
         settings={settings}
         onSettings={onSettings}
       />

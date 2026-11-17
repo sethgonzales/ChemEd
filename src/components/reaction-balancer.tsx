@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { IconCheck, IconMinus, IconPlus, IconX } from '@tabler/icons-react';
 import Seesaw from '~/components/seesaw';
 import Stage from '~/components/stage';
@@ -23,6 +23,8 @@ import { useGuideMessage, useGuideNudge } from '~/utils/use-guide-message';
 interface Props {
   reaction: Reaction;
   answer: number[] | null; // for Show answer
+  onSolve?: () => void; // balanced, in lowest terms, by the student
+  canReveal?: boolean; // false: no Show answer, as in a quest room
 }
 
 const MAX_COEFFICIENT = 99;
@@ -51,13 +53,28 @@ function statusMessage(
 }
 
 /** An equation to balance: coefficient steppers, a seesaw and an atom count */
-export default function ReactionBalancer({ reaction, answer }: Props) {
+export default function ReactionBalancer({
+  reaction,
+  answer,
+  onSolve,
+  canReveal = true,
+}: Props) {
   const formulas = [...reaction.reactants, ...reaction.products];
   const ones = formulas.map(() => '1');
   const [values, setValues] = useState(ones);
   const [revealed, setRevealed] = useState(false);
   const [touched, setTouched] = useState(false); // Mr. G waits for the student to start
   const coefficients = values.map((v) => Number(v) || 0);
+
+  const solved =
+    !revealed &&
+    isBalanced(reaction, coefficients) &&
+    isLowestTerms(coefficients);
+  const onSolveRef = useRef(onSolve);
+  onSolveRef.current = onSolve;
+  useEffect(() => {
+    if (solved) onSolveRef.current?.();
+  }, [solved]);
 
   const guide =
     touched && !revealed ? balanceMessage(reaction, coefficients) : null;
@@ -210,16 +227,18 @@ export default function ReactionBalancer({ reaction, answer }: Props) {
       </p>
 
       <div className="flex flex-wrap gap-2">
-        <Button
-          onClick={() => {
-            if (!answer) return;
-            setValues(answer.map(String));
-            setRevealed(true);
-          }}
-          disabled={!answer}
-        >
-          Show answer
-        </Button>
+        {canReveal && (
+          <Button
+            onClick={() => {
+              if (!answer) return;
+              setValues(answer.map(String));
+              setRevealed(true);
+            }}
+            disabled={!answer}
+          >
+            Show answer
+          </Button>
+        )}
         <Button
           onClick={() => {
             setValues(ones);

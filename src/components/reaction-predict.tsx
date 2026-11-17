@@ -87,10 +87,24 @@ function Terms({ terms }: { terms: IonicTerm[] }) {
 }
 
 /** Mr. G deals reactants; type the products and their states, or call No reaction */
-export default function ReactionPredict() {
+interface Props {
+  first?: number; // a set pair from PREDICT_POOL to start on, e.g. a quest room's
+  deal?: (previous: number) => number; // how the next pair is chosen
+  balance?: boolean; // fixes whether balancing is asked, and hides its setting
+  onCorrect?: () => void;
+}
+
+export default function ReactionPredict({
+  first,
+  deal = dealPredict,
+  balance,
+  onCorrect,
+}: Props = {}) {
   // the first deal waits for the browser, so the static page matches it
-  const [index, setIndex] = useState(0);
-  useEffect(() => setIndex(dealPredict(undefined)), []);
+  const [index, setIndex] = useState(first ?? 0);
+  useEffect(() => {
+    if (first === undefined) setIndex(dealPredict(undefined));
+  }, [first]);
   const reactants = PREDICT_POOL[index];
   const prediction = useMemo(() => predict(reactants), [reactants]);
   const particles = useMemo(() => beaker(prediction), [prediction]);
@@ -101,7 +115,8 @@ export default function ReactionPredict() {
     hints: (string | null)[];
     balance: string | null;
   } | null>(null);
-  const [balancing, setBalancing] = useState(true);
+  const [balancingSetting, setBalancing] = useState(true);
+  const balancing = balance ?? balancingSetting;
   // reactants' then products' coefficients
   const [coefficients, setCoefficients] = useState(['', '', '', '']);
   const setCoefficient = (i: number, value: string) =>
@@ -126,9 +141,10 @@ export default function ReactionPredict() {
         : gradeTyped(prediction, answer, balancing ? coefficients : undefined);
     setResult(graded);
     record(graded.verdict === 'correct');
+    if (graded.verdict === 'correct') onCorrect?.();
   };
   const next = () => {
-    setIndex(dealPredict(index));
+    setIndex(deal(index));
     setAnswers(EMPTY);
     setCoefficients(['', '', '', '']);
     setResult(null);
@@ -303,9 +319,11 @@ export default function ReactionPredict() {
         </Button>
         <Button onClick={next}>Next reactants</Button>
       </div>
-      <Setting checked={balancing} onChange={setBalancing}>
-        Balance the equation too
-      </Setting>
+      {balance === undefined && (
+        <Setting checked={balancing} onChange={setBalancing}>
+          Balance the equation too
+        </Setting>
+      )}
     </div>
   );
 }

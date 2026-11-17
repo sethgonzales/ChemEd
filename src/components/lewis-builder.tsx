@@ -61,6 +61,7 @@ interface Props {
   paletteExtra?: (selectTool: (tool: Tool) => void) => ReactNode;
   settings: Settings; // kept by the page, so they survive a new molecule
   onSettings: (change: Partial<Settings>) => void;
+  onCheck?: (verdict: Verdict) => void; // after each Check, e.g. to open a quest door
 }
 
 /** The Lewis structure drawing area: toolbar, drawing, resonance forms and checking */
@@ -74,6 +75,7 @@ export default function LewisBuilder({
   paletteExtra,
   settings,
   onSettings,
+  onCheck,
   active = true,
 }: Props) {
   const { snap, bars, hints } = settings;
@@ -338,6 +340,7 @@ export default function LewisBuilder({
             );
             const { text, mood } = checkMessage(verdict, feedback);
             say(text, mood);
+            onCheck?.(verdict);
           }}
         >
           Check your work

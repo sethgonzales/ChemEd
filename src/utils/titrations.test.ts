@@ -209,6 +209,12 @@ describe('newUnknown', () => {
     expect(unknown.concentration).toBe(0.087);
   });
 
+  it('picks from a given list instead, when it has one', () => {
+    const weak = ANALYTES.filter((a) => a.protons === 1 && a.pKas.length);
+    for (const r of [0, 0.5, 0.999])
+      expect(weak).toContain(newUnknown(() => r, weak).analyte);
+  });
+
   it('never picks phosphoric acid, and stays in range', () => {
     for (const r of [0, 0.25, 0.5, 0.75, 0.999]) {
       const { analyte: a, concentration } = newUnknown(() => r);

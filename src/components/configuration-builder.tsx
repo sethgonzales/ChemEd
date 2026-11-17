@@ -41,9 +41,21 @@ const chargeText = (charge: number) =>
  * optionally make it an ion, draw its orbital diagram by tapping boxes, type
  * its notation, and check.
  */
-export default function ConfigurationBuilder() {
-  const [element, setElement] = useState<IElementData | null>(null);
-  const [charge, setCharge] = useState(0);
+interface Props {
+  // a set element or ion to draw, as in a Dungeon Quest room: no picking,
+  // no charge buttons and no Show answer
+  target?: { element: IElementData; charge: number };
+  onCorrect?: () => void; // checked and right
+}
+
+export default function ConfigurationBuilder({
+  target: set,
+  onCorrect,
+}: Props) {
+  const [picked, setElement] = useState<IElementData | null>(null);
+  const [chosenCharge, setCharge] = useState(0);
+  const element = set?.element ?? picked;
+  const charge = set?.charge ?? chosenCharge;
   const [diagram, setDiagram] = useState(() => emptyDiagram(LAST_SUBSHELL));
   const [typed, setTyped] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -83,6 +95,7 @@ export default function ConfigurationBuilder() {
       label && target ? checkDiagram(target, diagram, typed, label) : 'pick';
     setFeedback(result);
     setChecked(true);
+    if (result !== 'pick' && result.correct) onCorrect?.();
     // a cheer also plays the treasure sound
     const { text, mood } = configurationMessage(result, label);
     say(text, mood);
@@ -114,37 +127,39 @@ export default function ConfigurationBuilder() {
   // and charge on the left, the diagram on the right from the top of the card
   return (
     <>
-      <div className="w-full flex flex-col gap-4">
-        <PeriodicGrid
-          selected={element}
-          onSelect={pick}
-          compact
-          minWidth={PICKER_MIN_WIDTH}
-        />
-        <div
-          role="group"
-          aria-label="Charge"
-          className="flex items-center justify-center gap-2"
-        >
-          <Button
-            onClick={() => changeCharge(-1)}
-            disabled={!element || charge <= -MAX_CHARGE}
+      {!set && (
+        <div className="w-full flex flex-col gap-4">
+          <PeriodicGrid
+            selected={element}
+            onSelect={pick}
+            compact
+            minWidth={PICKER_MIN_WIDTH}
+          />
+          <div
+            role="group"
+            aria-label="Charge"
+            className="flex items-center justify-center gap-2"
           >
-            <IconMinus size={18} aria-hidden="true" />
-            <span className="sr-only">Lower the charge</span>
-          </Button>
-          <span aria-live="polite" className="min-w-28 text-center text-sm">
-            Charge: <span className="font-bold">{chargeText(charge)}</span>
-          </span>
-          <Button
-            onClick={() => changeCharge(1)}
-            disabled={!element || charge >= maxCharge}
-          >
-            <IconPlus size={18} aria-hidden="true" />
-            <span className="sr-only">Raise the charge</span>
-          </Button>
+            <Button
+              onClick={() => changeCharge(-1)}
+              disabled={!element || charge <= -MAX_CHARGE}
+            >
+              <IconMinus size={18} aria-hidden="true" />
+              <span className="sr-only">Lower the charge</span>
+            </Button>
+            <span aria-live="polite" className="min-w-28 text-center text-sm">
+              Charge: <span className="font-bold">{chargeText(charge)}</span>
+            </span>
+            <Button
+              onClick={() => changeCharge(1)}
+              disabled={!element || charge >= maxCharge}
+            >
+              <IconPlus size={18} aria-hidden="true" />
+              <span className="sr-only">Raise the charge</span>
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={cn(BESIDE_HEADER, 'flex flex-col gap-4')}>
         <Stage label="Your diagram">
@@ -222,9 +237,11 @@ export default function ConfigurationBuilder() {
           <Button pressed onClick={check}>
             Check
           </Button>
-          <Button onClick={showAnswer} disabled={!element}>
-            Show answer
-          </Button>
+          {!set && (
+            <Button onClick={showAnswer} disabled={!element}>
+              Show answer
+            </Button>
+          )}
           <Button onClick={clear}>Clear</Button>
         </div>
       </div>

@@ -171,8 +171,9 @@ export function halfEquivalences(analyte: Analyte, concentration: number) {
 const UNKNOWN_MIN = 0.05; // M
 const UNKNOWN_SPAN = 0.1; // M, so up to 0.150
 
-export function newUnknown(random = Math.random) {
-  const choices = ANALYTES.filter((a) => a.protons === 1);
+const MONOPROTIC = ANALYTES.filter((a) => a.protons === 1);
+
+export function newUnknown(random = Math.random, choices = MONOPROTIC) {
   const analyte = choices[Math.floor(random() * choices.length)];
   const concentration =
     Math.round((UNKNOWN_MIN + random() * UNKNOWN_SPAN) * 1000) / 1000;

@@ -8,6 +8,7 @@ import {
   ANALYTE_VOLUME,
   TITRANT_CONCENTRATION,
   titrantFor,
+  type Analyte,
   type Indicator,
 } from '~/constants/titrations';
 import { cn } from '~/utils/cn';
@@ -54,9 +55,15 @@ function feedback(answer: number, volume: number, round: Round): Result {
 export default function TitrationUnknown({
   indicator,
   onIndicator,
+  random,
+  choices,
+  onCorrect,
 }: {
   indicator: Indicator;
   onIndicator: (i: Indicator) => void;
+  random?: () => number; // deals the unknowns, e.g. a quest room's seeded one
+  choices?: Analyte[]; // the analytes it deals from
+  onCorrect?: () => void;
 }) {
   // rolled after mount: a random first round would differ between the static
   // HTML and the browser
@@ -65,7 +72,9 @@ export default function TitrationUnknown({
   const [answer, setAnswer] = useState('');
   const [result, setResult] = useState<Result | null>(null);
   const { say } = useGuide();
-  useEffect(() => setRound(newUnknown()), []);
+  const deal = () => newUnknown(random, choices);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the first deal only
+  useEffect(() => setRound(deal()), []);
 
   if (!round) return null;
   const { analyte, concentration } = round;
@@ -75,11 +84,13 @@ export default function TitrationUnknown({
     const result = feedback(parseFloat(answer), volume, round);
     setResult(result);
     // a cheer also plays the treasure sound
-    if (result.verdict === 'correct') say(result.text, 'cheer');
-    else say(HINTS[result.verdict], 'hint');
+    if (result.verdict === 'correct') {
+      say(result.text, 'cheer');
+      onCorrect?.();
+    } else say(HINTS[result.verdict], 'hint');
   };
   const next = () => {
-    setRound(newUnknown());
+    setRound(deal());
     setVolume(0);
     setAnswer('');
     setResult(null);
