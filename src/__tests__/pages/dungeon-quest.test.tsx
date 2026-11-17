@@ -24,10 +24,18 @@ import {
 import { parseEquation } from '~/utils/reactions';
 
 const music: (string | null)[] = [];
+const pauses: number[] = [];
 jest.mock('~/utils/music-player', () => ({
   ...jest.requireActual('~/utils/music-player'),
-  useMusic: (place: string | null, fight?: boolean) =>
-    music.push(place && (fight ? `${place} fight` : place)),
+  useMusic: (place: string | null, fight?: boolean, pause = 0) => {
+    music.push(place && (fight ? `${place} fight` : place));
+    pauses.push(pause);
+  },
+}));
+const chime = jest.fn();
+jest.mock('~/utils/sounds', () => ({
+  ...jest.requireActual('~/utils/sounds'),
+  useChimeSound: () => chime,
 }));
 const nowPlaying = () => music.at(-1);
 
@@ -47,6 +55,8 @@ beforeEach(() => {
   jest.spyOn(Math, 'random').mockReturnValue(RANDOM);
   localStorage.clear();
   music.length = 0;
+  pauses.length = 0;
+  chime.mockClear();
 });
 afterEach(() => {
   jest.useRealTimers();
@@ -179,6 +189,15 @@ describe('Dungeon Quest', () => {
     expect(nowPlaying()).toBe('dungeon');
     await user().click(screen.getByRole('checkbox', { name: 'Music' }));
     expect(nowPlaying()).toBeNull();
+  });
+
+  it('enters a chamber with a pause in the music, a chime, then its theme', async () => {
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit();
+    await user().click(door('not cleared yet'));
+    expect(chime).toHaveBeenCalledTimes(1);
+    expect(nowPlaying()).toBe('balancing');
+    expect(pauses.at(-1)).toBeGreaterThan(0);
   });
 
   it('plays a chamber’s own theme, not the dungeon’s', async () => {

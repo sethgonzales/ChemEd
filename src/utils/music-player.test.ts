@@ -75,6 +75,24 @@ describe('the music player', () => {
     expect(played()).toContain(opening('lewis'));
   });
 
+  it('can fall silent for a moment before the next theme, then play it', () => {
+    playMusic('dungeon');
+    run(1);
+    const before = played().length;
+    playMusic('lewis', false, 1500);
+    run(1.2);
+    expect(played()).toHaveLength(before); // the pause
+    run(1);
+    expect(played()).toContain(opening('lewis'));
+  });
+
+  it('cancels a pending theme if asked for another meanwhile', () => {
+    playMusic('lewis', false, 1500);
+    playMusic(null);
+    run(3);
+    expect(played()).toHaveLength(0);
+  });
+
   it('stops: no more notes', () => {
     playMusic('dungeon');
     run(1);

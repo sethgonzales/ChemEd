@@ -1,13 +1,14 @@
 import { IconStar, IconStarFilled } from '@tabler/icons-react';
 import Button from '~/components/button';
 import PixelArt from '~/components/pixel-art';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import QuestScene, { ScenePanel } from '~/components/quest-scene';
 import type { VillainArt } from '~/components/villain';
 import { CHAMBERS } from '~/constants/quest-chambers';
 import { ALCHEMIST_ID, alchemistOpen } from '~/constants/quest-final';
 import { ALCHEMIST } from '~/constants/villains/alchemist';
 import { cn } from '~/utils/cn';
+import { trailX } from '~/utils/quest-trail';
 import { useEscape } from '~/utils/use-escape';
 import {
   COURSES,
@@ -162,6 +163,61 @@ function SealedGate({ cleared, total }: { cleared: number; total: number }) {
   );
 }
 
+const STEPS = 6; // stepping stones between two doors
+
+// a point along the trail's curve from one door to the next, at t (0 to 1):
+// x in % across, y in % down the stretch
+function along(from: number, to: number, t: number) {
+  const s = 1 - t;
+  const bezier = (a: number, b: number, c: number, d: number) =>
+    s * s * s * a + 3 * s * s * t * b + 3 * s * t * t * c + t * t * t * d;
+  return { x: bezier(from, from, to, to), y: bezier(0, 60, 40, 100) };
+}
+
+/**
+ * A stop on the trail: its door set across the map at x (% of the width), and
+ * the trail on to the next stop, if there is one. On a phone, where a door
+ * fills the width, the trail runs straight down.
+ */
+function Stop({
+  x: x0,
+  next,
+  children,
+}: {
+  x: number;
+  next?: number;
+  children: ReactNode;
+}) {
+  return (
+    <li data-x={x0} className="flex w-full flex-col items-center">
+      <div
+        className="relative"
+        style={{ left: `calc((${x0}% - 50%) * var(--sway))` }}
+      >
+        {children}
+      </div>
+      {next !== undefined && (
+        <div data-trail aria-hidden="true" className="relative h-16 w-full">
+          {Array.from({ length: STEPS }, (_, k) => {
+            const { x, y } = along(x0, next, (k + 0.5) / STEPS);
+            return (
+              <span
+                key={k}
+                className="absolute h-2.5 w-5 -translate-1/2 rounded-full bg-[#d6c7b0]/50"
+                // straight down on a phone, winding where there's room
+                style={{
+                  left: `calc(50% + (${x}% - 50%) * var(--sway))`,
+                  top: `${y}%`,
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+    </li>
+  );
+}
+
 /**
  * The chosen chambers' doors, in topic order (any one can be played), then
  * the Alchemist's gate, which opens once they're all cleared
@@ -174,16 +230,22 @@ export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
   const open = alchemistOpen(setup.topics, progress, setup.course);
   // a beaten chamber the student tapped, waiting for them to confirm a replay
   const [replaying, setReplaying] = useState<DoorInfo | null>(null);
-  const door = (d: DoorInfo) => {
+  // every chosen door, then the Alchemist's gate, along a winding trail
+  const stops = n + 1;
+  const at = (i: number) => ({
+    x: trailX(i, stops),
+    next: i + 1 < stops ? trailX(i + 1, stops) : undefined,
+  });
+  const door = (d: DoorInfo, i: number) => {
     const stars = best[d.id] ?? 0;
     return (
-      <li key={d.id}>
+      <Stop key={d.id} {...at(i)}>
         <Door
           door={d}
           stars={stars}
           onOpen={() => (stars ? setReplaying(d) : onPick(d.id))}
         />
-      </li>
+      </Stop>
     );
   };
 
@@ -207,14 +269,14 @@ export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
           onCancel={() => setReplaying(null)}
         />
       )}
-      <ol className="flex flex-col items-center gap-6 px-6 pt-12 pb-4">
+      <ol className="flex flex-col items-center px-6 pt-12 pb-4 [--sway:0] sm:[--sway:1]">
         {chosen.map(door)}
         {open ? (
-          door(FINAL)
+          door(FINAL, n)
         ) : (
-          <li key={FINAL.id}>
+          <Stop key={FINAL.id} {...at(n)}>
             <SealedGate cleared={cleared} total={n} />
-          </li>
+          </Stop>
         )}
       </ol>
     </QuestScene>

@@ -133,3 +133,22 @@ describe('the Alchemist’s gate on the map', () => {
     expect(onPick).toHaveBeenCalledWith('alchemist');
   });
 });
+describe('the map’s layout', () => {
+  it('joins the doors with a winding trail, ending at the Alchemist’s gate', () => {
+    const { container } = render(
+      <QuestMap
+        setup={{ topics: ['periodic', 'lewis', 'states'], course: 'general' }}
+        progress={{}}
+        onPick={jest.fn()}
+        onChange={jest.fn()}
+      />,
+    );
+    // three chambers and the gate: three stretches of trail between them
+    expect(container.querySelectorAll('[data-trail]')).toHaveLength(3);
+    const across = [...container.querySelectorAll<HTMLElement>('[data-x]')].map(
+      (el) => Number(el.dataset.x),
+    );
+    expect(across).toHaveLength(4);
+    expect(new Set(across).size).toBeGreaterThan(2);
+  });
+});

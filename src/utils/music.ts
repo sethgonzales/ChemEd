@@ -144,38 +144,43 @@ const octaveDown = (notes: string) =>
   notes.replace(/(\d):/g, (_, o) => `${Number(o) - 1}:`);
 
 export const THEMES: Record<string, Track> = {
-  // the gate and map: A minor, slow, a wandering melody over
-  // Am – F – G – Em – Am – F – E – E
+  // the gate and map: background music while choosing. A minor, slow and
+  // low: a walking bass, a soft organ, and a few distant bells
   dungeon: {
-    bpm: 84,
+    bpm: 66,
     key: { tonic: 'A', scale: MINOR_LEADING },
     voices: [
       {
-        instrument: 'lead',
-        volume: 0.035,
-        notes: bars(
-          'E4:1 A4:1 C5:1 B4:1',
-          'A4:2 F4:1 A4:1',
-          'G4:1 B4:1 D5:1 C5:1',
-          'B4:3 -:1',
-          'C5:1 B4:1 A4:1 E4:1',
-          'F4:1 A4:1 C5:1 A4:1',
-          'G#4:1 B4:1 E5:1 D5:1',
-          'B4:2 G#4:1 E4:1',
-        ),
-      },
-      {
         instrument: 'bass',
-        volume: 0.08,
+        volume: 0.05,
         notes: bars(
           'A2:2 E2:2',
           'F2:2 C3:2',
-          'G2:2 D3:2',
+          'G2:2 D2:2',
           'E2:2 B2:2',
           'A2:2 E2:2',
           'F2:2 C3:2',
           'E2:2 G#2:2',
-          'E2:2 -:2',
+          'A2:4',
+        ),
+      },
+      {
+        instrument: 'pad',
+        volume: 0.012,
+        notes: wholes('A3 F3 G3 E3 A3 F3 E3 A3'),
+      },
+      {
+        instrument: 'bell',
+        volume: 0.02,
+        notes: bars(
+          '-:2 E4:2',
+          '-:2 C5:2',
+          '-:2 B4:2',
+          '-:4',
+          '-:2 A4:2',
+          '-:2 C5:2',
+          '-:2 G#4:2',
+          '-:4',
         ),
       },
     ],

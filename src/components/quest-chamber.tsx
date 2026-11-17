@@ -41,7 +41,28 @@ interface Props {
   onExit: () => void; // back to the map
   onReplay: () => void;
   onStage?: (stage: QuestState<QuickQuestion>['stage']) => void; // e.g. for the music
+  devTools?: boolean; // shortcuts for testing by hand: solve, hit, miss
 }
+
+// the shortcuts are on while developing, never in the built app
+const DEV = process.env.NODE_ENV === 'development';
+
+/** A developer's shortcut, dashed so it's never mistaken for the game's own */
+const DevButton = ({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="cursor-pointer border border-dashed border-amber-300 px-2 py-1 text-xs text-amber-200"
+  >
+    {label} (dev)
+  </button>
+);
 
 // Mr. G, small beside the story on phones; on wider screens he's in the corner
 const PhoneMrG = () => (
@@ -83,12 +104,14 @@ function Room({
   seed,
   room,
   onOpen,
+  devTools,
 }: {
   chamber: Chamber;
   course: Course;
   seed: number;
   room: number;
   onOpen: () => void;
+  devTools: boolean;
 }) {
   const [solved, setSolved] = useState(false);
   const playDoor = useDoorSound();
@@ -139,6 +162,11 @@ function Room({
           rooms={chamber.rooms}
           onSolve={() => setSolved(true)}
         />
+        {devTools && !solved && (
+          <div>
+            <DevButton label="Solve" onClick={() => setSolved(true)} />
+          </div>
+        )}
       </div>
     </QuestScene>
   );
@@ -328,6 +356,7 @@ export default function QuestChamber({
   onExit,
   onReplay,
   onStage,
+  devTools = DEV,
 }: Props) {
   const [state, setState] = useState<QuestState<QuickQuestion>>(() =>
     startChamber(chamber, course, seed),
@@ -363,6 +392,7 @@ export default function QuestChamber({
         course={course}
         seed={seed}
         room={state.room}
+        devTools={devTools}
         onOpen={() => setState((s) => solveRoom(s, chamber))}
       />
     );
@@ -438,6 +468,23 @@ export default function QuestChamber({
           {note && <PhoneNote text={note} />}
           {state.stage === 'boss' && state.question && (
             <Question question={state.question} onPick={pickChoice} />
+          )}
+          {devTools && state.stage === 'boss' && state.question && (
+            <div className="flex justify-center gap-2">
+              <DevButton
+                label="Hit"
+                onClick={() => pickChoice(state.question!.answer)}
+              />
+              <DevButton
+                label="Miss"
+                onClick={() =>
+                  pickChoice(
+                    (state.question!.answer + 1) %
+                      state.question!.choices.length,
+                  )
+                }
+              />
+            </div>
           )}
         </div>
       }

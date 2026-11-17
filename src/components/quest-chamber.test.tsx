@@ -285,6 +285,46 @@ describe('a quest chamber', () => {
   });
 });
 
+describe('developer shortcuts', () => {
+  function devSetup(devTools: boolean) {
+    render(
+      <QuestChamber
+        chamber={chamber}
+        course="general"
+        seed={SEED}
+        onClear={jest.fn()}
+        onExit={jest.fn()}
+        onReplay={jest.fn()}
+        devTools={devTools}
+      />,
+    );
+  }
+
+  it('skip rooms and land hits or misses without answering', async () => {
+    devSetup(true);
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    await user().click(screen.getByRole('button', { name: 'Solve (dev)' }));
+    await user().click(screen.getByRole('button', { name: 'Next door' }));
+    await user().click(screen.getByRole('button', { name: 'Solve (dev)' }));
+    await user().click(screen.getByRole('button', { name: 'Face the boss' }));
+
+    await user().click(screen.getByRole('button', { name: 'Hit (dev)' }));
+    act(() => jest.advanceTimersByTime(DURATION_MS.attack + 200));
+    expect(hp()).toHaveAttribute('aria-valuenow', String(chamber.bossHp - 1));
+    await user().click(screen.getByRole('button', { name: 'Miss (dev)' }));
+    act(() => jest.advanceTimersByTime(DURATION_MS.attack + 200));
+    expect(hearts()).toHaveAccessibleName(
+      `${MAX_HEARTS - 1} of ${MAX_HEARTS} hearts left`,
+    );
+  });
+
+  it('stay hidden outside development', async () => {
+    devSetup(false);
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    expect(screen.queryByRole('button', { name: /\(dev\)/ })).toBeNull();
+  });
+});
+
 describe('the chamber’s backdrop', () => {
   it('dresses every scene for its boss: story, rooms and fight', async () => {
     const { container } = render(

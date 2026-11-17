@@ -68,6 +68,8 @@ interface Playing {
 
 let wanted: string | null = null; // what should be playing, muted or not
 let playing: Playing | null = null;
+// a theme waiting out a pause before it starts
+let pending: ReturnType<typeof setTimeout> | null = null;
 
 function start(id: string) {
   const ctx = audioContext();
@@ -108,6 +110,7 @@ function halt() {
 
 function sync() {
   if (!wanted || isMuted()) return halt();
+  if (pending) return; // still in the pause
   if (playing?.id === wanted) return;
   halt();
   start(wanted);
@@ -117,10 +120,21 @@ let listening = false;
 
 /**
  * Plays a place's theme, or its fight version (carrying on if it's already
- * playing), or stops with null
+ * playing), or stops with null. With a pause, a new theme waits that long
+ * (ms) in silence first, e.g. for a chime between them.
  */
-export function playMusic(place: string | null, fight = false) {
-  wanted = place && (fight ? `${place}:fight` : place);
+export function playMusic(place: string | null, fight = false, pause = 0) {
+  const id = place && (fight ? `${place}:fight` : place);
+  if (pending) clearTimeout(pending);
+  pending = null;
+  wanted = id;
+  if (pause > 0 && id && playing?.id !== id) {
+    halt();
+    pending = setTimeout(() => {
+      pending = null;
+      sync();
+    }, pause);
+  }
   if (!listening && typeof window !== 'undefined') {
     window.addEventListener(MUTE_EVENT, sync);
     listening = true;
@@ -132,13 +146,18 @@ export const stopMusic = () => playMusic(null);
 
 /** Forgets everything, so each test starts afresh */
 export function resetMusic() {
+  if (pending) clearTimeout(pending);
+  pending = null;
   halt();
   wanted = null;
 }
 
-/** Plays a place's theme while the component is shown (null for silence) */
-export function useMusic(place: string | null, fight = false) {
-  useEffect(() => playMusic(place, fight), [place, fight]);
+/**
+ * Plays a place's theme while the component is shown (null for silence),
+ * after a pause (ms) when it changes, if one is given
+ */
+export function useMusic(place: string | null, fight = false, pause = 0) {
+  useEffect(() => playMusic(place, fight, pause), [place, fight, pause]);
   useEffect(() => stopMusic, []);
 }
 

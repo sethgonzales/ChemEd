@@ -4,6 +4,7 @@ import {
   resetSounds,
   setMuted,
   useBloop,
+  useChimeSound,
   useDamageSound,
   useHitSound,
   useMissSound,
@@ -164,6 +165,20 @@ describe('battle sounds', () => {
       true,
     );
     expect(damage.slides.some((r) => r < 1)).toBe(true);
+  });
+});
+
+describe('useChimeSound (entering a chamber)', () => {
+  it('rings a rising run of bells, softer than the treasure', () => {
+    const { ctx } = mockAudioContext();
+    renderHook(() => useChimeSound()).result.current();
+    const notes = ctx.createOscillator.mock.results.map(({ value }) => value);
+    expect(notes.length).toBeGreaterThanOrEqual(3);
+    expect(notes.every((n) => n.type === 'sine')).toBe(true);
+    const hz = pitches(ctx);
+    expect(hz).toEqual([...hz].sort((a, b) => a - b));
+    const times = startTimes(ctx);
+    expect(times[times.length - 1]).toBeGreaterThan(times[0]);
   });
 });
 

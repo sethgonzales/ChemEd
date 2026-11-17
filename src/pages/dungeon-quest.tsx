@@ -23,6 +23,7 @@ import {
 } from '~/utils/quest-storage';
 import { QUESTION_SOURCES } from '~/utils/quest-sources';
 import { useMusic, useMusicSetting } from '~/utils/music-player';
+import { useChimeSound } from '~/utils/sounds';
 
 type View =
   | { at: 'gate' }
@@ -33,6 +34,7 @@ type View =
 const newSeed = () => Math.floor(Math.random() * 2 ** 32);
 
 const ALL: QuestSetup = { topics: CHAMBER_IDS, course: 'general' };
+const ENTER_PAUSE = 1800; // ms of quiet, with a chime, before a chamber's theme
 
 /**
  * Where a visit starts: a chamber link opens its story, a setup link fills in
@@ -65,10 +67,14 @@ export default function DungeonQuest() {
   // the gate and map have the dungeon's theme; a chamber its own, quicker
   // in the boss fight
   const inChamber = view?.at === 'chamber';
+  const fighting = inChamber && stage === 'boss';
   useMusic(
     musicOn && view ? (inChamber ? view.id : 'dungeon') : null,
-    inChamber && stage === 'boss',
+    fighting,
+    // stepping into a chamber: a hush and a chime before its theme
+    inChamber && !fighting ? ENTER_PAUSE : 0,
   );
+  const playChime = useChimeSound();
 
   useEffect(() => {
     const start = arrive(window.location.search);
@@ -117,14 +123,15 @@ export default function DungeonQuest() {
         <QuestMap
           setup={setup}
           progress={progress}
-          onPick={(id) =>
+          onPick={(id) => {
+            playChime();
             setView({
               at: 'chamber',
               id,
               course: setup.course,
               seed: newSeed(),
-            })
-          }
+            });
+          }}
           onChange={() => setView({ at: 'gate' })}
         />
       )}

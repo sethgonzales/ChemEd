@@ -1,13 +1,15 @@
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import SceneDecor from '~/components/scene-decor';
 import Stage from '~/components/stage';
 import { backdropFor, type Backdrop } from '~/constants/quest-backdrops';
 import { cn } from '~/utils/cn';
 import {
   SHADES,
+  TORCH,
   WALL_HEIGHT,
   WALL_WIDTH,
   stoneWall,
+  wallScale,
   type Stone,
 } from '~/utils/stone-wall';
 
@@ -85,11 +87,18 @@ function StoneWall({ look }: { look: Backdrop }) {
 }
 
 // A torch on the wall: a bracket and a flickering flame with its glow
+// sizes in wall units, drawn at the wall's scale (--u: px per unit), so a
+// torch keeps its size beside the stones on any screen
+const u = (n: number) => `calc(var(--u, 4px) * ${n})`;
+
+// A torch on the wall: a flickering flame with its glow, on a handle
 function Torch({
-  className,
+  side,
+  low = false,
   flame,
 }: {
-  className: string;
+  side: 'left' | 'right';
+  low?: boolean; // halfway down the wall, where there's room (not on phones)
   flame: Backdrop['flame'];
 }) {
   return (
@@ -98,17 +107,46 @@ function Torch({
       aria-hidden="true"
       className={cn(
         'pointer-events-none absolute flex flex-col items-center',
-        className,
+        low && 'hidden sm:flex',
       )}
+      style={{ top: low ? '50%' : u(TORCH.inset), [side]: u(TORCH.inset) }}
     >
       <div
-        className="quest-flame h-4 w-3 rounded-t-full"
+        className="quest-flame rounded-t-full"
         style={{
+          width: u(TORCH.flame.w),
+          height: u(TORCH.flame.h),
           background: `radial-gradient(circle at 50% 70%, ${flame.core}, ${flame.outer} 60%, transparent 75%)`,
-          boxShadow: `0 0 48px 22px rgb(${flame.glow} / 0.25)`,
+          boxShadow: `0 0 ${u(12)} ${u(5)} rgb(${flame.glow} / 0.25)`,
         }}
       />
-      <div className="h-3 w-1 bg-stone-600" />
+      <div
+        className="bg-stone-600"
+        style={{ width: u(TORCH.handle.w), height: u(TORCH.handle.h) }}
+      />
+    </div>
+  );
+}
+
+/** The torches, measuring the scene so they match its stones */
+function Torches({ flame }: { flame: Backdrop['flame'] }) {
+  const layer = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = layer.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      el.style.setProperty('--u', `${wallScale(width, height)}px`);
+    });
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  return (
+    <div ref={layer} className="pointer-events-none absolute inset-0">
+      <Torch side="left" flame={flame} />
+      <Torch side="right" flame={flame} />
+      <Torch side="left" low flame={flame} />
+      <Torch side="right" low flame={flame} />
     </div>
   );
 }
@@ -173,11 +211,7 @@ export default function QuestScene({
           background: `radial-gradient(ellipse at 50% 60%, rgb(${look.light} / 0.14), transparent 55%), radial-gradient(ellipse at 50% 50%, transparent 40%, rgb(0 0 0 / 0.65))`,
         }}
       />
-      <Torch className="top-6 left-5" flame={look.flame} />
-      <Torch className="top-6 right-5" flame={look.flame} />
-      {/* two more down the walls, where there's room for them */}
-      <Torch className="top-1/2 left-5 hidden sm:flex" flame={look.flame} />
-      <Torch className="top-1/2 right-5 hidden sm:flex" flame={look.flame} />
+      <Torches flame={look.flame} />
       <div
         data-decor
         aria-hidden="true"

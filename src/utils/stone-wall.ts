@@ -6,7 +6,7 @@ import { createRng } from '~/utils/quest';
 // tall enough that a long boss fight on a phone doesn't stretch the stones
 export const WALL_WIDTH = 240; // wall units (the SVG's viewBox)
 export const WALL_HEIGHT = 300;
-const COURSE = 10; // wall units, one row of stones and its mortar
+export const COURSE = 10; // wall units, one row of stones and its mortar
 export const MIN_OVERLAP = 6; // wall units a stone must bridge past a joint below
 const MORTAR = 1; // wall units between stones
 const BLOCK = 24; // wall units, a block's usual length
@@ -15,6 +15,20 @@ const JITTER = 3; // wall units a joint may stray from the middle of the stone b
 export const SHADES = 4; // stone colours to pick from
 const MOSS_TOP = 0.04; // chance a stone at the top is mossy
 const MOSS_FLOOR = 0.55; // chance one by the floor is
+
+// a wall torch, in wall units: a flame on a handle, about two courses tall
+export const TORCH = {
+  flame: { w: 5, h: 8 },
+  handle: { w: 1.5, h: 10 },
+  inset: 8, // from the scene's edge
+};
+
+/**
+ * Pixels per wall unit for a scene of this size: the wall covers it like the
+ * SVG's "slice", so the larger of the two fits wins
+ */
+export const wallScale = (width: number, height: number) =>
+  Math.max(width / WALL_WIDTH, height / WALL_HEIGHT);
 
 export interface Stone {
   x: number;

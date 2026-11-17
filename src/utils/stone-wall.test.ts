@@ -1,4 +1,12 @@
-import { MIN_OVERLAP, stoneWall, WALL_HEIGHT, WALL_WIDTH } from './stone-wall';
+import {
+  COURSE,
+  MIN_OVERLAP,
+  TORCH,
+  stoneWall,
+  wallScale,
+  WALL_HEIGHT,
+  WALL_WIDTH,
+} from './stone-wall';
 
 describe('stoneWall', () => {
   const wall = stoneWall(7);
@@ -53,5 +61,18 @@ describe('stoneWall', () => {
   it('is the same wall every time for the same seed', () => {
     expect(stoneWall(7)).toEqual(wall);
     expect(stoneWall(8)).not.toEqual(wall);
+  });
+});
+describe('the wall’s scale', () => {
+  it('is how big a wall unit is drawn, covering the scene however it’s shaped', () => {
+    // as the SVG's "slice": the larger of the two fits wins
+    expect(wallScale(WALL_WIDTH * 4, 100)).toBe(4); // wide: fit the width
+    expect(wallScale(100, WALL_HEIGHT * 5)).toBe(5); // tall: fit the height
+  });
+
+  it('gives torches a true size beside the stones: about two courses tall', () => {
+    const tall = TORCH.flame.h + TORCH.handle.h;
+    expect(tall / COURSE).toBeGreaterThanOrEqual(1.5);
+    expect(tall / COURSE).toBeLessThanOrEqual(2.5);
   });
 });

@@ -61,6 +61,19 @@ describe('the soundtrack', () => {
     expect(new Set(tunes).size).toBe(tunes.length);
   });
 
+  it('keeps the gate and map theme in the background: slow, soft, carried by the bass', () => {
+    const gate = THEMES.dungeon;
+    expect(gate.bpm).toBeLessThanOrEqual(72);
+    // no buzzy square lead over the top
+    expect(gate.voices.some((v) => v.instrument === 'lead')).toBe(false);
+    const loudest = gate.voices.reduce((a, b) => (b.volume > a.volume ? b : a));
+    expect(loudest.instrument).toBe('bass');
+    // and quieter overall than a chamber's theme
+    const total = (t: Track) => t.voices.reduce((sum, v) => sum + v.volume, 0);
+    for (const id of CHAMBER_IDS)
+      expect(total(gate)).toBeLessThan(total(THEMES[id]));
+  });
+
   it('falls back to the dungeon theme for a place without one', () => {
     expect(themeFor('nowhere')).toBe(THEMES.dungeon);
     expect(themeFor('states')).toBe(THEMES.states);
