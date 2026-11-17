@@ -11,6 +11,8 @@ const TREASURE_NOTE = 0.09; // s between arpeggio notes
 const MIN_GAP = 40; // ms; a sound repeated sooner than this plays once
 
 const MUTED_KEY = 'chem.sound.muted';
+/** Fired on window when sounds are muted or unmuted, e.g. for the music */
+export const MUTE_EVENT = 'chem:muted';
 type Voice = (ctx: AudioContext, out: AudioNode, time: number) => void;
 
 /** A decaying tone into `out` */
@@ -105,6 +107,93 @@ const TREASURE_VOICES: Voice[] = [
     ),
 ];
 
+// a hit on the boss: a bright strike ringing upwards, over a thump
+const HIT_VOICES: Voice[] = [
+  (ctx, out, t) => {
+    tone(ctx, out, t, {
+      type: 'square',
+      from: 660,
+      to: 1320,
+      volume: 0.1,
+      length: 0.08,
+    });
+    tone(ctx, out, t, {
+      type: 'triangle',
+      from: 180,
+      to: 90,
+      volume: 0.25,
+      length: 0.15,
+    });
+    tone(ctx, out, t + 0.07, {
+      type: 'square',
+      from: 990,
+      volume: 0.06,
+      length: 0.2,
+    });
+  },
+  (ctx, out, t) => {
+    tone(ctx, out, t, {
+      type: 'square',
+      from: 587,
+      to: 1175,
+      volume: 0.1,
+      length: 0.08,
+    });
+    tone(ctx, out, t, {
+      type: 'triangle',
+      from: 160,
+      to: 80,
+      volume: 0.25,
+      length: 0.15,
+    });
+    tone(ctx, out, t + 0.07, {
+      type: 'square',
+      from: 880,
+      volume: 0.06,
+      length: 0.2,
+    });
+  },
+];
+
+// a miss: a soft whoosh through empty air
+const MISS_VOICES: Voice[] = [
+  (ctx, out, t) =>
+    tone(ctx, out, t, {
+      type: 'triangle',
+      from: 520,
+      to: 140,
+      volume: 0.07,
+      length: 0.28,
+    }),
+];
+
+// the boss strikes: a low, harsh crunch, then a second jolt
+const DAMAGE_VOICES: Voice[] = [
+  (ctx, out, t) => {
+    tone(ctx, out, t, {
+      type: 'sawtooth',
+      from: 160,
+      to: 55,
+      volume: 0.16,
+      length: 0.3,
+    });
+    tone(ctx, out, t, {
+      type: 'square',
+      from: 110,
+      to: 70,
+      volume: 0.08,
+      length: 0.12,
+    });
+    tone(ctx, out, t + 0.12, {
+      type: 'square',
+      from: 90,
+      to: 50,
+      volume: 0.07,
+      length: 0.15,
+    });
+  },
+];
+
 /** Sends `input` to the speakers, plus fading echoes */
 function withEcho(ctx: AudioContext) {
   const input = ctx.createGain();
@@ -151,6 +240,7 @@ export function setMuted(muted: boolean) {
   } catch {
     // storage can be blocked; the setting just won't be remembered
   }
+  window.dispatchEvent(new Event(MUTE_EVENT));
 }
 
 /** The mute switch: [muted, toggle] */
@@ -176,14 +266,21 @@ export function resetSounds() {
   lastPlayed.clear();
 }
 
-/** Plays a random one of these voices, through the dungeon echo or dry */
-function play(voices: Voice[], echo: boolean) {
-  if (isMuted() || typeof AudioContext === 'undefined') return;
+/** The page's AudioContext, made on first use and woken if it's asleep */
+export function audioContext(): AudioContext | null {
+  if (typeof AudioContext === 'undefined') return null;
   audio ??= { ctx: new AudioContext(), echo: null };
-  const { ctx } = audio;
   // browsers suspend audio until a tap, and phones when they sleep; a click
   // is the moment to wake it
-  if (ctx.state === 'suspended') void ctx.resume();
+  if (audio.ctx.state === 'suspended') void audio.ctx.resume();
+  return audio.ctx;
+}
+
+/** Plays a random one of these voices, through the dungeon echo or dry */
+function play(voices: Voice[], echo: boolean) {
+  if (isMuted()) return;
+  const ctx = audioContext();
+  if (!ctx || !audio) return;
   // timed by the page's clock: a suspended context's clock stands still
   const now = performance.now();
   const last = lastPlayed.get(voices);
@@ -220,3 +317,12 @@ export const useTap = () => useSound(TAP_VOICES, false);
 /** Plays a click's sound outside React (see ClickSounds) */
 export const playClick = (kind: 'tick' | 'tap') =>
   play(kind === 'tap' ? TAP_VOICES : TICK_VOICES, false);
+
+/** Your answer lands on the boss */
+export const useHitSound = () => useSound(HIT_VOICES);
+
+/** Your answer misses */
+export const useMissSound = () => useSound(MISS_VOICES);
+
+/** The boss strikes you and a heart is lost */
+export const useDamageSound = () => useSound(DAMAGE_VOICES);

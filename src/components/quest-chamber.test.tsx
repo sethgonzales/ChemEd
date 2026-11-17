@@ -19,6 +19,21 @@ import { createRng } from '~/utils/quest';
 import { parseEquation } from '~/utils/reactions';
 import QuestChamber from './quest-chamber';
 
+const sounds = {
+  hit: jest.fn(),
+  miss: jest.fn(),
+  damage: jest.fn(),
+  treasure: jest.fn(),
+};
+jest.mock('~/utils/sounds', () => ({
+  ...jest.requireActual('~/utils/sounds'),
+  useHitSound: () => sounds.hit,
+  useMissSound: () => sounds.miss,
+  useDamageSound: () => sounds.damage,
+  useTreasureSound: () => sounds.treasure,
+}));
+beforeEach(() => Object.values(sounds).forEach((f) => f.mockClear()));
+
 const chamber = findChamber('balancing')!;
 const SEED = 7;
 
@@ -190,6 +205,60 @@ describe('a quest chamber', () => {
     expect(onReplay).toHaveBeenCalled();
     await user().click(screen.getByRole('button', { name: 'Back to the map' }));
     expect(onExit).toHaveBeenCalled();
+  });
+});
+
+describe('the fight’s sounds', () => {
+  it('strike the boss for a right answer', async () => {
+    setup();
+    await walkToBoss();
+    await pickAnswer(atBoss(), true);
+    expect(sounds.hit).toHaveBeenCalledTimes(1);
+    expect(sounds.damage).not.toHaveBeenCalled();
+  });
+
+  it('miss for a wrong one, then take damage as the boss’s attack lands', async () => {
+    setup();
+    await walkToBoss();
+    const q = atBoss().question!;
+    await user().click(choice(q, (q.answer + 1) % q.choices.length));
+    expect(sounds.miss).toHaveBeenCalledTimes(1);
+    expect(sounds.damage).not.toHaveBeenCalled();
+    act(() => jest.advanceTimersByTime(DURATION_MS.attack));
+    expect(sounds.damage).toHaveBeenCalledTimes(1);
+    expect(sounds.hit).not.toHaveBeenCalled();
+  });
+
+  it('play the treasure on the loot screen', async () => {
+    setup();
+    await walkToBoss();
+    let s = atBoss();
+    while (s.stage === 'boss') {
+      await pickAnswer(s, true);
+      s = answer(s, chamber, true);
+      act(() => jest.advanceTimersByTime(DURATION_MS.defeat + 200));
+    }
+    expect(sounds.treasure).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the chamber’s stage', () => {
+  it('is reported as it changes, so the music can follow the fight', async () => {
+    const onStage = jest.fn();
+    render(
+      <QuestChamber
+        chamber={chamber}
+        course="general"
+        seed={SEED}
+        onClear={jest.fn()}
+        onExit={jest.fn()}
+        onReplay={jest.fn()}
+        onStage={onStage}
+      />,
+    );
+    expect(onStage).toHaveBeenLastCalledWith('story');
+    await walkToBoss();
+    expect(onStage).toHaveBeenLastCalledWith('boss');
   });
 });
 

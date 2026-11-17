@@ -4,6 +4,9 @@ import {
   resetSounds,
   setMuted,
   useBloop,
+  useDamageSound,
+  useHitSound,
+  useMissSound,
   useDoorSound,
   useMuted,
   useTap,
@@ -11,48 +14,7 @@ import {
   useTick,
   useTreasureSound,
 } from './sounds';
-
-function mockAudioContext() {
-  const param = () => ({
-    value: 0,
-    setValueAtTime: jest.fn(),
-    exponentialRampToValueAtTime: jest.fn(),
-  });
-  type AudioNodeMock = {
-    type: string;
-    frequency: ReturnType<typeof param>;
-    gain: ReturnType<typeof param>;
-    delayTime: ReturnType<typeof param>;
-    connect: jest.Mock;
-    start: jest.Mock;
-    stop: jest.Mock;
-  };
-  const node = (): AudioNodeMock => {
-    const n: AudioNodeMock = {
-      type: '',
-      frequency: param(),
-      gain: param(),
-      delayTime: param(),
-      connect: jest.fn(() => n),
-      start: jest.fn(),
-      stop: jest.fn(),
-    };
-    return n;
-  };
-  const ctx = {
-    currentTime: 0,
-    state: 'running' as AudioContextState,
-    resume: jest.fn(() => Promise.resolve()),
-    destination: {},
-    createOscillator: jest.fn(node),
-    createGain: jest.fn(node),
-    createBiquadFilter: jest.fn(node),
-    createDelay: jest.fn(node),
-  };
-  const AudioContext = jest.fn(() => ctx);
-  Object.assign(globalThis, { AudioContext });
-  return { AudioContext, ctx };
-}
+import { mockAudioContext } from './test-audio';
 
 // every pitch the oscillators were given
 const pitches = (ctx: ReturnType<typeof mockAudioContext>['ctx']) =>
@@ -159,6 +121,49 @@ describe('useThunk (a wrong answer)', () => {
     const [[to]] = osc.frequency.exponentialRampToValueAtTime.mock.calls;
     expect(to).toBeLessThan(hz[0]);
     for (const t of tones(ctx)) expect(t.volume).toBeLessThan(0.35); // under the door
+  });
+});
+
+describe('battle sounds', () => {
+  const play = (useSound: () => () => void) => {
+    resetSounds(); // a fresh AudioContext, so each sound is measured alone
+    const { ctx } = mockAudioContext();
+    renderHook(() => useSound()).result.current();
+    const oscs = ctx.createOscillator.mock.results.map(({ value }) => value);
+    return {
+      hz: pitches(ctx),
+      types: oscs.map((o) => o.type),
+      // where each sliding tone ends up, against where it started
+      slides: oscs.flatMap((o) => {
+        const [[from]] = o.frequency.setValueAtTime.mock.calls;
+        const ramp = o.frequency.exponentialRampToValueAtTime.mock.calls[0];
+        return ramp ? [ramp[0] / from] : [];
+      }),
+      loudest: Math.max(...tones(ctx).map((t) => t.volume)),
+      longest: Math.max(...tones(ctx).map((t) => t.length)),
+    };
+  };
+
+  it('a hit on the boss is a quick, bright strike that rings upwards', () => {
+    const hit = play(useHitSound);
+    expect(Math.max(...hit.hz)).toBeGreaterThanOrEqual(600);
+    expect(hit.slides.some((r) => r > 1)).toBe(true);
+    expect(hit.longest).toBeLessThanOrEqual(0.35);
+  });
+
+  it('a miss is a soft whoosh that falls away', () => {
+    const miss = play(useMissSound);
+    expect(miss.slides.every((r) => r < 1)).toBe(true);
+    expect(miss.loudest).toBeLessThan(play(useHitSound).loudest);
+  });
+
+  it('taking damage is a low, harsh crunch', () => {
+    const damage = play(useDamageSound);
+    expect(Math.max(...damage.hz)).toBeLessThanOrEqual(250);
+    expect(damage.types.some((t) => t === 'sawtooth' || t === 'square')).toBe(
+      true,
+    );
+    expect(damage.slides.some((r) => r < 1)).toBe(true);
   });
 });
 

@@ -4,6 +4,7 @@ import Container from '~/components/container';
 import QuestChamber from '~/components/quest-chamber';
 import QuestGate from '~/components/quest-gate';
 import QuestMap from '~/components/quest-map';
+import Setting from '~/components/setting';
 import { CHAMBERS, CHAMBER_IDS, findChamber } from '~/constants/quest-chambers';
 import { ALCHEMIST_ID, alchemistChamber } from '~/constants/quest-final';
 import {
@@ -21,6 +22,7 @@ import {
   saveSetup,
 } from '~/utils/quest-storage';
 import { QUESTION_SOURCES } from '~/utils/quest-sources';
+import { useMusic, useMusicSetting } from '~/utils/music-player';
 
 type View =
   | { at: 'gate' }
@@ -58,6 +60,10 @@ export default function DungeonQuest() {
   const [setup, setSetup] = useState<QuestSetup>(ALL);
   const [progress, setProgress] = useState<Progress>({});
   const [view, setView] = useState<View | null>(null); // read on mount
+  const [stage, setStage] = useState<string>('story'); // the chamber's, for the music
+  const [musicOn, toggleMusic] = useMusicSetting();
+  const fighting = view?.at === 'chamber' && stage === 'boss';
+  useMusic(musicOn && view ? (fighting ? 'boss' : 'dungeon') : null);
 
   useEffect(() => {
     const start = arrive(window.location.search);
@@ -135,9 +141,13 @@ export default function DungeonQuest() {
             onClear={(stars) => clear(chamber.id, view.course, stars)}
             onExit={() => setView({ at: 'map' })}
             onReplay={() => setView({ ...view, seed: newSeed() })}
+            onStage={setStage}
           />
         </>
       )}
+      <Setting checked={musicOn} onChange={toggleMusic}>
+        Music
+      </Setting>
     </Container>
   );
 }

@@ -23,6 +23,13 @@ import {
 } from '~/utils/quest-storage';
 import { parseEquation } from '~/utils/reactions';
 
+const music: (string | null)[] = [];
+jest.mock('~/utils/music-player', () => ({
+  ...jest.requireActual('~/utils/music-player'),
+  useMusic: (id: string | null) => music.push(id),
+}));
+const nowPlaying = () => music.at(-1);
+
 const chamber = findChamber('balancing')!;
 const RANDOM = 0.25; // Math.random, so the page's seed is known
 const SEED = Math.floor(RANDOM * 2 ** 32);
@@ -38,6 +45,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.spyOn(Math, 'random').mockReturnValue(RANDOM);
   localStorage.clear();
+  music.length = 0;
 });
 afterEach(() => {
   jest.useRealTimers();
@@ -159,5 +167,13 @@ describe('Dungeon Quest', () => {
     ).toBeInTheDocument();
     const sources = screen.getByRole('region', { name: 'Sources' });
     expect(sources).toHaveTextContent(SOURCES.paulingEN.title);
+  });
+
+  it('plays the dungeon theme, with a Music setting to turn it off', async () => {
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit();
+    expect(nowPlaying()).toBe('dungeon');
+    await user().click(screen.getByRole('checkbox', { name: 'Music' }));
+    expect(nowPlaying()).toBeNull();
   });
 });

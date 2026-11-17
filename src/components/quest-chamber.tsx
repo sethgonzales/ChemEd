@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import {
   IconHeart,
   IconHeartFilled,
@@ -10,7 +10,7 @@ import MrG from '~/components/mr-g';
 import QuestScene, { ScenePanel } from '~/components/quest-scene';
 import TypedStory from '~/components/typed-story';
 import { ROOMS } from '~/components/quest-rooms';
-import Villain, { type VillainMode } from '~/components/villain';
+import Villain, { DURATION_MS, type VillainMode } from '~/components/villain';
 import type { QuestChamber as Chamber } from '~/constants/quest-chambers';
 import {
   MAX_HEARTS,
@@ -23,7 +23,13 @@ import {
   type QuestState,
   type QuickQuestion,
 } from '~/utils/quest';
-import { useDoorSound, useThunk, useTreasureSound } from '~/utils/sounds';
+import {
+  useDamageSound,
+  useDoorSound,
+  useHitSound,
+  useMissSound,
+  useTreasureSound,
+} from '~/utils/sounds';
 
 interface Props {
   chamber: Chamber;
@@ -32,6 +38,7 @@ interface Props {
   onClear: (stars: number) => void;
   onExit: () => void; // back to the map
   onReplay: () => void;
+  onStage?: (stage: QuestState<QuickQuestion>['stage']) => void; // e.g. for the music
 }
 
 // Mr. G, small beside the story on phones; on wider screens he's in the corner
@@ -222,6 +229,8 @@ function Loot({
   onExit: () => void;
   onReplay: () => void;
 }) {
+  const playTreasure = useTreasureSound();
+  useEffect(() => playTreasure(), [playTreasure]);
   return (
     <QuestScene
       label="Treasure"
@@ -267,17 +276,27 @@ export default function QuestChamber({
   onClear,
   onExit,
   onReplay,
+  onStage,
 }: Props) {
   const [state, setState] = useState<QuestState<QuickQuestion>>(() =>
     startChamber(chamber, course, seed),
   );
+  useEffect(() => onStage?.(state.stage), [state.stage, onStage]);
   const [mode, setMode] = useState<VillainMode>('idle');
   const [blow, setBlow] = useState(0); // restarts the villain's animation
   const [feedback, setFeedback] = useState('');
   const [won, setWon] = useState<number | null>(null);
-  const playTreasure = useTreasureSound();
-  const playThunk = useThunk();
+  const playHit = useHitSound();
+  const playMiss = useMissSound();
+  const playDamage = useDamageSound();
   const { villain } = chamber;
+
+  // the damage sounds as the boss's attack lands, halfway through its lunge
+  useEffect(() => {
+    if (mode !== 'attack') return;
+    const timer = setTimeout(playDamage, DURATION_MS.attack / 2);
+    return () => clearTimeout(timer);
+  }, [mode, blow, playDamage]);
 
   if (state.stage === 'story')
     return <StoryWall chamber={chamber} onBegin={() => setState(begin)} />;
@@ -304,14 +323,14 @@ export default function QuestChamber({
     const right = i === q.answer;
     const next = answer(state, chamber, right);
     if (right) {
-      playTreasure();
+      playHit();
       setFeedback(
         next.stage === 'loot'
           ? `Hit! ${villain.name} is beaten!`
           : `Hit! ${villain.name} has ${next.bossHp} HP left.`,
       );
     } else {
-      playThunk();
+      playMiss();
       setFeedback(
         next.retries > state.retries
           ? `${villain.name} knocked you down. Your hearts are back, and it has new questions. Mr. G: ${q.explain}`
