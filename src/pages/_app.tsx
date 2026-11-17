@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { Pixelify_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import ClickSounds from '~/components/click-sounds';
 import { GuideProvider } from '~/components/guide';
 import { ThemeProvider } from '~/styles/theme-provider';
@@ -10,9 +10,16 @@ import Loading from '~/components/loading';
 
 import type { AppProps } from 'next/app';
 
-// the 8-bit font for headings and buttons; served by the app, not Google
-const pixel = Pixelify_Sans({
-  subsets: ['latin'],
+// the 8-bit font for headings and buttons: our copy of Pixelify Sans, with a
+// 5 that isn't drawn like an S (see src/fonts/README.md)
+const pixel = localFont({
+  // written out: next/font only reads literal values
+  src: [
+    { path: '../fonts/pixelify-sans-400.woff', weight: '400' },
+    { path: '../fonts/pixelify-sans-500.woff', weight: '500' },
+    { path: '../fonts/pixelify-sans-600.woff', weight: '600' },
+    { path: '../fonts/pixelify-sans-700.woff', weight: '700' },
+  ],
   variable: '--font-pixelify',
 });
 
