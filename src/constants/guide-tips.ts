@@ -76,3 +76,6 @@ export const GENERAL_TIPS = [
 
 // pages with chemicals on the bench, where Mr. G wears his goggles over his eyes
 export const WET_LABS = ['/titrations', '/electrochemistry'];
+
+// the Dungeon Quest, where he wears his hooded cloak and carries a lantern
+export const QUEST_PAGE = '/dungeon-quest';

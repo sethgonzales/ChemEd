@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
+import { QUEST_PALETTE } from '~/constants/quest-outfit';
 import {
   FRAMES,
   PALETTE,
@@ -8,6 +9,54 @@ import {
   type Frame,
 } from '~/constants/mr-g-sprite';
 import MrG from './mr-g';
+
+describe('MrG in the dungeon', () => {
+  const flameFills = (container: HTMLElement) =>
+    [...container.querySelectorAll('rect')]
+      .map((r) => r.getAttribute('fill'))
+      .join();
+
+  afterEach(() => jest.useRealTimers());
+
+  it('wears a hooded cloak and carries a lantern', () => {
+    const { container } = render(<MrG cloak />);
+    expect(
+      screen.getByRole('img', {
+        name: 'Mr. G, in a hooded cloak, carrying a lantern',
+      }),
+    ).toBeInTheDocument();
+    const fills = flameFills(container);
+    expect(fills).toContain(QUEST_PALETTE.V); // the cloak
+    expect(fills).not.toContain(PALETTE.C); // his coat is covered
+  });
+
+  it('has a flickering lantern flame', () => {
+    jest.useFakeTimers();
+    const { container } = render(<MrG cloak />);
+    const seen = new Set<string>();
+    for (let i = 0; i < 6; i++) {
+      seen.add(flameFills(container));
+      act(() => jest.advanceTimersByTime(200));
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it('holds the flame still with reduced motion', () => {
+    jest.useFakeTimers();
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes('reduce'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia;
+    const { container } = render(<MrG cloak />);
+    const first = flameFills(container);
+    act(() => jest.advanceTimersByTime(1000));
+    expect(flameFills(container)).toBe(first);
+    window.matchMedia = original;
+  });
+});
 
 describe('MrG', () => {
   it('is an image named Mr. G', () => {

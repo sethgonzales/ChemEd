@@ -337,3 +337,12 @@ describe('Mr. G’s safety goggles', () => {
     expect(pictured()).toHaveAccessibleName('Mr. G');
   });
 });
+
+describe('Mr. G in the Dungeon Quest', () => {
+  it('wears his hooded cloak and carries a lantern', () => {
+    renderGuide('/dungeon-quest');
+    expect(screen.getByRole('img', { name: /^Mr\. G/ })).toHaveAccessibleName(
+      'Mr. G, in a hooded cloak, carrying a lantern',
+    );
+  });
+});
