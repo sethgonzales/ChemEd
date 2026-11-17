@@ -3,7 +3,6 @@ import Container from '~/components/container';
 import QuestChamber from '~/components/quest-chamber';
 import QuestGate from '~/components/quest-gate';
 import QuestMap from '~/components/quest-map';
-import Setting from '~/components/setting';
 import { CHAMBERS, CHAMBER_IDS, findChamber } from '~/constants/quest-chambers';
 import { ALCHEMIST_ID, alchemistChamber } from '~/constants/quest-final';
 import {
@@ -21,7 +20,7 @@ import {
   saveSetup,
 } from '~/utils/quest-storage';
 import { QUESTION_SOURCES } from '~/utils/quest-sources';
-import { useMusic, useMusicSetting } from '~/utils/music-player';
+import { useMusic } from '~/utils/music-player';
 import { useChimeSound } from '~/utils/sounds';
 
 type View =
@@ -64,7 +63,6 @@ export default function DungeonQuest() {
   // the chamber's stage and boss HP, for the music
   const [stage, setStage] = useState<string>('story');
   const [bossHp, setBossHp] = useState(0);
-  const [musicOn, toggleMusic] = useMusicSetting();
   // the gate and map have the dungeon's theme; a chamber its own, quicker
   // in the boss fight, and quicker still on the boss's last hit point
   const inChamber = view?.at === 'chamber';
@@ -72,7 +70,7 @@ export default function DungeonQuest() {
   useMusic(
     // hushed while the boss's door swings open, and at game over for its
     // own tune
-    musicOn && view && stage !== 'door' && stage !== 'defeat'
+    view && stage !== 'door' && stage !== 'defeat'
       ? inChamber
         ? view.id
         : 'dungeon'
@@ -192,9 +190,6 @@ export default function DungeonQuest() {
           </>
         )}
       </div>
-      <Setting checked={musicOn} onChange={toggleMusic}>
-        Music
-      </Setting>
     </Container>
   );
 }

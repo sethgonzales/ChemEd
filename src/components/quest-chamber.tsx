@@ -73,7 +73,7 @@ function BossDoor({ chamber }: { chamber: Chamber }) {
         <div
           role="img"
           aria-label={`${villain.name}’s door swings open`}
-          className="relative flex h-72 w-56 items-end justify-center overflow-hidden bg-black pixel-frame [--frame-fill:#000] [--frame-outline:#1c1917] [perspective:600px]"
+          className="relative flex h-72 w-56 items-end justify-center overflow-hidden rounded-t-full border-4 border-stone-700 bg-black [perspective:600px]"
         >
           {/* who waits inside, in shadow */}
           <PixelArt
@@ -130,8 +130,12 @@ function StoryWall({
         </div>
       }
     >
-      <div className="px-4 pt-12 pb-4 sm:px-12">
-        <ScenePanel className="flex gap-3">
+      {/* tall, so the story has a wall to itself */}
+      <div
+        data-story
+        className="flex min-h-[28rem] items-center px-4 pt-12 pb-4 sm:px-12"
+      >
+        <ScenePanel className="flex w-full gap-3">
           <PhoneMrG />
           <TypedStory lines={chamber.story} />
         </ScenePanel>
@@ -146,13 +150,14 @@ function RoomDoor({ open }: { open: boolean }) {
     <div
       role="img"
       aria-label={open ? 'The door is open' : 'The door is shut'}
-      className="relative h-36 w-24 shrink-0 overflow-hidden bg-amber-200 pixel-frame [--frame-fill:#fde68a] [--frame-outline:#44403c] [perspective:400px] sm:h-52 sm:w-36"
+      // arched, in a stone frame
+      className="relative h-36 w-24 shrink-0 overflow-hidden rounded-t-full border-4 border-stone-600 bg-black [perspective:400px] sm:h-52 sm:w-36"
     >
-      {/* the light beyond, seen once it opens */}
-      <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_60%,#fef3c7,#f59e0b_70%)]" />
+      {/* the dark beyond, seen once it opens */}
+      <span data-beyond className="absolute inset-0 bg-black" />
       <span
         className={cn(
-          'absolute inset-0 origin-left bg-[repeating-linear-gradient(90deg,#78350f_0_14px,#5b2a0b_14px_17px)] transition-transform duration-700 ease-in',
+          'absolute inset-0 origin-left rounded-t-full bg-[repeating-linear-gradient(90deg,#78350f_0_14px,#5b2a0b_14px_17px)] transition-transform duration-700 ease-in',
           open && '[transform:rotateY(-75deg)]',
         )}
       >

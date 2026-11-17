@@ -134,7 +134,7 @@ describe('the Alchemist’s gate on the map', () => {
   });
 });
 describe('the map’s layout', () => {
-  it('joins the doors with a winding trail, ending at the Alchemist’s gate', () => {
+  it('floats its doors across the map, with no trail between them', () => {
     const { container } = render(
       <QuestMap
         setup={{ topics: ['periodic', 'lewis', 'states'], course: 'general' }}
@@ -143,8 +143,7 @@ describe('the map’s layout', () => {
         onChange={jest.fn()}
       />,
     );
-    // three chambers and the gate: three stretches of trail between them
-    expect(container.querySelectorAll('[data-trail]')).toHaveLength(3);
+    expect(container.querySelectorAll('[data-trail]')).toHaveLength(0);
     const across = [...container.querySelectorAll<HTMLElement>('[data-x]')].map(
       (el) => Number(el.dataset.x),
     );

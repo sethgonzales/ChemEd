@@ -237,12 +237,11 @@ describe('Dungeon Quest', () => {
     expect(sources).toHaveTextContent(SOURCES.paulingEN.title);
   });
 
-  it('plays the dungeon theme, with a Music setting to turn it off', async () => {
+  it('plays the dungeon theme, with no Music checkbox: the header’s sound button rules it', () => {
     saveSetup({ topics: ['balancing'], course: 'general' });
     visit();
     expect(nowPlaying()).toBe('dungeon');
-    await user().click(screen.getByRole('checkbox', { name: 'Music' }));
-    expect(nowPlaying()).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Music' })).toBeNull();
   });
 
   it('enters a chamber with a pause in the music, a chime, then its theme', async () => {

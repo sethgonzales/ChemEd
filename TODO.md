@@ -19,6 +19,7 @@
 
 ## Improvements
 
+- [ ] **Volume control in the header**: make the volume of the app's sounds and music adjustable from the header's sound button, rather than only on or off.
 - [x] Periodic Table: more colour modes (metal/nonmetal, electronegativity, atomic radius) and search
 - [x] States of Matter: heating curve, choice of substance (water, benzene, mercury)
   - [x] Solid mercury's heat capacity at its melting point (NIST-JANAF, 28.485 J/(mol·K))

@@ -160,7 +160,7 @@ export function finaleVersion(track: Track): Track {
 
 const SLIME_ROOTS = ['G', 'F', 'G', 'D', 'G', 'F', 'C', 'D']; // a bar each
 
-export const THEMES: Record<string, Track> = {
+const WRITTEN: Record<string, Track> = {
   // the gate and map: background music while choosing. A minor, slow and
   // low: a walking bass, a soft organ, and a few distant bells
   dungeon: {
@@ -513,4 +513,27 @@ export const THEMES: Record<string, Track> = {
 };
 
 /** A place's theme: a chamber's, or the dungeon's for the gate and map */
+// Tunes sit in the middle of the range, not up where they grate: a melody
+// averaging above A4, or reaching over E5, drops an octave until it doesn't
+const MELODY: Instrument[] = ['lead', 'pluck', 'bell'];
+const MEAN_CEILING = 440; // Hz, A4
+const TOP_CEILING = 660; // Hz, about E5
+function settle(voice: Voice): Voice {
+  if (!MELODY.includes(voice.instrument)) return voice;
+  const hz = parseVoice(voice.notes)
+    .filter((e) => e.note !== '-')
+    .map((e) => noteHz(e.note));
+  const mean = hz.reduce((a, b) => a + b, 0) / (hz.length || 1);
+  return mean > MEAN_CEILING || Math.max(0, ...hz) > TOP_CEILING
+    ? settle({ ...voice, notes: octaveDown(voice.notes) })
+    : voice;
+}
+
+export const THEMES: Record<string, Track> = Object.fromEntries(
+  Object.entries(WRITTEN).map(([id, t]) => [
+    id,
+    { ...t, voices: t.voices.map(settle) },
+  ]),
+);
+
 export const themeFor = (id: string) => THEMES[id] ?? THEMES.dungeon;

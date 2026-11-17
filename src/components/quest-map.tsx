@@ -8,12 +8,7 @@ import { CHAMBERS } from '~/constants/quest-chambers';
 import { ALCHEMIST_ID, alchemistOpen } from '~/constants/quest-final';
 import { ALCHEMIST } from '~/constants/villains/alchemist';
 import { cn } from '~/utils/cn';
-import {
-  columnsFor,
-  mapLayout,
-  trailPath,
-  type MapStop,
-} from '~/utils/quest-trail';
+import { columnsFor, mapLayout, type MapStop } from '~/utils/quest-trail';
 import { useEscape } from '~/utils/use-escape';
 import {
   COURSES,
@@ -241,7 +236,7 @@ export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
   const open = alchemistOpen(setup.topics, progress, setup.course);
   // a beaten chamber the student tapped, waiting for them to confirm a replay
   const [replaying, setReplaying] = useState<DoorInfo | null>(null);
-  // every chosen door, then the Alchemist's gate, snaking across the map
+  // every chosen door, then the Alchemist's gate, floating across the map
   const [mapRef, cols] = useColumns();
   const { stops, rows } = mapLayout(n + 1, cols);
   const door = (d: DoorInfo, i: number) => {
@@ -283,28 +278,6 @@ export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
         className="relative mx-4 my-2"
         style={{ height: rows * ROW_HEIGHT }}
       >
-        {/* the trail, door to door, behind them */}
-        <svg
-          aria-hidden="true"
-          viewBox={`0 0 100 ${rows}`}
-          preserveAspectRatio="none"
-          className="pointer-events-none absolute inset-0 h-full w-full"
-        >
-          {stops.slice(1).map((b, i) => (
-            <path
-              key={i}
-              data-trail
-              d={trailPath(stops[i], b, cols)}
-              fill="none"
-              stroke="#d6c7b0"
-              strokeOpacity={0.6}
-              strokeWidth={6}
-              strokeLinecap="round"
-              strokeDasharray="0.1 14"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-        </svg>
         <ol>
           {chosen.map(door)}
           {open ? (

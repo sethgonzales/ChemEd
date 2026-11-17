@@ -1,4 +1,4 @@
-import { columnsFor, mapLayout, trailPath } from './quest-trail';
+import { columnsFor, mapLayout } from './quest-trail';
 
 describe('the map’s layout', () => {
   it('fits two doors a row on a phone, three or four on wider screens', () => {
@@ -28,41 +28,5 @@ describe('the map’s layout', () => {
       expect(y).toBeGreaterThan(0);
       expect(y).toBeLessThan(1);
     }
-  });
-});
-
-describe('the trail between two stops', () => {
-  it('runs nearly straight along a row, bending only a little', () => {
-    const { stops } = mapLayout(2, 3);
-    const [a, b] = stops;
-    const n = trailPath(a, b, 3)
-      .match(/-?[\d.]+/g)!
-      .map(Number);
-    const [c1y, c2y] = [n[3], n[5]];
-    // the control points sit near the straight line from one door to the next
-    const line = (k: number) => a.y + (b.y - a.y) * k;
-    expect(Math.abs(c1y - line(1 / 3))).toBeLessThan(
-      Math.abs(b.y - a.y) * 0.15,
-    );
-    expect(Math.abs(c2y - line(2 / 3))).toBeLessThan(
-      Math.abs(b.y - a.y) * 0.15,
-    );
-  });
-
-  it('runs from one to the other', () => {
-    const { stops } = mapLayout(2, 3);
-    const d = trailPath(stops[0], stops[1], 3);
-    expect(d.startsWith(`M ${stops[0].x} ${stops[0].y}`)).toBe(true);
-    expect(d.endsWith(`${stops[1].x} ${stops[1].y}`)).toBe(true);
-  });
-
-  it('swings out past the edge door at the end of a row, turning down to the next', () => {
-    const { stops } = mapLayout(4, 3);
-    const d = trailPath(stops[2], stops[3], 3);
-    const xs = d
-      .match(/-?[\d.]+/g)!
-      .map(Number)
-      .filter((_, i) => i % 2 === 0);
-    expect(Math.max(...xs)).toBeGreaterThan(stops[2].x);
   });
 });

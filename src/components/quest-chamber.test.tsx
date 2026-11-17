@@ -120,6 +120,15 @@ const hp = () =>
 const hearts = () => screen.getByLabelText(/hearts left/);
 
 describe('a quest chamber', () => {
+  it('tells its story on a tall wall, not a squashed strip', () => {
+    setup();
+    expect(
+      screen
+        .getByRole('region', { name: /the story/ })
+        .querySelector('[data-story]'),
+    ).toHaveClass('min-h-[28rem]');
+  });
+
   it('opens on Mr. G’s story wall', () => {
     setup();
     expect(screen.getByText(chamber.story[0])).toBeInTheDocument();
@@ -198,7 +207,10 @@ describe('a quest chamber', () => {
       screen.getAllByRole('button', { name: 'That’s my answer' }),
     ).toHaveLength(1);
     await user().click(screen.getByRole('button', { name: 'Solve (dev)' }));
-    expect(within(door).getByRole('img', { name: /open/ })).toBeInTheDocument();
+    const open = within(door).getByRole('img', { name: /open/ });
+    // arched at the top, and dark beyond once it's open
+    expect(open).toHaveClass('rounded-t-full');
+    expect(open.querySelector('[data-beyond]')).toHaveClass('bg-black');
     expect(
       within(door).getByRole('button', { name: 'Next door' }),
     ).toBeInTheDocument();

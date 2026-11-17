@@ -1,11 +1,6 @@
-import { act, renderHook } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { THEMES, noteHz, parseVoice } from './music';
-import {
-  playMusic,
-  resetMusic,
-  stopMusic,
-  useMusicSetting,
-} from './music-player';
+import { playMusic, resetMusic, stopMusic } from './music-player';
 import { resetSounds, setMuted } from './sounds';
 import { mockAudioContext, type MockAudioContext } from './test-audio';
 
@@ -158,16 +153,5 @@ describe('the music player', () => {
     const before = played().length;
     run(3);
     expect(played()).toHaveLength(before);
-  });
-});
-
-describe('useMusicSetting', () => {
-  it('is on to start with, and remembers being turned off', () => {
-    const { result, unmount } = renderHook(() => useMusicSetting());
-    expect(result.current[0]).toBe(true);
-    act(() => result.current[1]());
-    expect(result.current[0]).toBe(false);
-    unmount();
-    expect(renderHook(() => useMusicSetting()).result.current[0]).toBe(false);
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
   eventsBetween,
   fightVersion,
@@ -11,13 +11,12 @@ import { MUTE_EVENT, audioContext, isMuted } from '~/utils/sounds';
 
 // Plays the soundtrack by scheduling each note a moment ahead on the audio
 // clock, which keeps time even when the page is busy. One theme at a time,
-// a place's or its fight version; it follows the sounds' mute switch, and the
-// quest's own Music setting.
+// a place's or its fight version; it follows the sounds' mute switch in the
+// header.
 
 const TICK_MS = 100; // how often the scheduler looks ahead
 const LOOKAHEAD = 0.3; // s of notes scheduled in advance
 const START_DELAY = 0.05; // s, so the first note isn't scheduled in the past
-const MUSIC_KEY = 'chem.quest.music';
 const PLUCK = 0.12; // s a plucked note rings
 const BELL = 1.2; // s a bell rings, over the notes after it
 const SLAP = 0.22; // s a slapped note thumps
@@ -202,28 +201,4 @@ export function useMusic(
 ) {
   useEffect(() => playMusic(place, fight, pause), [place, fight, pause]);
   useEffect(() => stopMusic, []);
-}
-
-function musicOn() {
-  try {
-    return localStorage.getItem(MUSIC_KEY) !== 'false';
-  } catch {
-    return true;
-  }
-}
-
-/** The quest's Music setting: [on, toggle], remembered in this browser */
-export function useMusicSetting() {
-  const [on, setOn] = useState(true);
-  // read after mount, so the server render and first client render match
-  useEffect(() => setOn(musicOn()), []);
-  const toggle = () => {
-    try {
-      localStorage.setItem(MUSIC_KEY, String(!on));
-    } catch {
-      // storage can be blocked; the setting just won't be remembered
-    }
-    setOn(!on);
-  };
-  return [on, toggle] as const;
 }

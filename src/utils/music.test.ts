@@ -112,6 +112,27 @@ describe('the soundtrack', () => {
   });
 });
 
+describe('the soundtrack’s range', () => {
+  const MELODY = ['lead', 'pluck', 'bell'];
+  const pitches = (t: Track) =>
+    t.voices
+      .filter((v) => MELODY.includes(v.instrument))
+      .flatMap((v) => parseVoice(v.notes))
+      .filter((e) => e.note !== '-')
+      .map((e) => noteHz(e.note));
+
+  it.each(Object.entries(THEMES))(
+    '%s keeps its tunes in the middle, not shrill',
+    (_, track) => {
+      const hz = pitches(track);
+      if (!hz.length) return;
+      const mean = hz.reduce((a, b) => a + b, 0) / hz.length;
+      expect(mean).toBeLessThanOrEqual(440); // A4, on average
+      expect(Math.max(...hz)).toBeLessThanOrEqual(660); // nothing over E5
+    },
+  );
+});
+
 describe('finaleVersion', () => {
   it('quickens the fight again for the boss’s last stand, the tune the same', () => {
     for (const track of Object.values(THEMES)) {
