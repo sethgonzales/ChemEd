@@ -1,23 +1,32 @@
 import { useEffect, useState } from 'react';
 import {
-  TRACKS,
   eventsBetween,
+  fightVersion,
   noteHz,
+  themeFor,
   type Instrument,
-  type Track,
 } from '~/utils/music';
 import { MUTE_EVENT, audioContext, isMuted } from '~/utils/sounds';
 
 // Plays the soundtrack by scheduling each note a moment ahead on the audio
-// clock, which keeps time even when the page is busy. One track at a time;
-// it follows the sounds' mute switch, and the quest's own Music setting.
+// clock, which keeps time even when the page is busy. One theme at a time,
+// a place's or its fight version; it follows the sounds' mute switch, and the
+// quest's own Music setting.
 
 const TICK_MS = 100; // how often the scheduler looks ahead
 const LOOKAHEAD = 0.3; // s of notes scheduled in advance
 const START_DELAY = 0.05; // s, so the first note isn't scheduled in the past
 const MUSIC_KEY = 'chem.quest.music';
+const PLUCK = 0.12; // s a plucked note rings
+const BELL = 1.2; // s a bell rings, over the notes after it
 
-export type TrackId = keyof typeof TRACKS;
+const WAVES: Record<Exclude<Instrument, 'kick'>, OscillatorType> = {
+  lead: 'square',
+  bass: 'triangle',
+  pluck: 'square',
+  bell: 'sine',
+  pad: 'sawtooth',
+};
 
 /** One note on an instrument, into `out` */
 function sound(
@@ -38,8 +47,10 @@ function sound(
     osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
     length = 0.15;
   } else {
-    osc.type = instrument === 'lead' ? 'square' : 'triangle';
+    osc.type = WAVES[instrument];
     osc.frequency.setValueAtTime(hz, t);
+    if (instrument === 'pluck') length = Math.min(length, PLUCK);
+    if (instrument === 'bell') length = Math.max(length, BELL);
   }
   gain.gain.setValueAtTime(volume, t);
   // a little gap at the end, so repeated notes are heard apart
@@ -50,18 +61,20 @@ function sound(
 }
 
 interface Playing {
-  id: TrackId;
+  id: string; // the place, and :fight in a fight
   timer: ReturnType<typeof setInterval>;
   out: GainNode;
 }
 
-let wanted: TrackId | null = null; // what should be playing, muted or not
+let wanted: string | null = null; // what should be playing, muted or not
 let playing: Playing | null = null;
 
-function start(id: TrackId) {
+function start(id: string) {
   const ctx = audioContext();
   if (!ctx) return;
-  const track: Track = TRACKS[id];
+  const [place, fight] = id.split(':');
+  const theme = themeFor(place);
+  const track = fight ? fightVersion(theme) : theme;
   const beat = 60 / track.bpm; // s
   const out = ctx.createGain();
   out.connect(ctx.destination);
@@ -102,9 +115,12 @@ function sync() {
 
 let listening = false;
 
-/** Plays a track (carrying on if it's already playing), or stops with null */
-export function playMusic(id: TrackId | null) {
-  wanted = id;
+/**
+ * Plays a place's theme, or its fight version (carrying on if it's already
+ * playing), or stops with null
+ */
+export function playMusic(place: string | null, fight = false) {
+  wanted = place && (fight ? `${place}:fight` : place);
   if (!listening && typeof window !== 'undefined') {
     window.addEventListener(MUTE_EVENT, sync);
     listening = true;
@@ -120,9 +136,9 @@ export function resetMusic() {
   wanted = null;
 }
 
-/** Plays a track while the component is shown (null for silence) */
-export function useMusic(id: TrackId | null) {
-  useEffect(() => playMusic(id), [id]);
+/** Plays a place's theme while the component is shown (null for silence) */
+export function useMusic(place: string | null, fight = false) {
+  useEffect(() => playMusic(place, fight), [place, fight]);
   useEffect(() => stopMusic, []);
 }
 

@@ -62,8 +62,13 @@ export default function DungeonQuest() {
   const [view, setView] = useState<View | null>(null); // read on mount
   const [stage, setStage] = useState<string>('story'); // the chamber's, for the music
   const [musicOn, toggleMusic] = useMusicSetting();
-  const fighting = view?.at === 'chamber' && stage === 'boss';
-  useMusic(musicOn && view ? (fighting ? 'boss' : 'dungeon') : null);
+  // the gate and map have the dungeon's theme; a chamber its own, quicker
+  // in the boss fight
+  const inChamber = view?.at === 'chamber';
+  useMusic(
+    musicOn && view ? (inChamber ? view.id : 'dungeon') : null,
+    inChamber && stage === 'boss',
+  );
 
   useEffect(() => {
     const start = arrive(window.location.search);

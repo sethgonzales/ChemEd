@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { TRACKS, noteHz, parseVoice } from './music';
+import { THEMES, noteHz, parseVoice } from './music';
 import {
   playMusic,
   resetMusic,
@@ -33,8 +33,8 @@ const played = () =>
       Math.round(hz),
     ),
   );
-const opening = (id: keyof typeof TRACKS) =>
-  Math.round(noteHz(parseVoice(TRACKS[id].voices[0].notes)[0].note));
+const opening = (id: string) =>
+  Math.round(noteHz(parseVoice(THEMES[id].voices[0].notes)[0].note));
 
 describe('the music player', () => {
   it('plays a track’s notes as the clock runs', () => {
@@ -54,12 +54,25 @@ describe('the music player', () => {
     expect(played().length).toBeGreaterThanOrEqual(before);
   });
 
-  it('switches to the boss’s track', () => {
+  it('switches to a chamber’s own theme', () => {
     playMusic('dungeon');
     run(1);
-    playMusic('boss');
+    playMusic('states');
     run(1);
-    expect(played()).toContain(opening('boss'));
+    expect(played()).toContain(opening('states'));
+  });
+
+  it('starts the theme over, quicker and with a drum, when the fight begins', () => {
+    playMusic('lewis');
+    run(1);
+    const before = ctx.createOscillator.mock.calls.length;
+    playMusic('lewis', true);
+    run(0.01);
+    const kick = ctx.createOscillator.mock.results
+      .slice(before)
+      .some(({ value }) => value.type === 'sine');
+    expect(kick).toBe(true);
+    expect(played()).toContain(opening('lewis'));
   });
 
   it('stops: no more notes', () => {
@@ -82,7 +95,7 @@ describe('the music player', () => {
   });
 
   it('stops when sounds are muted mid-tune', () => {
-    playMusic('boss');
+    playMusic('balancing', true);
     run(1);
     act(() => setMuted(true));
     const before = played().length;

@@ -26,7 +26,8 @@ import { parseEquation } from '~/utils/reactions';
 const music: (string | null)[] = [];
 jest.mock('~/utils/music-player', () => ({
   ...jest.requireActual('~/utils/music-player'),
-  useMusic: (id: string | null) => music.push(id),
+  useMusic: (place: string | null, fight?: boolean) =>
+    music.push(place && (fight ? `${place} fight` : place)),
 }));
 const nowPlaying = () => music.at(-1);
 
@@ -102,7 +103,7 @@ describe('Dungeon Quest', () => {
     expect(storyWall()).toBeInTheDocument();
   });
 
-  it('keeps the stars from a cleared chamber, and shows them on the map', async () => {
+  it('keeps the stars from a cleared chamber, and shows them on the map, with each place’s music', async () => {
     saveSetup({ topics: ['balancing'], course: 'general' });
     visit();
     await user().click(door('not cleared yet'));
@@ -125,6 +126,7 @@ describe('Dungeon Quest', () => {
       );
     }
 
+    expect(nowPlaying()).toBe('balancing fight'); // the theme, quickened
     let s: QuestState<QuickQuestion> = solveRoom(
       solveRoom(begin(startChamber(chamber, 'general', SEED)), chamber),
       chamber,
@@ -142,8 +144,10 @@ describe('Dungeon Quest', () => {
     }
 
     expect(loadProgress()).toEqual({ general: { balancing: 3 } });
+    expect(nowPlaying()).toBe('balancing'); // calm again over the loot
     await user().click(screen.getByRole('button', { name: 'Back to the map' }));
     expect(door('beaten, 3 of 3 stars')).toBeInTheDocument();
+    expect(nowPlaying()).toBe('dungeon');
   });
 
   it('cites where the chosen chambers’ facts come from', () => {
@@ -175,5 +179,13 @@ describe('Dungeon Quest', () => {
     expect(nowPlaying()).toBe('dungeon');
     await user().click(screen.getByRole('checkbox', { name: 'Music' }));
     expect(nowPlaying()).toBeNull();
+  });
+
+  it('plays a chamber’s own theme, not the dungeon’s', async () => {
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit('?chamber=balancing&course=general');
+    expect(nowPlaying()).toBe('balancing');
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    expect(nowPlaying()).toBe('balancing');
   });
 });

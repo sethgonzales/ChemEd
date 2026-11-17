@@ -1,4 +1,15 @@
-import { TRACKS, eventsBetween, noteHz, parseVoice, trackBeats } from './music';
+import { CHAMBER_IDS } from '~/constants/quest-chambers';
+import { ALCHEMIST_ID } from '~/constants/quest-final';
+import {
+  THEMES,
+  eventsBetween,
+  fightVersion,
+  noteHz,
+  parseVoice,
+  themeFor,
+  trackBeats,
+  type Track,
+} from './music';
 
 // pitch classes, C = 0
 const PC: Record<string, number> = {
@@ -12,9 +23,16 @@ const PC: Record<string, number> = {
 };
 const pitchClass = (note: string) =>
   (PC[note[0]] + (note[1] === '#' ? 1 : 0) + 12) % 12;
-// a minor key: its natural 7th, and the raised 7th that pulls home at cadences
-const minorKey = (tonic: number) =>
-  new Set([0, 2, 3, 5, 7, 8, 10, 11].map((i) => (tonic + i) % 12));
+const written = (notes: string) =>
+  notes
+    .trim()
+    .split(/\s+/)
+    .reduce((sum, n) => sum + Number(n.split(':')[1]), 0);
+const tune = (t: Track) =>
+  t.voices
+    .filter((v) => v.instrument !== 'kick')
+    .map((v) => v.notes)
+    .join('|');
 
 describe('notes', () => {
   it('turns note names into frequencies, A4 at 440 Hz', () => {
@@ -33,49 +51,55 @@ describe('notes', () => {
 });
 
 describe('the soundtrack', () => {
-  it.each(Object.entries(TRACKS))(
-    '%s: every voice loops in step with the others',
-    (_, track) => {
-      const lengths = track.voices.map((v) =>
-        parseVoice(v.notes).reduce(
-          (end, n) => Math.max(end, n.beat + n.beats),
-          0,
-        ),
+  it('has a theme for the gate and map, and one for every chamber and the Alchemist', () => {
+    for (const id of ['dungeon', ...CHAMBER_IDS, ALCHEMIST_ID])
+      expect(THEMES[id]).toBeDefined();
+  });
+
+  it('gives every place a tune of its own', () => {
+    const tunes = Object.values(THEMES).map(tune);
+    expect(new Set(tunes).size).toBe(tunes.length);
+  });
+
+  it('falls back to the dungeon theme for a place without one', () => {
+    expect(themeFor('nowhere')).toBe(THEMES.dungeon);
+    expect(themeFor('states')).toBe(THEMES.states);
+  });
+
+  describe.each(Object.entries(THEMES))('%s', (_, track) => {
+    it('loops with every voice in step', () => {
+      for (const v of track.voices)
+        expect(written(v.notes)).toBe(trackBeats(track));
+    });
+
+    it('stays in its key', () => {
+      const scale = new Set(
+        track.key.scale.map((i) => (pitchClass(track.key.tonic) + i) % 12),
       );
-      // a voice may end on a rest, so compare against the written length
-      for (const v of track.voices) {
-        const written = v.notes
-          .split(/\s+/)
-          .reduce((sum, n) => sum + Number(n.split(':')[1]), 0);
-        expect(written).toBe(trackBeats(track));
-      }
-      for (const l of lengths) expect(l).toBeLessThanOrEqual(trackBeats(track));
-    },
-  );
+      for (const v of track.voices)
+        for (const { note } of parseVoice(v.notes))
+          expect(scale.has(pitchClass(note))).toBe(true);
+    });
 
-  it.each([
-    ['dungeon', 'A'],
-    ['boss', 'E'],
-  ] as const)('%s stays in %s minor', (id, tonic) => {
-    const scale = minorKey(PC[tonic]);
-    for (const v of TRACKS[id].voices)
-      for (const { note } of parseVoice(v.notes))
-        expect(scale.has(pitchClass(note))).toBe(true);
-  });
-
-  it('quickens for the boss', () => {
-    expect(TRACKS.boss.bpm).toBeGreaterThan(TRACKS.dungeon.bpm * 1.4);
-  });
-
-  it('stays quieter than the sound effects, so they cut through', () => {
-    for (const track of Object.values(TRACKS))
+    it('stays quieter than the sound effects, so they cut through', () => {
       for (const v of track.voices) expect(v.volume).toBeLessThanOrEqual(0.1);
+    });
+
+    it('quickens into a fight, with a drum on every beat, keeping its tune', () => {
+      const fight = fightVersion(track);
+      expect(fight.bpm).toBeGreaterThanOrEqual(track.bpm * 1.25);
+      expect(tune(fight)).toBe(tune(track));
+      const kicks = fight.voices.filter((v) => v.instrument === 'kick');
+      expect(kicks).toHaveLength(1);
+      expect(parseVoice(kicks[0].notes)).toHaveLength(trackBeats(track));
+      for (const v of fight.voices)
+        expect(written(v.notes)).toBe(trackBeats(track));
+    });
   });
 });
 
 describe('eventsBetween', () => {
   const track = {
-    bpm: 60,
     voices: [
       { instrument: 'lead' as const, volume: 0.05, notes: 'A3:1 B3:1 C4:2' },
     ],
