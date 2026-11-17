@@ -1,5 +1,6 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { DOOR_MS } from '~/components/quest-chamber';
 import { DURATION_MS } from '~/components/villain';
 import { findChamber } from '~/constants/quest-chambers';
 import { SOURCES } from '~/constants/sources';
@@ -138,6 +139,15 @@ describe('Dungeon Quest', () => {
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
   });
 
+  it('fades each screen in', async () => {
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit();
+    const map = document.querySelector('[data-fade]');
+    expect(map).not.toBeNull();
+    await user().click(door('not cleared yet'));
+    expect(document.querySelector('[data-fade]')).not.toBe(map);
+  });
+
   it('writes its description in the stylized font', () => {
     visit();
     expect(screen.getByText(/Fight through the chambers/)).toHaveClass(
@@ -172,6 +182,8 @@ describe('Dungeon Quest', () => {
         }),
       );
     }
+    expect(nowPlaying()).toBeNull(); // a hush as the boss's door opens
+    act(() => jest.advanceTimersByTime(DOOR_MS));
 
     expect(nowPlaying()).toBe('balancing fight'); // the theme, quickened
     let s: QuestState<QuickQuestion> = solveRoom(

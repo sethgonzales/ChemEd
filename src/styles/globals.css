@@ -146,6 +146,37 @@
     transform: scale(0.9, 1.08);
   }
 }
+/* Each Dungeon Quest screen fades in from the dark; the boss's door swings open */
+@keyframes quest-fade-in {
+  from {
+    opacity: 0;
+    filter: brightness(0);
+  }
+}
+@utility quest-fade-in {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: quest-fade-in 0.5s ease-out;
+  }
+}
+@keyframes quest-door-left {
+  to {
+    transform: rotateY(80deg);
+  }
+}
+@keyframes quest-door-right {
+  to {
+    transform: rotateY(-80deg);
+  }
+}
+@utility quest-door-left {
+  transform-origin: left;
+  animation: quest-door-left 1.1s 0.3s ease-in forwards;
+}
+@utility quest-door-right {
+  transform-origin: right;
+  animation: quest-door-right 1.1s 0.3s ease-in forwards;
+}
+
 /* A torch's flame frames, each shown a third of the time in turn */
 @keyframes quest-frame {
   0% {

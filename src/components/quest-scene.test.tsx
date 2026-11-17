@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import QuestScene, { ScenePanel } from './quest-scene';
+import QuestScene, { FloorLine, ScenePanel } from './quest-scene';
 
 describe('QuestScene', () => {
   it('is a named region holding what happens in the dungeon', () => {
@@ -145,5 +145,21 @@ describe('QuestScene', () => {
       ).toBeGreaterThanOrEqual(3);
       expect(sprite.querySelectorAll('rect').length).toBeGreaterThan(20);
     }
+  });
+
+  it('starts the floor where the scene marks its floor line', () => {
+    const { container } = render(
+      <QuestScene label="The fight" room>
+        <div>
+          <p>Boss</p>
+          <FloorLine />
+        </div>
+      </QuestScene>,
+    );
+    const floor = container
+      .querySelector<SVGElement>('[data-room="floor"]')!
+      .closest('svg')!;
+    // jsdom lays nothing out, so the mark is at 0 px
+    expect(floor.style.top).toBe('0px');
   });
 });

@@ -17,6 +17,14 @@ describe('a boss prowling', () => {
     expect(far.y).toBeLessThan(near.y);
   });
 
+  it('never rises above the floor line it stands on, attacking or not', () => {
+    for (const attack of [0, 0.5, 1])
+      for (let i = 0; i < 100; i++)
+        expect(
+          stance((i / 100) * PROWL_PERIOD, attack).y,
+        ).toBeGreaterThanOrEqual(0);
+  });
+
   it('sways from side to side', () => {
     const xs = samples.map((s) => s.x);
     expect(Math.min(...xs)).toBeLessThan(0);

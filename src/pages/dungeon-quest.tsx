@@ -70,7 +70,12 @@ export default function DungeonQuest() {
   const inChamber = view?.at === 'chamber';
   const fighting = inChamber && stage === 'boss';
   useMusic(
-    musicOn && view ? (inChamber ? view.id : 'dungeon') : null,
+    // hushed while the boss's door swings open
+    musicOn && view && stage !== 'door'
+      ? inChamber
+        ? view.id
+        : 'dungeon'
+      : null,
     fighting && (bossHp === 1 ? 'finale' : true),
     // stepping into a chamber: a hush and a chime before its theme
     inChamber && !fighting ? ENTER_PAUSE : 0,
@@ -142,43 +147,50 @@ export default function DungeonQuest() {
       sources={cited}
       className="gap-4"
     >
-      {view?.at === 'gate' && <QuestGate initial={setup} onEnter={enter} />}
-      {view?.at === 'map' && (
-        <QuestMap
-          setup={setup}
-          progress={progress}
-          onPick={(id) => {
-            playChime();
-            setView({
-              at: 'chamber',
-              id,
-              course: setup.course,
-              seed: newSeed(),
-            });
-          }}
-          onChange={() => setView({ at: 'gate' })}
-        />
-      )}
-      {view?.at === 'chamber' && chamber && (
-        <>
-          <p className="font-pixel text-sm">
-            {chamber.topic} · {COURSES[view.course]}
-          </p>
-          <QuestChamber
-            key={view.seed}
-            chamber={chamber}
-            course={view.course}
-            seed={view.seed}
-            onClear={(stars) => clear(chamber.id, view.course, stars)}
-            onExit={() => setView({ at: 'map' })}
-            onReplay={() => setView({ ...view, seed: newSeed() })}
-            onStage={(s, hp) => {
-              setStage(s);
-              setBossHp(hp);
+      {/* each screen fades in from the dark */}
+      <div
+        key={screenKey ?? 'none'}
+        data-fade
+        className="quest-fade-in flex flex-col gap-4"
+      >
+        {view?.at === 'gate' && <QuestGate initial={setup} onEnter={enter} />}
+        {view?.at === 'map' && (
+          <QuestMap
+            setup={setup}
+            progress={progress}
+            onPick={(id) => {
+              playChime();
+              setView({
+                at: 'chamber',
+                id,
+                course: setup.course,
+                seed: newSeed(),
+              });
             }}
+            onChange={() => setView({ at: 'gate' })}
           />
-        </>
-      )}
+        )}
+        {view?.at === 'chamber' && chamber && (
+          <>
+            <p className="font-pixel text-sm">
+              {chamber.topic} · {COURSES[view.course]}
+            </p>
+            <QuestChamber
+              key={view.seed}
+              chamber={chamber}
+              course={view.course}
+              seed={view.seed}
+              onClear={(stars) => clear(chamber.id, view.course, stars)}
+              onExit={() => setView({ at: 'map' })}
+              onReplay={() => setView({ ...view, seed: newSeed() })}
+              onStage={(s, hp) => {
+                setStage(s);
+                setBossHp(hp);
+              }}
+            />
+          </>
+        )}
+      </div>
       <Setting checked={musicOn} onChange={toggleMusic}>
         Music
       </Setting>

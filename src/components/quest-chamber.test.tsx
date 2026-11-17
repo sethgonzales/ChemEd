@@ -17,7 +17,7 @@ import {
 import { balancingRooms } from '~/utils/quest-balancing';
 import { createRng } from '~/utils/quest';
 import { parseEquation } from '~/utils/reactions';
-import QuestChamber from './quest-chamber';
+import QuestChamber, { DOOR_MS } from './quest-chamber';
 
 const sounds = {
   hit: jest.fn(),
@@ -97,6 +97,7 @@ async function walkToBoss() {
   await user().click(screen.getByRole('button', { name: 'Next door' }));
   await solve(1);
   await user().click(screen.getByRole('button', { name: 'Face the boss' }));
+  act(() => jest.advanceTimersByTime(DOOR_MS)); // the boss's door swings open
 }
 
 const choice = (q: QuickQuestion, i: number) =>
@@ -145,6 +146,7 @@ describe('a quest chamber', () => {
 
     await solve(1);
     await user().click(screen.getByRole('button', { name: 'Face the boss' }));
+    act(() => jest.advanceTimersByTime(DOOR_MS));
     expect(
       screen.getByRole('img', { name: 'The Unbalanced Golem' }),
     ).toBeInTheDocument();
@@ -168,6 +170,44 @@ describe('a quest chamber', () => {
     expect(hearts()).toHaveAccessibleName(
       `${MAX_HEARTS} of ${MAX_HEARTS} hearts left`,
     );
+  });
+
+  it('swings the boss’s door open, then fades into the fight', async () => {
+    const onStage = jest.fn();
+    render(
+      <QuestChamber
+        chamber={chamber}
+        course="general"
+        seed={SEED}
+        onClear={jest.fn()}
+        onExit={jest.fn()}
+        onReplay={jest.fn()}
+        onStage={onStage}
+      />,
+    );
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    await solve(0);
+    await user().click(screen.getByRole('button', { name: 'Next door' }));
+    await solve(1);
+    await user().click(screen.getByRole('button', { name: 'Face the boss' }));
+    expect(
+      screen.getByRole('img', { name: /door swings open/ }),
+    ).toBeInTheDocument();
+    expect(onStage).toHaveBeenLastCalledWith('door', expect.any(Number));
+    expect(screen.queryByRole('meter')).toBeNull(); // not fighting yet
+    act(() => jest.advanceTimersByTime(DOOR_MS));
+    expect(screen.getByRole('meter')).toBeInTheDocument();
+    expect(onStage).toHaveBeenLastCalledWith('boss', expect.any(Number));
+  });
+
+  it('fades each new screen in', async () => {
+    setup();
+    const story = document.querySelector('[data-fade]');
+    expect(story).not.toBeNull();
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    const room = document.querySelector('[data-fade]');
+    expect(room).not.toBeNull();
+    expect(room).not.toBe(story);
   });
 
   it('fights the boss in a room of its own, not in front of a flat wall', async () => {
@@ -315,6 +355,7 @@ describe('developer shortcuts', () => {
     await user().click(screen.getByRole('button', { name: 'Next door' }));
     await user().click(screen.getByRole('button', { name: 'Solve (dev)' }));
     await user().click(screen.getByRole('button', { name: 'Face the boss' }));
+    act(() => jest.advanceTimersByTime(DOOR_MS));
 
     await user().click(screen.getByRole('button', { name: 'Hit (dev)' }));
     act(() => jest.advanceTimersByTime(DURATION_MS.attack + 200));
@@ -353,6 +394,7 @@ describe('the chamber’s backdrop', () => {
     await user().click(screen.getByRole('button', { name: 'Next door' }));
     await solve(1);
     await user().click(screen.getByRole('button', { name: 'Face the boss' }));
+    act(() => jest.advanceTimersByTime(DOOR_MS));
     expect(decor()).toHaveLength(1);
   });
 });
@@ -435,6 +477,7 @@ describe('the Alchemist’s chamber', () => {
     await user().click(screen.getByRole('button', { name: 'Next door' }));
     await solve(1);
     await user().click(screen.getByRole('button', { name: 'Face the boss' }));
+    act(() => jest.advanceTimersByTime(DOOR_MS));
     expect(
       screen.getByRole('img', { name: 'The Alchemist' }),
     ).toBeInTheDocument();

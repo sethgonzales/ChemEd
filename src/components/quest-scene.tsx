@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  type ReactNode,
+  useState,
+  type RefObject,
+} from 'react';
 import SceneDecor from '~/components/scene-decor';
 import Stage from '~/components/stage';
 import { backdropFor, type Backdrop } from '~/constants/quest-backdrops';
@@ -239,9 +246,9 @@ function Torches({ flame }: { flame: Backdrop['flame'] }) {
 }
 
 // The room's floor: flagstones laid in staggered courses, drawn in
-// perspective from where it meets the wall (HORIZON, % down the scene) to the
-// front edge, narrowing toward the back
-const HORIZON = 54; // % down the scene
+// perspective from where it meets the wall (the scene's FloorLine, or
+// HORIZON % down it) to the front edge, narrowing toward the back
+const HORIZON = 54; // % down the scene, until a FloorLine is measured
 const COURSES = 9; // courses of flagstones, back to front
 const SLABS = 7; // slabs across a course, give or take the stagger
 const SPREAD = 1.9; // the front edge's width over the back edge's
@@ -253,7 +260,7 @@ function onFloor(u: number, v: number) {
   const width = 100 * (1 + (SPREAD - 1) * v);
   return {
     x: 50 + (u - 0.5) * width,
-    y: HORIZON + (100 - HORIZON) * v ** DEPTH,
+    y: 100 * v ** DEPTH,
   };
 }
 const quad = (u0: number, u1: number, v0: number, v1: number) =>
@@ -261,8 +268,37 @@ const quad = (u0: number, u1: number, v0: number, v1: number) =>
     .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
     .join(' ');
 
+/** Marks where a room's floor meets the wall: where the boss stands */
+export const FloorLine = () => <div data-floor-line aria-hidden="true" />;
+
+/**
+ * Where the scene's FloorLine sits, in px down from the top of the layer
+ * behind its contents, kept up to date as the scene resizes
+ */
+function useFloorLine(front: RefObject<HTMLDivElement | null>, on: boolean) {
+  const [top, setTop] = useState<number | null>(null);
+  useEffect(() => {
+    const layer = front.current;
+    const mark = layer?.querySelector('[data-floor-line]');
+    const box = layer?.parentElement;
+    if (!on || !layer || !mark || !box) return;
+    const measure = () =>
+      setTop(
+        Math.round(
+          mark.getBoundingClientRect().top - box.getBoundingClientRect().top,
+        ),
+      );
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(measure);
+    watch.observe(layer);
+    return () => watch.disconnect();
+  }, [front, on]);
+  return top;
+}
+
 /** A dungeon's flagstone floor, under the wall behind */
-function Floor({ look }: { look: Backdrop }) {
+function Floor({ look, top }: { look: Backdrop; top: number | null }) {
   const slabs = Array.from({ length: COURSES }, (_, row) => {
     const v0 = row / COURSES;
     const v1 = (row + 1) / COURSES;
@@ -309,7 +345,11 @@ function Floor({ look }: { look: Backdrop }) {
       aria-hidden="true"
       viewBox="0 0 100 100"
       preserveAspectRatio="none"
-      className="pointer-events-none absolute inset-0 h-full w-full"
+      className="pointer-events-none absolute inset-x-0 bottom-0 w-full"
+      style={{
+        top: top === null ? `${HORIZON}%` : top,
+        height: top === null ? `${100 - HORIZON}%` : `calc(100% - ${top}px)`,
+      }}
     >
       <g data-room="floor">
         {/* the mortar, showing between the stones */}
@@ -338,7 +378,7 @@ function Floor({ look }: { look: Backdrop }) {
                 cx={s.corner.x + s.width * 0.12}
                 cy={s.corner.y - 0.3}
                 rx={s.width * 0.14}
-                ry={0.6 + (s.corner.y - HORIZON) * 0.015}
+                ry={0.8 + s.corner.y * 0.03}
                 fill={look.growth[i % look.growth.length]}
                 fillOpacity={0.8}
               />
@@ -432,6 +472,8 @@ export default function QuestScene({
   room = false,
 }: Props) {
   const look = backdropFor(backdrop);
+  const front = useRef<HTMLDivElement>(null);
+  const horizon = useFloorLine(front, room);
   return (
     <Stage
       label={label}
@@ -453,7 +495,7 @@ export default function QuestScene({
         <>
           <StoneWall look={look} />
           {look.decor && <SceneDecor decor={look.decor} />}
-          {room && <Floor look={look} />}
+          {room && <Floor look={look} top={horizon} />}
           {/* darkness at the edges, and the torches' light in the middle */}
           <div
             data-decor
@@ -471,7 +513,7 @@ export default function QuestScene({
           />
         </>
       )}
-      <div data-layer="front" className="relative">
+      <div ref={front} data-layer="front" className="relative">
         {children}
       </div>
     </Stage>

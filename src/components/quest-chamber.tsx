@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import {
   IconHeart,
   IconHeartFilled,
@@ -8,7 +8,8 @@ import {
 import Button from '~/components/button';
 import { useGuide } from '~/components/guide';
 import MrG from '~/components/mr-g';
-import QuestScene, { ScenePanel } from '~/components/quest-scene';
+import PixelArt from '~/components/pixel-art';
+import QuestScene, { FloorLine, ScenePanel } from '~/components/quest-scene';
 import TypedStory from '~/components/typed-story';
 import { ROOMS } from '~/components/quest-rooms';
 import Villain, { DURATION_MS, type VillainMode } from '~/components/villain';
@@ -40,13 +41,50 @@ interface Props {
   onClear: (stars: number) => void;
   onExit: () => void; // back to the map
   onReplay: () => void;
-  // the stage, and the boss's HP left: e.g. for the music
-  onStage?: (stage: QuestState<QuickQuestion>['stage'], bossHp: number) => void;
+  // the stage (or the boss's door opening), and the boss's HP left: e.g.
+  // for the music
+  onStage?: (
+    stage: QuestState<QuickQuestion>['stage'] | 'door',
+    bossHp: number,
+  ) => void;
   devTools?: boolean; // shortcuts for testing by hand: solve, hit, miss
 }
 
 // the shortcuts are on while developing, never in the built app
 const DEV = process.env.NODE_ENV === 'development';
+export const DOOR_MS = 1800; // the boss's door swinging open, in a hush
+
+// each screen fades in from the dark as it opens
+const fade = (key: string, screen: ReactNode) => (
+  <div key={key} data-fade className="quest-fade-in">
+    {screen}
+  </div>
+);
+
+/** The boss's door, swinging open on the dark, its eyes waiting inside */
+function BossDoor({ chamber }: { chamber: Chamber }) {
+  const { villain } = chamber;
+  return (
+    <QuestScene backdrop={chamber.id} label={`${villain.name}’s door`}>
+      <div className="flex justify-center px-4 pt-16 pb-12">
+        <div
+          role="img"
+          aria-label={`${villain.name}’s door swings open`}
+          className="relative flex h-72 w-56 items-end justify-center overflow-hidden bg-black pixel-frame [--frame-fill:#000] [--frame-outline:#1c1917] [perspective:600px]"
+        >
+          {/* who waits inside, in shadow */}
+          <PixelArt
+            rows={villain.draw(0, 0)}
+            palette={villain.palette}
+            className="mb-4 brightness-[0.35]"
+          />
+          <span className="quest-door-left absolute inset-y-0 left-0 w-1/2 border-r-4 border-amber-950 bg-[repeating-linear-gradient(90deg,#78350f_0_22px,#5b2a0b_22px_26px)]" />
+          <span className="quest-door-right absolute inset-y-0 right-0 w-1/2 border-l-4 border-amber-950 bg-[repeating-linear-gradient(90deg,#78350f_0_22px,#5b2a0b_22px_26px)]" />
+        </div>
+      </div>
+    </QuestScene>
+  );
+}
 
 /** A developer's shortcut, dashed so it's never mistaken for the game's own */
 const DevButton = ({
@@ -362,9 +400,19 @@ export default function QuestChamber({
   const [state, setState] = useState<QuestState<QuickQuestion>>(() =>
     startChamber(chamber, course, seed),
   );
+  // the last room's way out: the boss's door opening, then the fight
+  const [opening, setOpening] = useState(false);
+  useEffect(() => {
+    if (!opening) return;
+    const timer = setTimeout(() => {
+      setState((s) => solveRoom(s, chamber));
+      setOpening(false);
+    }, DOOR_MS);
+    return () => clearTimeout(timer);
+  }, [opening, chamber]);
   useEffect(
-    () => onStage?.(state.stage, state.bossHp),
-    [state.stage, state.bossHp, onStage],
+    () => onStage?.(opening ? 'door' : state.stage, state.bossHp),
+    [opening, state.stage, state.bossHp, onStage],
   );
   const [mode, setMode] = useState<VillainMode>('idle');
   const [blow, setBlow] = useState(0); // restarts the villain's animation
@@ -386,10 +434,16 @@ export default function QuestChamber({
   }, [mode, blow, playDamage]);
 
   if (state.stage === 'story')
-    return <StoryWall chamber={chamber} onBegin={() => setState(begin)} />;
+    return fade(
+      'story',
+      <StoryWall chamber={chamber} onBegin={() => setState(begin)} />,
+    );
+
+  if (opening) return fade('door', <BossDoor chamber={chamber} />);
 
   if (state.stage === 'room')
-    return (
+    return fade(
+      `room-${state.room}`,
       <Room
         key={state.room}
         chamber={chamber}
@@ -397,18 +451,24 @@ export default function QuestChamber({
         seed={seed}
         room={state.room}
         devTools={devTools}
-        onOpen={() => setState((s) => solveRoom(s, chamber))}
-      />
+        onOpen={() =>
+          state.room + 1 === chamber.rooms
+            ? setOpening(true)
+            : setState((s) => solveRoom(s, chamber))
+        }
+      />,
     );
 
   if (won !== null)
-    return (
-      <Loot chamber={chamber} won={won} onExit={onExit} onReplay={onReplay} />
+    return fade(
+      'loot',
+      <Loot chamber={chamber} won={won} onExit={onExit} onReplay={onReplay} />,
     );
 
   // game over once the boss's last blow has landed
   if (state.stage === 'defeat' && mode === 'idle')
-    return (
+    return fade(
+      'over',
       <GameOver
         chamber={chamber}
         onRematch={() => {
@@ -418,7 +478,7 @@ export default function QuestChamber({
         }}
         onReplay={onReplay}
         onExit={onExit}
-      />
+      />,
     );
 
   const pickChoice = (i: number) => {
@@ -457,7 +517,8 @@ export default function QuestChamber({
     } else setMode('idle');
   };
 
-  return (
+  return fade(
+    'boss',
     <QuestScene
       room
       backdrop={chamber.id}
@@ -498,19 +559,23 @@ export default function QuestChamber({
         <HpBar name={villain.name} hp={state.bossHp} max={chamber.bossHp} />
         <Hearts hearts={state.hearts} />
       </div>
-      {/* room above it to come up close; its feet on the floor */}
-      {/* a little smaller on a phone, so it fits even up close */}
-      <div className="flex origin-bottom scale-[0.7] justify-center pt-20 pb-6 sm:scale-100">
-        <Villain
-          key={blow}
-          villain={villain}
-          mode={mode}
-          onDone={done}
-          prowl
-          scale={1.25}
-          className="max-w-full h-auto"
-        />
+      {/* room above it to come up close, and floor below its feet to come
+          forward onto */}
+      <div className="pt-20 pb-10">
+        {/* a little smaller on a phone, so it fits even up close */}
+        <div className="flex origin-bottom scale-[0.7] justify-center sm:scale-100">
+          <Villain
+            key={blow}
+            villain={villain}
+            mode={mode}
+            onDone={done}
+            prowl
+            scale={1.25}
+            className="max-w-full h-auto"
+          />
+        </div>
+        <FloorLine />
       </div>
-    </QuestScene>
+    </QuestScene>,
   );
 }

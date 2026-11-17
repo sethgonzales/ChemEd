@@ -1,17 +1,19 @@
 // A boss prowling its room while it waits for the answer: swaying from side
-// to side, stalking closer (drawn bigger, lower down), backing off toward the
-// far wall (smaller, higher up), and rushing right up when it attacks.
+// to side, stalking closer (drawn bigger, lower down the floor), backing off
+// toward the far wall (smaller, back up to the floor line it stands on, never
+// above it), and rushing right up when it attacks.
 
 export const PROWL_PERIOD = 7; // s, for one stalk in and back
 const FAR = 0.78; // scale at the far wall
 const NEAR = 1.08; // scale at its closest
 const SWAY = 14; // art pixels to either side
-const RISE = 10; // art pixels higher up at the far wall
+const DROP = 6; // art pixels down the floor at its closest
+const RUSH_DROP = 9; // and at the height of an attack
 const RUSH = 0.35; // extra scale at the height of an attack
 
 export interface Stance {
   x: number; // art pixels from the middle
-  y: number; // art pixels down (negative: up, toward the far wall)
+  y: number; // art pixels down the floor from its floor line, never above
   scale: number;
 }
 
@@ -25,7 +27,7 @@ export function stance(t: number, attack: number): Stance {
   return {
     // two sways for each stalk in and back, so it circles rather than paces
     x: Math.round(SWAY * Math.sin(phase * 2) * (1 - attack)),
-    y: Math.round(-RISE * (1 - close) * (1 - attack)),
+    y: Math.round(DROP * close + (RUSH_DROP - DROP * close) * attack),
     // an attack blends from wherever it was to right up close
     scale: round(FAR + (NEAR - FAR) * close, NEAR + RUSH, attack),
   };
