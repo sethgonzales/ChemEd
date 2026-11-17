@@ -84,6 +84,6 @@ The data gets its own tests: every answer must pass `checkStructure`, use exactl
 ## Decisions (11 Nov 2026)
 
 1. **Approach:** B. Our own builder; port only small pieces of Octet, with attribution.
-2. **Level:** through AP and college: resonance, expanded octets, radicals and formal-charge reasoning are all in scope.
+2. **Level:** through AP Chem: resonance, expanded octets, radicals and formal-charge reasoning are all in scope.
 3. **Skeletons:** students can build skeletons themselves, and easier levels can start from a given skeleton.
 4. **Lone pairs:** dots by default, with a bars option.

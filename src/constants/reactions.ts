@@ -10,7 +10,7 @@ export const REACTION_LEVELS: Record<BalancingReaction['level'], string> = {
   1: 'Synthesis and decomposition',
   2: 'Combustion',
   3: 'Single and double replacement',
-  4: 'Redox (college)',
+  4: 'Redox (AP Chem)',
 };
 
 export const REACTIONS: BalancingReaction[] = [

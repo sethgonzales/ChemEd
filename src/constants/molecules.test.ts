@@ -32,7 +32,7 @@ describe('MOLECULES', () => {
     }
   });
 
-  it('covers the AP and college topics', () => {
+  it('covers the AP Chem topics', () => {
     const structures = MOLECULES.map((m) =>
       fromAnswer(m.skeleton, m.answers[0]),
     );

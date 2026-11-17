@@ -57,7 +57,7 @@ describe('classify: the five types, from the shape of the equation', () => {
     ]);
   });
 
-  it('leaves the college redox equations as other: they fit none of the five', () => {
+  it('leaves the AP Chem redox equations as other: they fit none of the five', () => {
     for (const equation of practice(4)) expect(typeOf(equation)).toBe('other');
   });
 });

@@ -93,7 +93,7 @@ Behaviour tests: the Daniell cell reads 1.10 V; swapping the electrodes picks th
 ## Decisions (13 Nov 2026)
 
 1. **Both tabs**: Galvanic and Electrolytic.
-2. **Nernst equation included**, at AP / first-year college level: concentration sliders for each half-cell, with E = E° − (RT/nF) ln Q shown worked.
+2. **Nernst equation included**, at AP Chem level: concentration sliders for each half-cell, with E = E° − (RT/nF) ln Q shown worked.
 3. **Mix and match**: Zn | Cu (Daniell) is the default, but the point is to swap any metal and any solution in either half-cell and see when a cell works and when it doesn't. A metal in a solution of a different, more easily reduced ion reacts directly in the beaker (e.g. Zn in Cu²⁺ plates copper onto the zinc and gives no useful current); a cell with the same couple on both sides at equal concentrations reads 0 V; without the wire or the salt bridge nothing flows. The engine models each half-cell as an electrode metal plus a solution ion, so mismatches are possible and explained.
 4. **Predict mode is built here**, in the Galvanic tab.
 5. **E° source** (phase 1): no single primary table was reachable (the CRC chapter is paywalled, and LibreTexts mixes older Bard/Milazzo values such as Cl₂ 1.396 V). Values are taken exactly as listed on Wikipedia's "Standard electrode potential (data page)", which credits each row to the CRC (Vanýsek), Atkins or Bard. So Cu is 0.337 V (Bard) and Fe −0.44 V, and Zn | Cu gives 1.10 V.

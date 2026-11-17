@@ -35,7 +35,7 @@ About 25 reactions over four levels:
 1. **Simple synthesis and decomposition:** H₂ + O₂ → H₂O, N₂ + H₂ → NH₃, Na + Cl₂ → NaCl, Mg + O₂ → MgO, H₂O₂ → H₂O + O₂
 2. **Combustion:** CH₄, C₂H₆, C₃H₈ and C₂H₅OH burning in O₂
 3. **Polyatomic ions and double replacement:** AgNO₃ + NaCl, Ca(OH)₂ + H₃PO₄ → Ca₃(PO₄)₂ + H₂O, Al + CuSO₄, Pb(NO₃)₂ + KI
-4. **College redox:** Cu + HNO₃ → Cu(NO₃)₂ + NO + H₂O, KMnO₄ + HCl → KCl + MnCl₂ + Cl₂ + H₂O
+4. **AP Chem redox:** Cu + HNO₃ → Cu(NO₃)₂ + NO + H₂O, KMnO₄ + HCl → KCl + MnCl₂ + Cl₂ + H₂O
 
 Data tests check that every reaction can be balanced, that the stored answer is the smallest whole-number solution (cross-checked against `solve`), and that every element appears on both sides.
 
