@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Button from '~/components/button';
 import Container from '~/components/container';
 import QuestChamber from '~/components/quest-chamber';
 import QuestGate from '~/components/quest-gate';
 import QuestMap from '~/components/quest-map';
 import { CHAMBERS, CHAMBER_IDS, findChamber } from '~/constants/quest-chambers';
+import { ALCHEMIST_ID, alchemistChamber } from '~/constants/quest-final';
 import {
   COURSES,
   parseSetup,
@@ -39,7 +40,7 @@ function arrive(query: string): { setup: QuestSetup; view: View } {
   const params = new URLSearchParams(query);
   const saved = loadSetup(CHAMBER_IDS);
   const chamber = params.get('chamber');
-  if (chamber && findChamber(chamber)) {
+  if (chamber && (chamber === ALCHEMIST_ID || findChamber(chamber))) {
     const { course } = parseSetup(query, CHAMBER_IDS);
     return {
       setup: saved ?? { ...ALL, course },
@@ -78,10 +79,18 @@ export default function DungeonQuest() {
       return next;
     });
 
-  const chamber = view?.at === 'chamber' ? findChamber(view.id) : undefined;
-  // cite the facts behind the chambers in play: this one, or every chosen one
+  // the Alchemist's chamber is built from the setup, fresh for each play
+  const chamber = useMemo(() => {
+    if (view?.at !== 'chamber') return undefined;
+    return view.id === ALCHEMIST_ID
+      ? alchemistChamber(setup.topics, view.course, view.seed)
+      : findChamber(view.id);
+  }, [view, setup.topics]);
+  // cite the facts behind the chambers in play: this one, or every chosen
+  // one (the Alchemist asks from them all)
+  const chosen = CHAMBERS.filter((c) => setup.topics.includes(c.id));
   const cited = (
-    chamber ? [chamber] : CHAMBERS.filter((c) => setup.topics.includes(c.id))
+    chamber && chamber.id !== ALCHEMIST_ID ? [chamber] : chosen
   ).flatMap((c) => QUESTION_SOURCES[c.page].sources);
 
   return (

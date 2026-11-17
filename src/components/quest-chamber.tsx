@@ -84,7 +84,9 @@ function Room({
   const playDoor = useDoorSound();
   const door = chamber.doors[room];
   const last = room + 1 === chamber.rooms;
-  const Puzzle = ROOMS[chamber.id];
+  // the Alchemist's trials borrow a room from another chamber
+  const trial = chamber.trials?.[room];
+  const Puzzle = ROOMS[trial?.id ?? chamber.id];
 
   return (
     <div className="flex flex-col gap-4">
@@ -122,7 +124,7 @@ function Room({
       <Puzzle
         seed={seed}
         course={course}
-        room={room}
+        room={trial?.room ?? room}
         rooms={chamber.rooms}
         onSolve={() => setSolved(true)}
       />
@@ -186,6 +188,11 @@ function Question({
       {question.shown && (
         <p className="text-lg font-semibold text-secondary-500">
           {question.shown}
+        </p>
+      )}
+      {question.topic && (
+        <p className="text-xs font-semibold text-amber-200">
+          From {question.topic}
         </p>
       )}
       <p className="text-xs text-stone-300">{question.about}</p>

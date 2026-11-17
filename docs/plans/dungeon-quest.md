@@ -1,6 +1,6 @@
 # Dungeon Quest — plan
 
-Status: **phases 1–5 built** (17 Nov 2026): the engine, the look, the gate, map and home door, a question source for every simulation, and all eight chambers with their villains and rooms. Next: phase 6, the Alchemist. See Decisions
+Status: **phases 1–6 built** (17 Nov 2026): the engine, the look, the gate, map and home door, a question source for every simulation, and all eight chambers with their villains and rooms. The Alchemist’s final chamber opens once every chosen chamber is cleared: two trials borrowed from them, then 8 HP of mixed questions labelled by topic. See Decisions
 
 A step-by-step dungeon crawl that strings the simulations' quizzes together as levels. Each level is a chamber: a wall of story text sets up a problem, a few rooms each pose a challenge, and a chemistry boss waits at the end. The dungeon grows with the app: every new simulation adds its questions to the bank and its own chamber to the quest.
 

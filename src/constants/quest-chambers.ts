@@ -19,6 +19,9 @@ export interface QuestChamber extends Chamber<QuickQuestion> {
   villain: VillainArt;
   story: string[]; // Mr. G's lines on the story wall
   doors: { name: string; story: string }[]; // one for each room
+  // rooms borrowed from other chambers (the Alchemist's trials), by chamber
+  // id and which of its rooms
+  trials?: { id: string; room: number }[];
 }
 
 // the boss asks its simulation's questions, at that source's levels

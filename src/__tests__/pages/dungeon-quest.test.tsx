@@ -15,7 +15,12 @@ import {
   type QuickQuestion,
 } from '~/utils/quest';
 import { balancingRooms } from '~/utils/quest-balancing';
-import { loadProgress, loadSetup, saveSetup } from '~/utils/quest-storage';
+import {
+  loadProgress,
+  loadSetup,
+  saveProgress,
+  saveSetup,
+} from '~/utils/quest-storage';
 import { parseEquation } from '~/utils/reactions';
 
 const chamber = findChamber('balancing')!;
@@ -136,6 +141,22 @@ describe('Dungeon Quest', () => {
   it('cites where the chosen chambers’ facts come from', () => {
     saveSetup({ topics: ['periodic'], course: 'general' });
     visit();
+    const sources = screen.getByRole('region', { name: 'Sources' });
+    expect(sources).toHaveTextContent(SOURCES.paulingEN.title);
+  });
+
+  it('opens the Alchemist’s chamber once every chosen one is cleared, citing them all', async () => {
+    saveSetup({ topics: ['periodic', 'balancing'], course: 'general' });
+    saveProgress({ general: { periodic: 2, balancing: 1 } });
+    visit();
+    await user().click(
+      screen.getByRole('button', {
+        name: 'The Final Chamber: The Alchemist, not cleared yet',
+      }),
+    );
+    expect(
+      screen.getByRole('region', { name: 'The Final Chamber: the story' }),
+    ).toBeInTheDocument();
     const sources = screen.getByRole('region', { name: 'Sources' });
     expect(sources).toHaveTextContent(SOURCES.paulingEN.title);
   });

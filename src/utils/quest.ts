@@ -39,6 +39,7 @@ export interface QuickQuestion {
   choices: string[];
   answer: number; // index of the right choice
   explain: string; // why that's the answer, for Mr. G after a miss
+  topic?: string; // the chamber it's from, in the Alchemist's mixed fight
 }
 
 /** One item from a list, by the seeded generator */

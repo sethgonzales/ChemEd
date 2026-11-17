@@ -2,6 +2,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DURATION_MS } from '~/components/villain';
 import { findChamber } from '~/constants/quest-chambers';
+import { alchemistChamber } from '~/constants/quest-final';
 import { formatFormula } from '~/utils/lewis';
 import {
   MAX_HEARTS,
@@ -189,5 +190,36 @@ describe('a quest chamber', () => {
     expect(onReplay).toHaveBeenCalled();
     await user().click(screen.getByRole('button', { name: 'Back to the map' }));
     expect(onExit).toHaveBeenCalled();
+  });
+});
+
+describe('the Alchemist’s chamber', () => {
+  const final = alchemistChamber(['balancing'], 'general', SEED);
+
+  it('plays its trials with rooms borrowed from the chosen chambers, then names each question’s topic', async () => {
+    render(
+      <QuestChamber
+        chamber={final}
+        course="general"
+        seed={SEED}
+        onClear={jest.fn()}
+        onExit={jest.fn()}
+        onReplay={jest.fn()}
+      />,
+    );
+    await user().click(screen.getByRole('button', { name: 'Begin' }));
+    expect(
+      screen.getByRole('heading', {
+        name: 'Room 1 of 2: Trial 1: The Unbalanced Golem’s puzzle',
+      }),
+    ).toBeInTheDocument();
+    await solve(0);
+    await user().click(screen.getByRole('button', { name: 'Next door' }));
+    await solve(1);
+    await user().click(screen.getByRole('button', { name: 'Face the boss' }));
+    expect(
+      screen.getByRole('img', { name: 'The Alchemist' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('From Reaction Balancing')).toBeInTheDocument();
   });
 });

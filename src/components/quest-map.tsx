@@ -3,7 +3,10 @@ import Button from '~/components/button';
 import PixelArt from '~/components/pixel-art';
 import { useEffect, useRef, useState } from 'react';
 import QuestScene, { ScenePanel } from '~/components/quest-scene';
+import type { VillainArt } from '~/components/villain';
 import { CHAMBERS } from '~/constants/quest-chambers';
+import { ALCHEMIST_ID, alchemistOpen } from '~/constants/quest-final';
+import { ALCHEMIST } from '~/constants/villains/alchemist';
 import { cn } from '~/utils/cn';
 import { useEscape } from '~/utils/use-escape';
 import {
@@ -66,15 +69,123 @@ function ReplayPrompt({
   );
 }
 
-/** The chosen chambers' doors, in topic order; any one can be played */
+interface DoorInfo {
+  id: string;
+  topic: string;
+  villain: VillainArt;
+}
+
+const FINAL: DoorInfo = {
+  id: ALCHEMIST_ID,
+  topic: 'The Final Chamber',
+  villain: ALCHEMIST,
+};
+
+/** A chamber's door: its boss, standing or crossed out, and its stars */
+function Door({
+  door,
+  stars,
+  onOpen,
+}: {
+  door: DoorInfo;
+  stars: number;
+  onOpen: () => void;
+}) {
+  const { topic, villain } = door;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`${topic}: ${villain.name}, ${
+        stars ? `beaten, ${stars} of ${MAX_HEARTS} stars` : 'not cleared yet'
+      }`}
+      className={cn(
+        'stone-wall pixel-frame flex w-64 cursor-pointer flex-col items-center gap-2 p-3 focus-visible:outline-none',
+        // beaten chambers fade, but can still be replayed
+        stars > 0 && 'opacity-80 saturate-50 hover:opacity-100',
+      )}
+    >
+      <span className="door-arch flex w-full justify-center p-2">
+        {stars ? (
+          <span
+            role="img"
+            aria-label={`${villain.name}, defeated`}
+            className="relative inline-block"
+          >
+            <PixelArt rows={villain.draw(0, 0)} palette={villain.palette} />
+            <svg
+              data-cross
+              aria-hidden="true"
+              viewBox="0 0 10 10"
+              className="absolute inset-0 h-full w-full"
+            >
+              <path
+                d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"
+                stroke="#dc2626"
+                strokeWidth="1"
+                strokeLinecap="square"
+              />
+            </svg>
+          </span>
+        ) : (
+          <PixelArt rows={villain.draw(0, 0)} palette={villain.palette} />
+        )}
+      </span>
+      <span className="pixel-control bg-stone-800 px-3 pt-1 pb-1.5 font-pixel text-lg text-stone-100">
+        {topic}
+      </span>
+      <span className="flex gap-1 text-amber-300" aria-hidden="true">
+        {Array.from({ length: MAX_HEARTS }, (_, i) =>
+          i < stars ? (
+            <IconStarFilled key={i} size={18} />
+          ) : (
+            <IconStar key={i} size={18} />
+          ),
+        )}
+      </span>
+    </button>
+  );
+}
+
+/** The final gate while it's sealed: the Alchemist in shadow, and how far off it is */
+function SealedGate({ cleared, total }: { cleared: number; total: number }) {
+  return (
+    <div className="stone-wall pixel-frame flex w-64 flex-col items-center gap-2 p-3 opacity-70">
+      <span className="door-arch flex w-full justify-center p-2 brightness-0">
+        <PixelArt rows={ALCHEMIST.draw(0, 0)} palette={ALCHEMIST.palette} />
+      </span>
+      <p className="text-center text-sm text-stone-100">
+        The Alchemist’s gate is sealed. Clear every chamber to open it:{' '}
+        {cleared} of {total} cleared.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The chosen chambers' doors, in topic order (any one can be played), then
+ * the Alchemist's gate, which opens once they're all cleared
+ */
 export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
   const chosen = CHAMBERS.filter((c) => setup.topics.includes(c.id));
   const best = progress[setup.course] ?? {};
   const n = chosen.length;
+  const cleared = chosen.filter((c) => (best[c.id] ?? 0) > 0).length;
+  const open = alchemistOpen(setup.topics, progress, setup.course);
   // a beaten chamber the student tapped, waiting for them to confirm a replay
-  const [replaying, setReplaying] = useState<(typeof CHAMBERS)[number] | null>(
-    null,
-  );
+  const [replaying, setReplaying] = useState<DoorInfo | null>(null);
+  const door = (d: DoorInfo) => {
+    const stars = best[d.id] ?? 0;
+    return (
+      <li key={d.id}>
+        <Door
+          door={d}
+          stars={stars}
+          onOpen={() => (stars ? setReplaying(d) : onPick(d.id))}
+        />
+      </li>
+    );
+  };
 
   return (
     <QuestScene
@@ -97,72 +208,14 @@ export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
         />
       )}
       <ol className="flex flex-col items-center gap-6 px-6 pt-12 pb-4">
-        {chosen.map((c) => {
-          const stars = best[c.id] ?? 0;
-          return (
-            <li key={c.id}>
-              <button
-                type="button"
-                onClick={() => (stars ? setReplaying(c) : onPick(c.id))}
-                aria-label={`${c.topic}: ${c.villain.name}, ${
-                  stars
-                    ? `beaten, ${stars} of ${MAX_HEARTS} stars`
-                    : 'not cleared yet'
-                }`}
-                className={cn(
-                  'stone-wall pixel-frame flex w-64 cursor-pointer flex-col items-center gap-2 p-3 focus-visible:outline-none',
-                  // beaten chambers grey out, but can still be replayed
-                  stars > 0 && 'opacity-80 saturate-50 hover:opacity-100',
-                )}
-              >
-                <span className="door-arch flex w-full justify-center p-2">
-                  {stars ? (
-                    <span
-                      role="img"
-                      aria-label={`${c.villain.name}, defeated`}
-                      className="relative inline-block"
-                    >
-                      <PixelArt
-                        rows={c.villain.draw(0, 0)}
-                        palette={c.villain.palette}
-                      />
-                      <svg
-                        data-cross
-                        aria-hidden="true"
-                        viewBox="0 0 10 10"
-                        className="absolute inset-0 h-full w-full"
-                      >
-                        <path
-                          d="M1.5 1.5 8.5 8.5M8.5 1.5 1.5 8.5"
-                          stroke="#dc2626"
-                          strokeWidth="1"
-                          strokeLinecap="square"
-                        />
-                      </svg>
-                    </span>
-                  ) : (
-                    <PixelArt
-                      rows={c.villain.draw(0, 0)}
-                      palette={c.villain.palette}
-                    />
-                  )}
-                </span>
-                <span className="pixel-control bg-stone-800 px-3 pt-1 pb-1.5 font-pixel text-lg text-stone-100">
-                  {c.topic}
-                </span>
-                <span className="flex gap-1 text-amber-300" aria-hidden="true">
-                  {Array.from({ length: MAX_HEARTS }, (_, i) =>
-                    i < stars ? (
-                      <IconStarFilled key={i} size={18} />
-                    ) : (
-                      <IconStar key={i} size={18} />
-                    ),
-                  )}
-                </span>
-              </button>
-            </li>
-          );
-        })}
+        {chosen.map(door)}
+        {open ? (
+          door(FINAL)
+        ) : (
+          <li key={FINAL.id}>
+            <SealedGate cleared={cleared} total={n} />
+          </li>
+        )}
       </ol>
     </QuestScene>
   );

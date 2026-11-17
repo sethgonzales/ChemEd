@@ -98,3 +98,38 @@ describe('QuestMap', () => {
     expect(onPick).toHaveBeenCalledWith('balancing');
   });
 });
+
+describe('the Alchemist’s gate on the map', () => {
+  function chooseTwo(progress: Progress) {
+    const onPick = jest.fn();
+    render(
+      <QuestMap
+        setup={{ topics: ['balancing', 'lewis'], course: 'general' }}
+        progress={progress}
+        onPick={onPick}
+        onChange={jest.fn()}
+      />,
+    );
+    return onPick;
+  }
+
+  it('stays sealed until every chosen chamber is cleared, saying how many are', () => {
+    chooseTwo({ general: { balancing: 2 } });
+    expect(
+      screen.getByText(
+        'The Alchemist’s gate is sealed. Clear every chamber to open it: 1 of 2 cleared.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /The Alchemist/ })).toBeNull();
+  });
+
+  it('opens once they all are', async () => {
+    const onPick = chooseTwo({ general: { balancing: 2, lewis: 1 } });
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'The Final Chamber: The Alchemist, not cleared yet',
+      }),
+    );
+    expect(onPick).toHaveBeenCalledWith('alchemist');
+  });
+});
