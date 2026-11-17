@@ -1,3 +1,4 @@
+import { MOLECULES } from '~/constants/molecules';
 import {
   assessStructure,
   bestStructures,
@@ -10,6 +11,7 @@ import {
   formalCharge,
   formatFormula,
   formulaOf,
+  fromAnswer,
   netCharge,
   octetStatus,
   parseFormula,
@@ -612,6 +614,30 @@ describe('bestStructures', () => {
     );
     expect(best).toHaveLength(6);
     for (const s of best) expect(formalCharge(s, 0)).toBe(0);
+  });
+});
+
+describe('assessStructure, leaving formal-charge marks ungraded', () => {
+  const hydronium = MOLECULES.find((m) => m.id === 'hydronium')!;
+  const drawn = (bracket: boolean): LewisStructure => ({
+    ...fromAnswer(hydronium.skeleton, hydronium.answers[0]),
+    ...(bracket ? { bracket: { charge: 1 } } : {}),
+  });
+
+  it('asks for the O’s +1 mark by default', () => {
+    expect(assessStructure(drawn(true), hydronium).verdict).toBe('valid');
+  });
+
+  it('passes the right structure without it when marks are off', () => {
+    expect(
+      assessStructure(drawn(true), hydronium, { chargeMarks: false }).verdict,
+    ).toBe('best');
+  });
+
+  it('still wants an ion in brackets with its overall charge', () => {
+    expect(
+      assessStructure(drawn(false), hydronium, { chargeMarks: false }).verdict,
+    ).toBe('valid');
   });
 });
 

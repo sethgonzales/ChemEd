@@ -17,6 +17,18 @@ import { analyzeCell, coupleFor, newChallenge } from '~/utils/electrochemistry';
 import { CheckSlot, type SlotCheck } from './check-slot';
 import { ROOMS, lewisOpens, roomRng } from './quest-rooms';
 
+const assessed = jest.fn();
+jest.mock('~/utils/lewis-arrows', () => {
+  const actual = jest.requireActual('~/utils/lewis-arrows');
+  return {
+    ...actual,
+    assessResonance: (...args: unknown[]) => {
+      assessed(...args);
+      return actual.assessResonance(...args);
+    },
+  };
+});
+
 const sounds = { miss: jest.fn() };
 jest.mock('~/utils/sounds', () => ({
   ...jest.requireActual('~/utils/sounds'),
@@ -152,7 +164,8 @@ describe('the Lewis Structures rooms', () => {
 
   it.each([
     ['general', 0],
-    ['ap', 1],
+    ['general', 1],
+    ['ap', 0],
   ] as const)(
     'ask the %s course to draw room %i’s molecule',
     (course, room) => {
@@ -165,7 +178,9 @@ describe('the Lewis Structures rooms', () => {
           onSolve={jest.fn()}
         />,
       );
-      const m = lewisRooms(createRng(SEED), course)[room];
+      const r = lewisRooms(createRng(SEED), course)[room];
+      if (r.kind !== 'draw') throw new Error('a drawing');
+      const m = r.molecule;
       expect(
         screen.getByRole('heading', {
           name: `${m.name}, ${formatFormula(m.formula, m.charge)}`,
@@ -185,6 +200,85 @@ describe('the Lewis Structures rooms', () => {
       />,
     );
     expect(screen.queryAllByLabelText(/ atom: /)).toHaveLength(0);
+  });
+
+  it('grades the drawing without asking for formal-charge marks', async () => {
+    render(
+      <LewisRoom
+        seed={SEED}
+        course="ap"
+        room={0}
+        rooms={2}
+        onSolve={jest.fn()}
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Check your work' }),
+    );
+    expect(assessed).toHaveBeenCalled();
+    expect(assessed.mock.calls.at(-1)![2]).toEqual({ chargeMarks: false });
+  });
+
+  describe('AP’s last room: the best structure by formal charge', () => {
+    const choice = () => {
+      const r = lewisRooms(createRng(SEED), 'ap')[1];
+      if (r.kind !== 'choose') throw new Error('a choice');
+      return r;
+    };
+    const renderChoice = () => {
+      const onSolve = jest.fn();
+      const onMiss = jest.fn();
+      render(
+        <LewisRoom
+          seed={SEED}
+          course="ap"
+          room={1}
+          rooms={2}
+          onSolve={onSolve}
+          onMiss={onMiss}
+        />,
+      );
+      return { onSolve, onMiss, ...choice() };
+    };
+    const option = (i: number) =>
+      screen.getByRole('radio', {
+        name: new RegExp(`Structure ${'ABC'[i]}`),
+      });
+
+    it('shows the molecule’s structures to choose from, their formal charges hidden', () => {
+      const { molecule, options } = renderChoice();
+      expect(
+        screen.getByRole('heading', {
+          name: new RegExp(formatFormula(molecule.formula, molecule.charge)),
+        }),
+      ).toBeInTheDocument();
+      expect(screen.getAllByRole('radio')).toHaveLength(options.length);
+      expect(screen.queryByText(/formal charges add up/i)).toBeNull();
+    });
+
+    it('opens for the best structure', async () => {
+      const { onSolve, best } = renderChoice();
+      await userEvent.click(option(best));
+      await userEvent.click(
+        screen.getByRole('button', { name: 'That’s my answer' }),
+      );
+      expect(onSolve).toHaveBeenCalled();
+      expect(screen.getByRole('status')).toHaveTextContent(/formal charge/i);
+    });
+
+    it('shakes the door at a worse one, and shows every structure’s formal charges', async () => {
+      const { onSolve, onMiss, best } = renderChoice();
+      await userEvent.click(option(best === 0 ? 1 : 0));
+      await userEvent.click(
+        screen.getByRole('button', { name: 'That’s my answer' }),
+      );
+      expect(onSolve).not.toHaveBeenCalled();
+      expect(onMiss).toHaveBeenCalled();
+      expect(screen.getByRole('status')).toHaveTextContent(/Not quite/);
+      expect(
+        screen.getAllByText(/formal charges add up/i).length,
+      ).toBeGreaterThan(1);
+    });
   });
 
   it('opens for a best or accepted structure, not one that’s only almost there', () => {

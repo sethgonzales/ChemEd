@@ -1,5 +1,6 @@
 import {
   assessStructure,
+  type AssessOptions,
   checkDrawing,
   type BondOrder,
   type CurvedArrow,
@@ -160,10 +161,11 @@ function checkArrows(forms: LewisStructure[]): Feedback[] {
 export function assessResonance(
   forms: LewisStructure[],
   molecule: Molecule,
+  options?: AssessOptions,
 ): { verdict: Verdict; feedback: Feedback[] } {
-  if (forms.length === 1) return assessStructure(forms[0], molecule);
+  if (forms.length === 1) return assessStructure(forms[0], molecule, options);
 
-  const results = forms.map((f) => assessStructure(f, molecule));
+  const results = forms.map((f) => assessStructure(f, molecule, options));
 
   if (results.some((r) => r.verdict === 'invalid' || r.verdict === 'valid')) {
     return {

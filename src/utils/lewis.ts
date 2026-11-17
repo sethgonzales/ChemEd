@@ -521,7 +521,8 @@ export function validStructures(
   return found;
 }
 
-const totalFormalCharge = (s: LewisStructure) =>
+/** The sum of every atom's formal charge, ignoring sign: smaller is better */
+export const totalFormalCharge = (s: LewisStructure) =>
   s.atoms.reduce((sum, a) => sum + Math.abs(formalCharge(s, a.id)), 0);
 
 // Electrons beyond each atom's octet (or duet)
@@ -654,9 +655,14 @@ export function checkBrackets(s: LewisStructure, charge: number): Feedback[] {
 }
 
 /** How a student's structure compares with a molecule's accepted answers. */
+export interface AssessOptions {
+  chargeMarks?: boolean; // grade the atoms' formal-charge marks (default true)
+}
+
 export function assessStructure(
   s: LewisStructure,
   molecule: Molecule,
+  { chargeMarks = true }: AssessOptions = {},
 ): { verdict: Verdict; feedback: Feedback[] } {
   const problems = checkStructure(s, molecule);
   const answers = molecule.answers.map((a) => fromAnswer(molecule.skeleton, a));
@@ -682,7 +688,10 @@ export function assessStructure(
   if (problems.length) return { verdict: 'invalid', feedback: problems };
 
   // a correct structure still needs its charges (and any δ marks) right
-  const markProblems = [...checkMarks(s), ...checkBrackets(s, molecule.charge)];
+  const markProblems = [
+    ...(chargeMarks ? checkMarks(s) : []),
+    ...checkBrackets(s, molecule.charge),
+  ];
   const isBest = answers.some((a) => sameStructure(s, a));
   const isAccepted = (molecule.alsoAccepted ?? []).some((a) =>
     sameStructure(s, fromAnswer(molecule.skeleton, a)),

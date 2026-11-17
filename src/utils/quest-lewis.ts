@@ -2,12 +2,17 @@
 // challenges' molecules and their best structures.
 
 import { MOLECULES } from '~/constants/molecules';
+import { layoutSkeleton } from '~/utils/lewis-layout';
 import {
   formalCharge,
   formatFormula,
   fromAnswer,
   parseFormula,
+  sameStructure,
+  totalFormalCharge,
   totalValenceElectrons,
+  validStructures,
+  type LewisStructure,
   type Molecule,
 } from '~/utils/lewis';
 import {
@@ -224,23 +229,111 @@ export function lewisQuestion(rng: Rng, level: number): QuickQuestion {
 
 // The Weaver's rooms: draw a whole molecule from a blank page. Only molecules
 // with one best structure, since a room is no place to draw every resonance
-// form. Both courses meet multiple bonds and ions; AP's last room is one
-// where formal charge or an expanded octet decides the structure.
+// form. Both courses meet multiple bonds and ions. AP's last room instead
+// sets a molecule's valid structures side by side, to choose the best by
+// formal charge.
 const drawable = (test: (level: number) => boolean) =>
   MOLECULES.filter((m) => m.answers.length === 1 && test(m.level));
-const ROOM_POOLS: Record<Course, [Molecule[], Molecule[]]> = {
+const DRAW_POOLS: Record<Course, [Molecule[], Molecule[]]> = {
   general: [drawable((l) => l <= 2), drawable((l) => l === 2 || l === 3)],
-  ap: [drawable((l) => l <= 3), drawable((l) => l >= 3)],
+  ap: [drawable((l) => l <= 3), []],
 };
 
-export function lewisRooms(rng: Rng, course: Course): Molecule[] {
-  const [first, second] = ROOM_POOLS[course];
+export interface StructureChoice {
+  molecule: Molecule;
+  options: LewisStructure[]; // the best and worse ones, in no set order
+  best: number; // which option is the best
+}
+export type LewisRoom =
+  | { kind: 'draw'; molecule: Molecule }
+  | ({ kind: 'choose' } & StructureChoice);
+
+const CHOICES = 3; // structures to choose between
+// bond orders a rival may differ from the best by: O≡C–O against O=C=O, or
+// sulfate's all-single form, but not two P≡O bonds
+const MAX_STRAY = 2;
+
+const bondOrders = (s: LewisStructure) =>
+  s.bonds.reduce((sum, b) => sum + b.order, 0);
+// how far a structure strays from another on the same skeleton, in bond orders
+const distance = (a: LewisStructure, b: LewisStructure) =>
+  a.bonds.reduce(
+    (sum, bond, i) => sum + Math.abs(bond.order - b.bonds[i].order),
+    0,
+  );
+
+// a molecule's best structure, and its near rivals with larger formal charges
+const worseByCharge = (m: Molecule) => {
+  // laid out, since they're drawn side by side
+  const skeleton = layoutSkeleton(m.skeleton);
+  const valid = validStructures(skeleton, m);
+  // the molecule's own best structure, as its data gives it
+  const best = fromAnswer(skeleton, m.answers[0]);
+  return {
+    best,
+    worse: valid.filter(
+      (s) =>
+        totalFormalCharge(s) > totalFormalCharge(best) &&
+        distance(s, best) <= MAX_STRAY,
+    ),
+  };
+};
+const CHOOSABLE = MOLECULES.filter(
+  (m) => m.level >= 2 && worseByCharge(m).worse.length > 0,
+);
+
+/**
+ * The best structure beside worse ones, each with a different total formal
+ * charge where there are enough, and at each the one closest to the best:
+ * the rivals a textbook draws (sulfate's octet-only forms), not S≡O
+ */
+export function structureChoice(rng: Rng, m: Molecule): StructureChoice {
+  const { best, worse } = worseByCharge(m);
+  const levels = [...new Set(worse.map(totalFormalCharge))].sort(
+    (x, y) => x - y,
+  );
+  const picked: LewisStructure[] = [];
+  for (const level of levels) {
+    if (picked.length === CHOICES - 1) break;
+    const here = worse.filter((s) => totalFormalCharge(s) === level);
+    // nearest the best, then with the fewest bonding electrons (S=O over S≡O)
+    const score = (s: LewisStructure) =>
+      distance(s, best) * 100 + bondOrders(s);
+    const lowest = Math.min(...here.map(score));
+    picked.push(
+      pick(
+        rng,
+        here.filter((s) => score(s) === lowest),
+      ),
+    );
+  }
+  // too few levels: more from the closest, unpicked
+  const rest = worse.filter(
+    (s) =>
+      totalFormalCharge(s) === levels[0] &&
+      !picked.some((p) => sameStructure(p, s)),
+  );
+  while (picked.length < CHOICES - 1 && rest.length) {
+    picked.push(rest.splice(Math.floor(rng() * rest.length), 1)[0]);
+  }
+  const at = Math.floor(rng() * (picked.length + 1));
+  const options = [...picked.slice(0, at), best, ...picked.slice(at)];
+  return { molecule: m, options, best: at };
+}
+
+export function lewisRooms(rng: Rng, course: Course): LewisRoom[] {
+  const [first, second] = DRAW_POOLS[course];
   const a = pick(rng, first);
   return [
-    a,
-    pick(
-      rng,
-      second.filter((m) => m !== a),
-    ),
+    { kind: 'draw', molecule: a },
+    course === 'ap'
+      ? { kind: 'choose', ...structureChoice(rng, pick(rng, CHOOSABLE)) }
+      : {
+          kind: 'draw',
+          molecule: pick(
+            rng,
+            second.filter((m) => m !== a),
+          ),
+        },
   ];
 }

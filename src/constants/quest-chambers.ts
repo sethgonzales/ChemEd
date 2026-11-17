@@ -101,7 +101,7 @@ export const CHAMBERS: QuestChamber[] = [
       {
         name: 'The Weaver’s web',
         story:
-          'The last web holds one more molecule. Draw its Lewis structure and the web gives way.',
+          'The last web holds one more molecule. Find its best Lewis structure and the web gives way.',
       },
     ],
     bossHp: 5,

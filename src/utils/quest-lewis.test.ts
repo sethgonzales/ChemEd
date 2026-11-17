@@ -1,9 +1,13 @@
 import { MOLECULES } from '~/constants/molecules';
 import {
+  bestStructures,
   formalCharge,
   formatFormula,
   fromAnswer,
+  sameStructure,
+  totalFormalCharge,
   totalValenceElectrons,
+  validStructures,
 } from './lewis';
 import { createRng } from './quest';
 import {
@@ -15,6 +19,7 @@ import {
   lewisRooms,
   questMolecules,
   sigmaPiQuestion,
+  structureChoice,
   totalLonePairsQuestion,
   totalElectronsQuestion,
 } from './quest-lewis';
@@ -160,35 +165,110 @@ describe('AP questions', () => {
 });
 
 describe('the Weaver’s rooms', () => {
-  it.each(['general', 'ap'] as const)(
-    'ask the %s course to draw two different molecules, each with one best structure',
-    (course) => {
-      const seen = new Set<string>();
-      for (const seed of SEEDS) {
-        const rooms = lewisRooms(createRng(seed), course);
-        expect(rooms).toHaveLength(2);
-        expect(rooms[0].id).not.toBe(rooms[1].id);
-        // no resonance forms to draw in a quick room
-        for (const m of rooms) expect(m.answers).toHaveLength(1);
-        rooms.forEach((m) => seen.add(m.id));
-      }
-      expect(seen.size).toBeGreaterThan(5);
-    },
-  );
+  const drawn = (course: 'general' | 'ap', seed: number) =>
+    lewisRooms(createRng(seed), course).flatMap((r) =>
+      r.kind === 'draw' ? [r.molecule] : [],
+    );
+
+  it('ask General Chemistry to draw two different molecules, each with one best structure', () => {
+    const seen = new Set<string>();
+    for (const seed of SEEDS) {
+      const rooms = lewisRooms(createRng(seed), 'general');
+      expect(rooms.map((r) => r.kind)).toEqual(['draw', 'draw']);
+      const [a, b] = drawn('general', seed);
+      expect(a.id).not.toBe(b.id);
+      // no resonance forms to draw in a quick room
+      for (const m of [a, b]) expect(m.answers).toHaveLength(1);
+      [a, b].forEach((m) => seen.add(m.id));
+    }
+    expect(seen.size).toBeGreaterThan(5);
+  });
 
   it('give General Chemistry multiple bonds and ions to draw, never octet exceptions', () => {
-    const seen = SEEDS.flatMap((seed) =>
-      lewisRooms(createRng(seed), 'general'),
-    );
+    const seen = SEEDS.flatMap((seed) => drawn('general', seed));
     expect(seen.some((m) => m.answers[0].orders.some((o) => o > 1))).toBe(true);
     expect(seen.some((m) => m.charge !== 0)).toBe(true);
     expect(seen.every((m) => m.level <= 3)).toBe(true);
   });
 
-  it('end AP on a structure where formal charge or an expanded octet matters', () => {
-    for (const seed of SEEDS) {
-      const [, last] = lewisRooms(createRng(seed), 'ap');
-      expect(last.level).toBeGreaterThanOrEqual(3);
+  it('set sulfate’s best beside the textbook rivals: one S=O, then all single bonds', () => {
+    const sulfate = MOLECULES.find((m) => m.id === 'sulfate')!;
+    for (const seed of SEEDS.slice(0, 10)) {
+      const { options, best } = structureChoice(createRng(seed), sulfate);
+      const doubles = options
+        .filter((_, i) => i !== best)
+        .map((o) => o.bonds.filter((b) => b.order === 2).length)
+        .sort();
+      expect(doubles).toEqual([0, 1]);
+      expect(options.every((o) => o.bonds.every((b) => b.order < 3))).toBe(
+        true,
+      );
     }
+  });
+
+  it('keep every rival a bond or two from the best, never a far-fetched one', () => {
+    for (const m of MOLECULES.filter((x) => x.level >= 2)) {
+      for (const seed of SEEDS.slice(0, 5)) {
+        const { options, best } = structureChoice(createRng(seed), m);
+        for (const o of options) {
+          const stray = o.bonds.reduce(
+            (sum, b, i) =>
+              sum + Math.abs(b.order - options[best].bonds[i].order),
+            0,
+          );
+          expect(stray).toBeLessThanOrEqual(2);
+        }
+      }
+    }
+  });
+
+  it('lay each structure out to draw, no two atoms on the same spot', () => {
+    for (const seed of SEEDS) {
+      const r = lewisRooms(createRng(seed), 'ap')[1];
+      if (r.kind !== 'choose') throw new Error('a choice');
+      for (const o of r.options) {
+        const spots = new Set(o.atoms.map((a) => `${a.x},${a.y}`));
+        expect(spots.size).toBe(o.atoms.length);
+      }
+    }
+  });
+
+  it('have AP draw one molecule, then choose the best of its structures by formal charge', () => {
+    const seen = new Set<string>();
+    for (const seed of SEEDS) {
+      const [first, second] = lewisRooms(createRng(seed), 'ap');
+      expect(first.kind).toBe('draw');
+      if (second.kind !== 'choose') throw new Error('a choice');
+      const { molecule, options, best } = second;
+      seen.add(molecule.id);
+      expect(options.length).toBeGreaterThanOrEqual(2);
+      // every option is a real structure, and no two are the same
+      const valid = validStructures(molecule.skeleton, molecule);
+      for (const o of options) {
+        expect(valid.some((v) => sameStructure(v, o))).toBe(true);
+      }
+      options.forEach((o, i) =>
+        options
+          .slice(i + 1)
+          .forEach((other) => expect(sameStructure(o, other)).toBe(false)),
+      );
+      // one best, and the rest lose on formal charge alone
+      const ideal = bestStructures(valid);
+      expect(ideal.some((b) => sameStructure(b, options[best]))).toBe(true);
+      options.forEach((o, i) => {
+        if (i !== best) {
+          expect(totalFormalCharge(o)).toBeGreaterThan(
+            totalFormalCharge(options[best]),
+          );
+        }
+      });
+    }
+    expect(seen.size).toBeGreaterThan(4);
+    // the best isn't always in the same place
+    const places = SEEDS.map((seed) => {
+      const r = lewisRooms(createRng(seed), 'ap')[1];
+      return r.kind === 'choose' ? r.best : -1;
+    });
+    expect(new Set(places).size).toBeGreaterThan(1);
   });
 });

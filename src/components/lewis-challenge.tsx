@@ -49,6 +49,7 @@ interface Props {
   settings: Settings;
   onSettings: (change: Partial<Settings>) => void;
   onCheck?: (verdict: Verdict) => void;
+  chargeMarks?: boolean; // grade formal-charge marks (the quest leaves them out)
 }
 
 /** Draw a given molecule and get it graded (Quiz mode, and a Dungeon Quest room) */
@@ -58,6 +59,7 @@ export default function LewisChallenge({
   active = true,
   settings,
   onSettings,
+  chargeMarks = true,
   onCheck,
 }: Props) {
   const total = totalValenceElectrons(molecule.formula, molecule.charge);
@@ -105,7 +107,7 @@ export default function LewisChallenge({
         }
         active={active}
         elementTools={elementTools}
-        assess={(forms) => assessResonance(forms, molecule)}
+        assess={(forms) => assessResonance(forms, molecule, { chargeMarks })}
         counter={counter}
         chargesReady={(s) => electronsUsed(s) === total}
         settings={settings}

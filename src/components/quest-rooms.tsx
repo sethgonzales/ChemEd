@@ -6,6 +6,7 @@ import Button from '~/components/button';
 import { useCheckSlot } from '~/components/check-slot';
 import ConfigurationBuilder from '~/components/configuration-builder';
 import type { Settings } from '~/components/lewis-builder';
+import LewisCanvas from '~/components/lewis-canvas';
 import LewisChallenge from '~/components/lewis-challenge';
 import PeriodicGrid from '~/components/periodic-grid';
 import PotentialTable from '~/components/potential-table';
@@ -33,6 +34,7 @@ import {
   unknownFeedback,
 } from '~/utils/titrations';
 import type { IElementData } from '~/types';
+import { cn } from '~/utils/cn';
 import {
   checkPrediction,
   newChallenge,
@@ -41,9 +43,14 @@ import {
 import { PREDICT_POOL } from '~/utils/predict';
 import { createRng, pick, type Course, type Rng } from '~/utils/quest';
 import { balancingRooms } from '~/utils/quest-balancing';
-import type { Verdict } from '~/utils/lewis';
+import {
+  formatFormula,
+  totalFormalCharge,
+  type LewisStructure,
+  type Verdict,
+} from '~/utils/lewis';
 import { configurationRooms } from '~/utils/quest-electrons';
-import { lewisRooms } from '~/utils/quest-lewis';
+import { lewisRooms, type StructureChoice } from '~/utils/quest-lewis';
 import { elementRiddle } from '~/utils/quest-periodic';
 import { reactionRooms } from '~/utils/quest-reactions';
 import { titrationPool } from '~/utils/quest-titrations';
@@ -174,7 +181,7 @@ export const lewisOpens = (verdict: Verdict) =>
 
 /** The Weaver's rooms: draw a molecule's whole Lewis structure, from a blank page */
 function LewisRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
-  const molecule = useMemo(
+  const here = useMemo(
     () => lewisRooms(createRng(seed), course)[room],
     [seed, course, room],
   );
@@ -183,15 +190,146 @@ function LewisRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
     bars: false,
     hints: false,
   });
+  if (here.kind === 'choose') {
+    return (
+      <StructureChoiceRoom
+        key={here.molecule.id}
+        choice={here}
+        onSolve={onSolve}
+        onMiss={onMiss}
+      />
+    );
+  }
   return (
     <LewisChallenge
-      key={molecule.id}
-      molecule={molecule}
+      key={here.molecule.id}
+      molecule={here.molecule}
       start="empty"
+      // the structure's the puzzle; marking formal charges on top is fiddly
+      chargeMarks={false}
       settings={settings}
       onSettings={(change) => setSettings((now) => ({ ...now, ...change }))}
       onCheck={(verdict) => (lewisOpens(verdict) ? onSolve() : onMiss?.())}
     />
+  );
+}
+
+const LETTERS = 'ABC';
+const ORDER_MARK = ['', '–', '=', '≡'];
+// a drawing in words, for screen readers
+function describeStructure(s: LewisStructure) {
+  const symbol = (id: number) => s.atoms.find((a) => a.id === id)!.symbol;
+  const bonds = s.bonds.map(
+    (b) => `${symbol(b.a)}${ORDER_MARK[b.order]}${symbol(b.b)}`,
+  );
+  const pairs = s.atoms
+    .filter((a) => a.lonePairs)
+    .map((a) => `${a.lonePairs} on ${a.symbol}`);
+  return `Bonds ${bonds.join(', ')}. Lone pairs: ${pairs.join(', ') || 'none'}.`;
+}
+
+/** AP's last Lewis room: the best of a molecule's structures, by formal charge */
+function StructureChoiceRoom({
+  choice: { molecule, options, best },
+  onSolve,
+  onMiss,
+}: {
+  choice: StructureChoice;
+  onSolve: () => void;
+  onMiss?: () => void;
+}) {
+  const [chosen, setChosen] = useState<number | null>(null);
+  const [verdict, setVerdict] = useState<RoomAnswer | null>(null);
+  const charges = options.map(totalFormalCharge);
+  const check = () => {
+    if (chosen === null) return;
+    const right = chosen === best;
+    const name = (i: number) => `Structure ${LETTERS[i]}`;
+    setVerdict((v) => ({
+      right,
+      text: right
+        ? `${name(best)} has the smallest formal charges, adding up to ${charges[best]}.`
+        : `${name(chosen)}’s formal charges add up to ${charges[chosen]}, but another structure’s are smaller. Formal charge = valence electrons − lone-pair electrons − bonds.`,
+      attempt: (v?.attempt ?? 0) + 1,
+    }));
+    if (right) onSolve();
+    else onMiss?.();
+  };
+  const solved = verdict?.right ?? false;
+  const slotted = useCheckSlot({
+    label: 'That’s my answer',
+    disabled: chosen === null || solved,
+    run: check,
+  });
+  // once answered, each structure shows its formal charges
+  const revealed = verdict !== null;
+  const shown = formatFormula(molecule.formula, molecule.charge);
+
+  return (
+    <ScenePanel className="flex flex-col gap-4">
+      <h3 className="text-lg font-semibold">
+        {molecule.name}, {shown}
+      </h3>
+      <p className="text-sm">
+        Each of these is a valid Lewis structure. Which is the best, judged by
+        formal charge?
+      </p>
+      <div
+        role="radiogroup"
+        aria-label="Structures"
+        className="grid gap-3 sm:grid-cols-3"
+      >
+        {options.map((s, i) => (
+          <label
+            key={i}
+            className={cn(
+              'pixel-control flex cursor-pointer flex-col gap-2 bg-primary-700 p-2',
+              chosen === i &&
+                'shadow-[inset_0_0_0_3px_var(--color-secondary-500)]',
+            )}
+          >
+            <span className="flex items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="structure"
+                checked={chosen === i}
+                disabled={solved}
+                onChange={() => setChosen(i)}
+                aria-describedby={`structure-${i}`}
+              />
+              Structure {LETTERS[i]}
+            </span>
+            <span id={`structure-${i}`} className="sr-only">
+              {describeStructure(s)}
+            </span>
+            {/* drawing paper, just to look at */}
+            <div inert className="pointer-events-none h-36 bg-white sm:h-48">
+              <LewisCanvas
+                structure={s}
+                onTap={() => {}}
+                onPress={() => {}}
+                hints={revealed}
+                showCharges={revealed}
+              />
+            </div>
+            {revealed && (
+              <span className="text-sm">
+                Formal charges add up to {charges[i]}
+                {i === best && ' (the smallest)'}
+              </span>
+            )}
+          </label>
+        ))}
+      </div>
+      {!slotted && (
+        <div>
+          <Button pressed disabled={chosen === null || solved} onClick={check}>
+            That’s my answer
+          </Button>
+        </div>
+      )}
+      <RoomVerdict verdict={verdict} />
+    </ScenePanel>
   );
 }
 
