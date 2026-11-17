@@ -8,7 +8,12 @@ import { CHAMBERS } from '~/constants/quest-chambers';
 import { ALCHEMIST_ID, alchemistOpen } from '~/constants/quest-final';
 import { ALCHEMIST } from '~/constants/villains/alchemist';
 import { cn } from '~/utils/cn';
-import { trailX } from '~/utils/quest-trail';
+import {
+  columnsFor,
+  mapLayout,
+  trailPath,
+  type MapStop,
+} from '~/utils/quest-trail';
 import { useEscape } from '~/utils/use-escape';
 import {
   COURSES,
@@ -48,7 +53,8 @@ function ReplayPrompt({
       aria-modal="true"
       aria-labelledby="replay-title"
       aria-describedby="replay-text"
-      className="absolute inset-x-4 top-12 z-10 flex justify-center focus:outline-none"
+      // above the doors and their glow
+      className="absolute inset-x-4 top-12 z-30 flex justify-center focus:outline-none"
     >
       <ScenePanel className="flex max-w-sm flex-col items-center gap-3 text-center">
         <h3 id="replay-title" className="font-pixel text-2xl text-amber-200">
@@ -104,7 +110,7 @@ function Door({
         stars ? `beaten, ${stars} of ${MAX_HEARTS} stars` : 'not cleared yet'
       }`}
       className={cn(
-        'stone-wall pixel-frame flex w-36 cursor-pointer flex-col items-center gap-1.5 p-2 focus-visible:outline-none',
+        'stone-wall pixel-frame flex w-28 cursor-pointer flex-col items-center gap-1.5 p-1.5 sm:w-36 sm:p-2 focus-visible:outline-none',
         // beaten chambers fade, but can still be replayed
         stars > 0 && 'opacity-80 saturate-50 hover:opacity-100',
       )}
@@ -143,7 +149,7 @@ function Door({
           />
         )}
       </span>
-      <span className="pixel-control bg-stone-800 px-2 pt-0.5 pb-1 text-center font-pixel text-xs text-stone-100">
+      <span className="pixel-control bg-stone-800 px-1.5 pt-0.5 pb-1 text-center font-pixel text-[10px] text-stone-100 sm:px-2 sm:text-xs">
         {topic}
       </span>
       <span className="flex gap-1 text-amber-300" aria-hidden="true">
@@ -162,7 +168,7 @@ function Door({
 /** The final gate while it's sealed: the Alchemist in shadow, and how far off it is */
 function SealedGate({ cleared, total }: { cleared: number; total: number }) {
   return (
-    <div className="stone-wall pixel-frame flex w-36 flex-col items-center gap-1.5 p-2 opacity-70">
+    <div className="stone-wall pixel-frame flex w-28 flex-col items-center gap-1.5 p-1.5 opacity-70 sm:w-36 sm:p-2">
       <span className="door-arch flex w-full justify-center p-2 brightness-0">
         <PixelArt
           rows={ALCHEMIST.draw(0, 0)}
@@ -170,7 +176,7 @@ function SealedGate({ cleared, total }: { cleared: number; total: number }) {
           scale={MAP_ART}
         />
       </span>
-      <p className="text-center text-xs text-stone-100">
+      <p className="text-center text-[10px] text-stone-100 sm:text-xs">
         The Alchemist’s gate is sealed. Clear every chamber to open it:{' '}
         {cleared} of {total} cleared.
       </p>
@@ -178,78 +184,49 @@ function SealedGate({ cleared, total }: { cleared: number; total: number }) {
   );
 }
 
-const STEP_EVERY = 2.5; // % across the map between stepping stones
-const PHONE_STEPS = 3; // straight down between doors on a phone
+const ROW_HEIGHT = 200; // px for each row of doors
+const START_COLUMNS = 3; // before the map's width is known
 
-/**
- * A stop on the trail: its door set across the map at x (% of the width), and
- * the trail on to the next stop, if there is one. Where there's room, each
- * door shares half its height with the next, on the other side, with the
- * trail running between them; on a phone the doors stack, the trail straight
- * down.
- */
+/** A door's place on the map, centred on its stop */
 function Stop({
-  row,
-  x: x0,
-  next,
+  at,
   glow = true,
   children,
 }: {
-  row: number;
-  x: number;
-  next?: number;
+  at: MapStop;
   glow?: boolean; // an open door glows; the sealed gate doesn't
   children: ReactNode;
 }) {
-  const wide =
-    next === undefined ? 0 : Math.round(Math.abs(next - x0) / STEP_EVERY);
   return (
     <li
-      data-x={x0}
-      className="relative flex w-full flex-col items-center"
-      style={{ gridRow: `${row + 1} / span 2`, gridColumn: 1 }}
+      data-x={at.x}
+      className="absolute -translate-1/2"
+      style={{ left: `${at.x}%`, top: at.y * ROW_HEIGHT }}
     >
-      {next !== undefined && (
-        // across to the next door, behind both
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 hidden sm:block"
-        >
-          {Array.from({ length: wide }, (_, k) => {
-            const t = (k + 0.5) / wide;
-            return (
-              <span
-                key={k}
-                className="absolute h-1.5 w-3 -translate-1/2 rounded-full bg-[#d6c7b0]/60"
-                style={{
-                  left: `${x0 + (next - x0) * t}%`,
-                  top: `${50 + 50 * t}%`,
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
       <div
         data-glow={glow || undefined}
         className={cn('relative z-10', glow && 'quest-glow')}
-        style={{ left: `calc((${x0}% - 50%) * var(--sway))` }}
       >
         {children}
       </div>
-      {next !== undefined && (
-        <div
-          data-trail
-          aria-hidden="true"
-          className="flex flex-col items-center gap-1.5 py-1.5 sm:hidden"
-        >
-          {Array.from({ length: PHONE_STEPS }, (_, k) => (
-            <span key={k} className="h-1.5 w-3 rounded-full bg-[#d6c7b0]/60" />
-          ))}
-        </div>
-      )}
     </li>
   );
+}
+
+/** As many doors to a row as the map's width has room for */
+function useColumns() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [cols, setCols] = useState(START_COLUMNS);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(([e]) =>
+      setCols(columnsFor(e.contentRect.width)),
+    );
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  return [ref, cols] as const;
 }
 
 /**
@@ -264,17 +241,13 @@ export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
   const open = alchemistOpen(setup.topics, progress, setup.course);
   // a beaten chamber the student tapped, waiting for them to confirm a replay
   const [replaying, setReplaying] = useState<DoorInfo | null>(null);
-  // every chosen door, then the Alchemist's gate, along a winding trail
-  const stops = n + 1;
-  const at = (i: number) => ({
-    row: i,
-    x: trailX(i, stops),
-    next: i + 1 < stops ? trailX(i + 1, stops) : undefined,
-  });
+  // every chosen door, then the Alchemist's gate, snaking across the map
+  const [mapRef, cols] = useColumns();
+  const { stops, rows } = mapLayout(n + 1, cols);
   const door = (d: DoorInfo, i: number) => {
     const stars = best[d.id] ?? 0;
     return (
-      <Stop key={d.id} {...at(i)}>
+      <Stop key={d.id} at={stops[i]}>
         <Door
           door={d}
           stars={stars}
@@ -305,16 +278,44 @@ export default function QuestMap({ setup, progress, onPick, onChange }: Props) {
           onCancel={() => setReplaying(null)}
         />
       )}
-      <ol className="flex flex-col items-center px-6 pt-6 pb-2 [--sway:0] sm:grid sm:[--sway:1]">
-        {chosen.map(door)}
-        {open ? (
-          door(FINAL, n)
-        ) : (
-          <Stop key={FINAL.id} {...at(n)} glow={false}>
-            <SealedGate cleared={cleared} total={n} />
-          </Stop>
-        )}
-      </ol>
+      <div
+        ref={mapRef}
+        className="relative mx-4 my-2"
+        style={{ height: rows * ROW_HEIGHT }}
+      >
+        {/* the trail, door to door, behind them */}
+        <svg
+          aria-hidden="true"
+          viewBox={`0 0 100 ${rows}`}
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+        >
+          {stops.slice(1).map((b, i) => (
+            <path
+              key={i}
+              data-trail
+              d={trailPath(stops[i], b, cols)}
+              fill="none"
+              stroke="#d6c7b0"
+              strokeOpacity={0.6}
+              strokeWidth={6}
+              strokeLinecap="round"
+              strokeDasharray="0.1 14"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+        <ol>
+          {chosen.map(door)}
+          {open ? (
+            door(FINAL, n)
+          ) : (
+            <Stop key={FINAL.id} at={stops[n]} glow={false}>
+              <SealedGate cleared={cleared} total={n} />
+            </Stop>
+          )}
+        </ol>
+      </div>
     </QuestScene>
   );
 }

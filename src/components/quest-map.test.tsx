@@ -167,4 +167,23 @@ describe('the map’s layout', () => {
     // both chambers glow; the sealed gate doesn't
     expect(container.querySelectorAll('[data-glow]')).toHaveLength(2);
   });
+
+  it('shows the replay question above every door, not under them', async () => {
+    const { container } = render(
+      <QuestMap
+        setup={{ topics: ['periodic', 'lewis'], course: 'general' }}
+        progress={{ general: { periodic: 2 } }}
+        onPick={jest.fn()}
+        onChange={jest.fn()}
+      />,
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: /Periodic Table: .*2 of 3 stars/ }),
+    );
+    const z = (el: Element) =>
+      Number(el.className.match(/\bz-(\d+)/)?.[1] ?? 0);
+    const prompt = screen.getByRole('alertdialog');
+    for (const door of container.querySelectorAll('[data-x]'))
+      expect(z(prompt)).toBeGreaterThan(z(door.firstElementChild!));
+  });
 });
