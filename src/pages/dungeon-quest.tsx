@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import Button from '~/components/button';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Container from '~/components/container';
 import QuestChamber from '~/components/quest-chamber';
 import QuestGate from '~/components/quest-gate';
@@ -62,15 +61,17 @@ export default function DungeonQuest() {
   const [setup, setSetup] = useState<QuestSetup>(ALL);
   const [progress, setProgress] = useState<Progress>({});
   const [view, setView] = useState<View | null>(null); // read on mount
-  const [stage, setStage] = useState<string>('story'); // the chamber's, for the music
+  // the chamber's stage and boss HP, for the music
+  const [stage, setStage] = useState<string>('story');
+  const [bossHp, setBossHp] = useState(0);
   const [musicOn, toggleMusic] = useMusicSetting();
   // the gate and map have the dungeon's theme; a chamber its own, quicker
-  // in the boss fight
+  // in the boss fight, and quicker still on the boss's last hit point
   const inChamber = view?.at === 'chamber';
   const fighting = inChamber && stage === 'boss';
   useMusic(
     musicOn && view ? (inChamber ? view.id : 'dungeon') : null,
-    fighting,
+    fighting && (bossHp === 1 ? 'finale' : true),
     // stepping into a chamber: a hush and a chime before its theme
     inChamber && !fighting ? ENTER_PAUSE : 0,
   );
@@ -82,6 +83,19 @@ export default function DungeonQuest() {
     setView(start.view);
     setProgress(loadProgress());
   }, []);
+
+  // each new screen (a chamber, the map, the gate) starts at the top
+  const screenKey =
+    view && (view.at === 'chamber' ? `${view.id}:${view.seed}` : view.at);
+  const firstScreen = useRef(true);
+  useEffect(() => {
+    if (!screenKey) return;
+    if (firstScreen.current) {
+      firstScreen.current = false; // arriving: leave the browser's scroll be
+      return;
+    }
+    window.scrollTo({ top: 0 });
+  }, [screenKey]);
 
   const enter = (s: QuestSetup) => {
     saveSetup(s);
@@ -115,6 +129,16 @@ export default function DungeonQuest() {
       header="Dungeon Quest"
       description="Fight through the chambers: solve each room, then answer the boss’s questions to beat it."
       backHref="/"
+      game
+      // in a chamber, the back arrow leaves it for the map
+      back={
+        view?.at === 'chamber'
+          ? {
+              label: 'Leave the chamber',
+              onClick: () => setView({ at: 'map' }),
+            }
+          : undefined
+      }
       sources={cited}
       className="gap-4"
     >
@@ -137,14 +161,9 @@ export default function DungeonQuest() {
       )}
       {view?.at === 'chamber' && chamber && (
         <>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <Button onClick={() => setView({ at: 'map' })}>
-              Leave the chamber
-            </Button>
-            <span>
-              {chamber.topic} · {COURSES[view.course]}
-            </span>
-          </div>
+          <p className="font-pixel text-sm">
+            {chamber.topic} · {COURSES[view.course]}
+          </p>
           <QuestChamber
             key={view.seed}
             chamber={chamber}
@@ -153,7 +172,10 @@ export default function DungeonQuest() {
             onClear={(stars) => clear(chamber.id, view.course, stars)}
             onExit={() => setView({ at: 'map' })}
             onReplay={() => setView({ ...view, seed: newSeed() })}
-            onStage={setStage}
+            onStage={(s, hp) => {
+              setStage(s);
+              setBossHp(hp);
+            }}
           />
         </>
       )}

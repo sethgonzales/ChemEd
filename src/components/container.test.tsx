@@ -25,6 +25,32 @@ describe('Container', () => {
     expect(heading.nextElementSibling).toHaveTextContent('Heat it up.');
   });
 
+  it('writes a game’s header lines in the stylized font, like its game', () => {
+    render(
+      <Container header="Dungeon Quest" description="Fight on." game>
+        content
+      </Container>,
+    );
+    expect(screen.getByText('Fight on.')).toHaveClass('font-pixel');
+  });
+
+  it('can turn its back arrow into an action of the page’s own', () => {
+    const onBack = jest.fn();
+    render(
+      <Container
+        header="Dungeon Quest"
+        back={{ label: 'Leave the chamber', onClick: onBack }}
+      >
+        content
+      </Container>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Leave the chamber' }));
+    expect(onBack).toHaveBeenCalled();
+    expect(
+      screen.queryByRole('link', { name: 'Back to simulations' }),
+    ).toBeNull();
+  });
+
   describe('back arrow', () => {
     let click: jest.SpyInstance;
     beforeEach(() => {

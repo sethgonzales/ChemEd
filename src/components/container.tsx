@@ -10,12 +10,25 @@ interface Props {
   header?: string;
   description?: string; // one line under the header saying what to do
   backHref?: string; // where the back arrow goes
+  back?: { label: string; onClick: () => void }; // or what it does instead
+  game?: boolean; // a game: its header lines in the stylized font too
   sources?: SourceId[]; // where the page's facts come from, cited at the bottom
   className?: string;
 }
 
 export default function Container(props: Props) {
-  const { children, header, description, backHref, sources, className } = props;
+  const {
+    children,
+    header,
+    description,
+    backHref,
+    back,
+    game,
+    sources,
+    className,
+  } = props;
+  const arrow =
+    '-ml-2 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-primary-600 focus-visible:outline-2 focus-visible:outline-white';
 
   return (
     <div
@@ -28,18 +41,34 @@ export default function Container(props: Props) {
       {/* together, so a parent's gap doesn't split the title from its line */}
       {(header || description) && (
         <div className="mb-2 flex items-start gap-1">
-          {backHref && (
-            <Link
-              href={backHref}
-              aria-label="Back to simulations"
-              className="-ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-primary-600 focus-visible:outline-2 focus-visible:outline-white"
+          {back ? (
+            <button
+              type="button"
+              onClick={back.onClick}
+              aria-label={back.label}
+              title={back.label}
+              className={arrow}
             >
               <IconChevronLeft size={24} stroke={2.5} aria-hidden="true" />
-            </Link>
+            </button>
+          ) : (
+            backHref && (
+              <Link
+                href={backHref}
+                aria-label="Back to simulations"
+                className={arrow}
+              >
+                <IconChevronLeft size={24} stroke={2.5} aria-hidden="true" />
+              </Link>
+            )
           )}
           <div>
             {header && <h2 className="font-pixel text-3xl">{header}</h2>}
-            {description && <p className="text-sm">{description}</p>}
+            {description && (
+              <p className={cn('text-sm', game && 'font-pixel')}>
+                {description}
+              </p>
+            )}
           </div>
         </div>
       )}

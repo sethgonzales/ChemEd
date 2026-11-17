@@ -4,6 +4,7 @@ import {
   THEMES,
   eventsBetween,
   fightVersion,
+  finaleVersion,
   noteHz,
   parseVoice,
   themeFor,
@@ -108,6 +109,38 @@ describe('the soundtrack', () => {
       for (const v of fight.voices)
         expect(written(v.notes)).toBe(trackBeats(track));
     });
+  });
+});
+
+describe('finaleVersion', () => {
+  it('quickens the fight again for the boss’s last stand, the tune the same', () => {
+    for (const track of Object.values(THEMES)) {
+      const fight = fightVersion(track);
+      const finale = finaleVersion(track);
+      expect(finale.bpm).toBeGreaterThanOrEqual(fight.bpm * 1.1);
+      expect(finale.voices).toEqual(fight.voices);
+    }
+  });
+});
+
+describe('the Slime’s theme', () => {
+  const slime = THEMES.reactions;
+  const loudest = (t: Track) =>
+    [...t.voices].sort((a, b) => b.volume - a.volume)[0];
+
+  it('is wet and heavy: a slap bass leads, louder than anything else', () => {
+    expect(loudest(slime).instrument).toBe('slap');
+    const bass = slime.voices
+      .filter((v) => v.instrument === 'slap' || v.instrument === 'bass')
+      .reduce((a, v) => a + v.volume, 0);
+    const rest = slime.voices
+      .filter((v) => v.instrument !== 'slap' && v.instrument !== 'bass')
+      .reduce((a, v) => a + v.volume, 0);
+    expect(bass).toBeGreaterThan(rest);
+  });
+
+  it('bubbles: a blip voice pops between the bass notes', () => {
+    expect(slime.voices.some((v) => v.instrument === 'blip')).toBe(true);
   });
 });
 

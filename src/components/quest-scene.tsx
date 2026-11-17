@@ -95,22 +95,17 @@ const u = (n: number) => `calc(var(--u, 4px) * ${n})`;
 // A torch on the wall: a flickering flame with its glow, on a handle
 function Torch({
   side,
-  low = false,
   flame,
 }: {
   side: 'left' | 'right';
-  low?: boolean; // halfway down the wall, where there's room (not on phones)
   flame: Backdrop['flame'];
 }) {
   return (
     <div
       data-decor="torch"
       aria-hidden="true"
-      className={cn(
-        'pointer-events-none absolute flex flex-col items-center',
-        low && 'hidden sm:flex',
-      )}
-      style={{ top: low ? '50%' : u(TORCH.inset), [side]: u(TORCH.inset) }}
+      className="pointer-events-none absolute flex flex-col items-center"
+      style={{ top: u(TORCH.inset), [side]: u(TORCH.inset) }}
     >
       <div
         className="quest-flame rounded-t-full"
@@ -146,8 +141,6 @@ function Torches({ flame }: { flame: Backdrop['flame'] }) {
     <div ref={layer} className="pointer-events-none absolute inset-0">
       <Torch side="left" flame={flame} />
       <Torch side="right" flame={flame} />
-      <Torch side="left" low flame={flame} />
-      <Torch side="right" low flame={flame} />
     </div>
   );
 }

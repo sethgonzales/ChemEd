@@ -65,11 +65,23 @@ export const SIMULATIONS: Simulation[] = [
     color: '#f59e0b', // amber
     ready: true,
   },
+];
+
+// Games: a different format from the simulations, with their own wide doors
+// at the top of the home page
+export const GAMES: Simulation[] = [
   {
     title: 'Dungeon Quest',
     path: '/dungeon-quest',
     art: 'dungeon',
     color: '#64748b', // slate, like the dungeon's stone
     ready: true,
+  },
+  {
+    title: 'Gas Law Balloon',
+    path: '/gas-balloon',
+    art: 'balloon',
+    color: '#0ea5e9', // sky
+    ready: false,
   },
 ];

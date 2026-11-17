@@ -40,7 +40,8 @@ interface Props {
   onClear: (stars: number) => void;
   onExit: () => void; // back to the map
   onReplay: () => void;
-  onStage?: (stage: QuestState<QuickQuestion>['stage']) => void; // e.g. for the music
+  // the stage, and the boss's HP left: e.g. for the music
+  onStage?: (stage: QuestState<QuickQuestion>['stage'], bossHp: number) => void;
   devTools?: boolean; // shortcuts for testing by hand: solve, hit, miss
 }
 
@@ -361,7 +362,10 @@ export default function QuestChamber({
   const [state, setState] = useState<QuestState<QuickQuestion>>(() =>
     startChamber(chamber, course, seed),
   );
-  useEffect(() => onStage?.(state.stage), [state.stage, onStage]);
+  useEffect(
+    () => onStage?.(state.stage, state.bossHp),
+    [state.stage, state.bossHp, onStage],
+  );
   const [mode, setMode] = useState<VillainMode>('idle');
   const [blow, setBlow] = useState(0); // restarts the villain's animation
   const [feedback, setFeedback] = useState('');

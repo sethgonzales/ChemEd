@@ -65,6 +65,14 @@ Colour roles (theme scale only, so every theme works):
 
 Reuse `Container`, `Tabs`, `Stage`, `Button`, `Dropdown`/`DropdownItem` and `Setting` rather than restyling raw elements.
 
+### Games
+
+Games (Dungeon Quest, the gas law balloon game) are a different format from the simulations:
+
+- They're listed in `GAMES` (`src/constants/index.ts`), not `SIMULATIONS`, and shown first on the home page as short, wide doors, half a row each. An unbuilt one gets a sealed door.
+- Their `Container` takes `game`, so its header lines follow the stylized-text setting like the rest of the game.
+- They play inside a full scene of their own (e.g. `QuestScene`), with music and sound, rather than the plain Stage layout above.
+
 ## Git
 
 - Don't add `Co-Authored-By` trailers (or any other AI attribution lines) to commit messages.

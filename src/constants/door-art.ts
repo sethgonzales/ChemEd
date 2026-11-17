@@ -470,6 +470,60 @@ export const DOOR_ART = {
       b: '#78716c', // torch bracket
     },
   },
+  // the gas law game: Mr. G's hot-air balloon among the clouds
+  balloon: {
+    rows: [
+      '................................................',
+      '....................rRRRYYYy....................',
+      '.................yyRRRRRYYYYYrr.................',
+      '................yYYRRRRRYYYYYRRr................',
+      '..............rYHHYRRRRRYYYYYRRRRy..............',
+      '.............rRHHYYRRRRRYYYYYRRRRYy.............',
+      '............rrHHYYYRRRRRYYYYYRRRRYyy............',
+      '............rRHHYYYRRRRRYYYYYRRRRYYy.....ccccc..',
+      '...........rRHHYYYYRRRRRYYYYYRRRRYYYy..ccccccccc',
+      '...........rRHHYYYYRRRRRYYYYYRRRRYYYy...........',
+      '..........rrHHRYYYYRRRRRYYYYYRRRRYYYyy..........',
+      '..........rRRRRYYYYRRRRRYYYYYRRRRYYYYy..........',
+      '..........rRRRRYYYYRRRRRYYYYYRRRRYYYYy..........',
+      '..........rRRRRYYYYRRRRRYYYYYRRRRYYYYy..........',
+      '...........rRRRYYYYRRRRRYYYYYRRRRYYYy...........',
+      '............rRRYYYYRRRRRYYYYYRRRRYYy............',
+      '............rrRYYYYRRRRRYYYYYRRRRYyy............',
+      '.............rrYYYYRRRRRYYYYYRRRRyy.............',
+      '..............rYYYYRRRRRYYYYYRRRRy..............',
+      '...............yYYYRRRRRYYYYYRRRr...............',
+      '................yYYRRRRRYYYYYRRr................',
+      '..ccccc..........yYRRRRRYYYYYRr.................',
+      'ccccccccc........yyRRRRRYYYYYrr.................',
+      '..................yrRRRRYYYYyr..................',
+      '...................rRRRRYYYYy...................',
+      '....................rRRRYYYy....................',
+      '....................l.FffF.l....................',
+      '....................l......l....................',
+      '....................l......l....................',
+      '....................l......l.............ccc....',
+      '...................bbbbbbbbbb..........ccccccc..',
+      '...................BbBBbBBbBB...................',
+      '...................bBBbBBbBBb...................',
+      '...................BBbBBbBBbB...................',
+      '...................BbBBbBBbBB...................',
+      '................................................',
+    ],
+    palette: {
+      R: '#ef4444', // the envelope's stripes
+      r: '#b91c1c',
+      Y: '#facc15',
+      y: '#ca8a04',
+      H: '#fecaca', // where the sun catches it
+      l: '#a8a29e', // ropes
+      F: '#f97316', // the burner's flame
+      f: '#fde68a',
+      b: '#78350f', // the wicker basket
+      B: '#92400e',
+      c: '#e2e8f0', // clouds
+    },
+  },
 } satisfies Record<string, DoorArt>;
 
 export type DoorArtName = keyof typeof DOOR_ART;

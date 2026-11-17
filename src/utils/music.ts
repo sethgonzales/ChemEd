@@ -5,7 +5,15 @@
 
 // lead: square; bass: triangle; pluck: short square; bell: ringing sine;
 // pad: soft sawtooth, held; kick: a drum
-export type Instrument = 'lead' | 'bass' | 'pluck' | 'bell' | 'pad' | 'kick';
+export type Instrument =
+  | 'lead'
+  | 'bass'
+  | 'slap' // a bass that thumps and slides down: wet and heavy
+  | 'blip' // a bubble popping, its pitch sliding up
+  | 'pluck'
+  | 'bell'
+  | 'pad'
+  | 'kick';
 
 export interface Voice {
   instrument: Instrument;
@@ -107,6 +115,7 @@ const PHRYGIAN_DOMINANT = [0, 1, 4, 5, 7, 8, 10]; // the sound of the desert
 
 const FIGHT_SPEED = 1.3; // times the theme's tempo
 const KICK_VOLUME = 0.1;
+const FINALE_SPEED = 1.15; // times the fight's tempo, as the boss is nearly beaten
 
 /** The theme played faster, with a drum on every beat, for a boss fight */
 export function fightVersion(track: Track): Track {
@@ -142,6 +151,14 @@ const later = (tune: string[], by: number) => [
 ];
 const octaveDown = (notes: string) =>
   notes.replace(/(\d):/g, (_, o) => `${Number(o) - 1}:`);
+
+/** The fight at its last stand: the same, quicker still */
+export function finaleVersion(track: Track): Track {
+  const fight = fightVersion(track);
+  return { ...fight, bpm: Math.round(fight.bpm * FINALE_SPEED) };
+}
+
+const SLIME_ROOTS = ['G', 'F', 'G', 'D', 'G', 'F', 'C', 'D']; // a bar each
 
 export const THEMES: Record<string, Track> = {
   // the gate and map: background music while choosing. A minor, slow and
@@ -361,7 +378,7 @@ export const THEMES: Record<string, Track> = {
     voices: [
       {
         instrument: 'pluck',
-        volume: 0.045,
+        volume: 0.03,
         notes: bars(
           'G4:0.5 -:0.5 A#4:0.5 -:0.5 D5:0.5 C5:0.5 A#4:1',
           'A4:0.5 -:0.5 F4:0.5 -:0.5 A4:1 -:1',
@@ -373,12 +390,25 @@ export const THEMES: Record<string, Track> = {
           'D5:0.5 -:0.5 A4:0.5 -:0.5 G4:2',
         ),
       },
+      // the Slime's sewer: a thick, slapping bass, a sub-bass under it, and
+      // bubbles popping
+      {
+        instrument: 'slap',
+        volume: 0.1,
+        notes: SLIME_ROOTS.map(
+          (n) =>
+            `${n}2:0.75 ${n}3:0.25 -:0.5 ${n}2:0.5 ${n}2:0.5 -:0.5 ${n}3:0.5 ${n}2:0.5`,
+        ).join(' '),
+      },
       {
         instrument: 'bass',
-        volume: 0.07,
-        notes: ['G', 'F', 'G', 'D', 'G', 'F', 'C', 'D']
-          .map((n) => repeat(`${n}2:0.5 ${n}3:0.5`, 4))
-          .join(' '),
+        volume: 0.045,
+        notes: SLIME_ROOTS.map((n) => `${n}2:4`).join(' '),
+      },
+      {
+        instrument: 'blip',
+        volume: 0.03,
+        notes: repeat('-:1.5 D5:0.5 -:1 G5:0.25 -:0.75', SLIME_ROOTS.length),
       },
     ],
   },

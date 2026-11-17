@@ -384,7 +384,7 @@ describe('the fight’s sounds', () => {
 });
 
 describe('the chamber’s stage', () => {
-  it('is reported as it changes, so the music can follow the fight', async () => {
+  it('is reported as it changes, with the boss’s HP, so the music can follow the fight', async () => {
     const onStage = jest.fn();
     render(
       <QuestChamber
@@ -397,9 +397,9 @@ describe('the chamber’s stage', () => {
         onStage={onStage}
       />,
     );
-    expect(onStage).toHaveBeenLastCalledWith('story');
+    expect(onStage).toHaveBeenLastCalledWith('story', expect.any(Number));
     await walkToBoss();
-    expect(onStage).toHaveBeenLastCalledWith('boss');
+    expect(onStage).toHaveBeenLastCalledWith('boss', expect.any(Number));
   });
 });
 

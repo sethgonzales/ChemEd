@@ -35,7 +35,7 @@ describe('QuestScene', () => {
     decor.forEach((d) => expect(d).toHaveAttribute('aria-hidden', 'true'));
   });
 
-  it('is built of mossy stone, lit by more than two torches', () => {
+  it('is built of mossy stone, lit by a pair of torches, no more', () => {
     const { container } = render(
       <QuestScene label="Chamber">
         <p>Hi</p>
@@ -44,9 +44,7 @@ describe('QuestScene', () => {
     const wall = container.querySelector('[data-decor="wall"]')!;
     expect(wall.querySelectorAll('[data-stone]').length).toBeGreaterThan(40);
     expect(wall.querySelectorAll('[data-moss]').length).toBeGreaterThan(0);
-    expect(
-      container.querySelectorAll('[data-decor="torch"]').length,
-    ).toBeGreaterThan(2);
+    expect(container.querySelectorAll('[data-decor="torch"]')).toHaveLength(2);
   });
 
   // the wall is positioned, so anything unpositioned would be painted under it

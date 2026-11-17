@@ -75,6 +75,45 @@ describe('the music player', () => {
     expect(played()).toContain(opening('lewis'));
   });
 
+  it('speeds up for the boss’s last stand without starting the tune over', () => {
+    // the finale's first half second, from the top
+    playMusic('lewis', 'finale');
+    run(0.5);
+    const fromTop = played();
+    resetMusic();
+    ctx.createOscillator.mockClear();
+
+    playMusic('lewis', true);
+    run(3);
+    const before = played().length;
+    playMusic('lewis', 'finale');
+    run(0.5);
+    const carried = played().slice(before);
+    expect(carried.length).toBeGreaterThan(0);
+    expect(carried.slice(0, fromTop.length)).not.toEqual(fromTop);
+  });
+
+  it('plays the finale quicker than the fight', () => {
+    const notesIn = (fight: true | 'finale') => {
+      resetMusic();
+      ctx.createOscillator.mockClear();
+      playMusic('lewis', fight);
+      run(4);
+      return played().length;
+    };
+    expect(notesIn('finale')).toBeGreaterThan(notesIn(true));
+  });
+
+  it('gives slap bass and blips their wet, sliding pitch', () => {
+    playMusic('reactions');
+    run(2);
+    const slides = ctx.createOscillator.mock.results.filter(
+      ({ value }) =>
+        value.frequency.exponentialRampToValueAtTime.mock.calls.length,
+    );
+    expect(slides.length).toBeGreaterThan(0);
+  });
+
   it('can fall silent for a moment before the next theme, then play it', () => {
     playMusic('dungeon');
     run(1);

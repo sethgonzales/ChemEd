@@ -11,10 +11,10 @@ describe('the map’s trail', () => {
     }
   });
 
-  it('keeps every door clear of the edges', () => {
+  it('keeps every door clear of the edges, and the map compact', () => {
     for (const x of xs(9)) {
-      expect(x).toBeGreaterThanOrEqual(22);
-      expect(x).toBeLessThanOrEqual(78);
+      expect(x).toBeGreaterThanOrEqual(25);
+      expect(x).toBeLessThanOrEqual(75);
     }
   });
 

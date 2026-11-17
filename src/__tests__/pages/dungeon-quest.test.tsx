@@ -27,8 +27,15 @@ const music: (string | null)[] = [];
 const pauses: number[] = [];
 jest.mock('~/utils/music-player', () => ({
   ...jest.requireActual('~/utils/music-player'),
-  useMusic: (place: string | null, fight?: boolean, pause = 0) => {
-    music.push(place && (fight ? `${place} fight` : place));
+  useMusic: (place: string | null, fight?: boolean | 'finale', pause = 0) => {
+    music.push(
+      place &&
+        (fight === 'finale'
+          ? `${place} finale`
+          : fight
+            ? `${place} fight`
+            : place),
+    );
     pauses.push(pause);
   },
 }));
@@ -108,6 +115,36 @@ describe('Dungeon Quest', () => {
     ).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('has one way out of a chamber: the header’s back arrow, as Leave the chamber', async () => {
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit('?chamber=balancing&course=general');
+    expect(
+      screen.queryByRole('link', { name: 'Back to simulations' }),
+    ).toBeNull();
+    const leave = screen.getAllByRole('button', { name: 'Leave the chamber' });
+    expect(leave).toHaveLength(1);
+    await user().click(leave[0]);
+    expect(door('not cleared yet')).toBeInTheDocument();
+  });
+
+  it('starts each chamber at the top of the page', async () => {
+    const scrollTo = jest
+      .spyOn(window, 'scrollTo')
+      .mockImplementation(() => {});
+    saveSetup({ topics: ['balancing'], course: 'general' });
+    visit();
+    scrollTo.mockClear();
+    await user().click(door('not cleared yet'));
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+  });
+
+  it('writes its description in the stylized font', () => {
+    visit();
+    expect(screen.getByText(/Fight through the chambers/)).toHaveClass(
+      'font-pixel',
+    );
+  });
+
   it('opens one chamber’s story straight from a chamber link', () => {
     visit('?chamber=balancing&course=ap');
     expect(storyWall()).toBeInTheDocument();
@@ -151,6 +188,11 @@ describe('Dungeon Quest', () => {
       );
       act(() => jest.advanceTimersByTime(DURATION_MS.defeat + 200));
       s = answer(s, chamber, true);
+      // quicker still as the boss's last hit point is reached
+      if (s.stage === 'boss')
+        expect(nowPlaying()).toBe(
+          s.bossHp === 1 ? 'balancing finale' : 'balancing fight',
+        );
     }
 
     expect(loadProgress()).toEqual({ general: { balancing: 3 } });

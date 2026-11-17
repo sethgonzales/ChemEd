@@ -1,7 +1,7 @@
 import { existsSync } from 'fs';
 import path from 'path';
 import { DOOR_ART } from './door-art';
-import { SIMULATIONS } from './index';
+import { GAMES, SIMULATIONS } from './index';
 
 const root = path.resolve(__dirname, '../..');
 
@@ -16,7 +16,6 @@ describe('SIMULATIONS', () => {
       'Titrations',
       'Electrochemistry',
       'Chemical Reactions',
-      'Dungeon Quest',
     ]);
   });
 
@@ -34,5 +33,26 @@ describe('SIMULATIONS', () => {
 
   it('opens every door now Chemical Reactions is built', () => {
     expect(SIMULATIONS.filter((s) => !s.ready)).toEqual([]);
+  });
+});
+
+describe('GAMES', () => {
+  it('lists the games apart from the simulations, unbuilt ones last', () => {
+    expect(GAMES.map((g) => [g.title, g.ready])).toEqual([
+      ['Dungeon Quest', true],
+      ['Gas Law Balloon', false],
+    ]);
+  });
+
+  it.each(GAMES.filter((g) => g.ready))('$title has a page', (game) => {
+    expect(existsSync(path.join(root, 'src/pages', `${game.path}.tsx`))).toBe(
+      true,
+    );
+  });
+
+  it.each(GAMES)('$title has door art and its own colour', (game) => {
+    expect(DOOR_ART[game.art]).toBeDefined();
+    const colors = [...SIMULATIONS, ...GAMES].map((s) => s.color);
+    expect(colors.filter((c) => c === game.color)).toHaveLength(1);
   });
 });

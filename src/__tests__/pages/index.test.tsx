@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { SIMULATIONS } from '~/constants';
+import { GAMES, SIMULATIONS } from '~/constants';
 import Home from '~/pages/index';
 
 const push = jest.fn();
@@ -10,6 +10,32 @@ jest.mock('~/utils/sounds', () => ({ useDoorSound: () => jest.fn() }));
 beforeEach(() => push.mockClear());
 
 describe('Home page', () => {
+  it('puts the games first, apart from the simulations', () => {
+    render(<Home />);
+    const games = screen.getByRole('region', { name: 'Games' });
+    const sims = screen.getByRole('region', { name: 'Simulations' });
+    expect(
+      games.compareDocumentPosition(sims) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    for (const { title, ready } of GAMES)
+      expect(
+        within(games).getByRole('button', {
+          name: ready ? title : `${title} (coming soon)`,
+        }),
+      ).toBeInTheDocument();
+    expect(
+      within(sims).queryByRole('button', { name: 'Dungeon Quest' }),
+    ).toBeNull();
+  });
+
+  it('keeps the gas balloon game sealed until it’s built', async () => {
+    render(<Home />);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Gas Law Balloon (coming soon)' }),
+    );
+    expect(push).not.toHaveBeenCalled();
+  });
+
   it('shows a card for every simulation', () => {
     render(<Home />);
     for (const { title, ready } of SIMULATIONS) {

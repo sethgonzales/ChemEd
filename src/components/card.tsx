@@ -10,11 +10,19 @@ interface Props {
   color: string; // the simulation's own colour
   art: DoorArtName;
   ready: boolean; // false: a sealed door that says "Coming soon"
+  wide?: boolean; // a game's door: short and wide, its name beside the art
   onClick: () => void;
 }
 
 /** A simulation's chamber door on the home page */
-export default function Card({ title, color, art, ready, onClick }: Props) {
+export default function Card({
+  title,
+  color,
+  art,
+  ready,
+  wide = false,
+  onClick,
+}: Props) {
   const playDoor = useDoorSound();
   const open = () => {
     playDoor();
@@ -29,13 +37,19 @@ export default function Card({ title, color, art, ready, onClick }: Props) {
       aria-disabled={!ready || undefined}
       aria-label={ready ? undefined : `${title} (coming soon)`}
       className={cn(
-        'stone-wall pixel-frame torchlight flex flex-col h-78 p-3 gap-3 focus-visible:outline-none',
+        'stone-wall pixel-frame torchlight flex p-3 gap-3 focus-visible:outline-none',
+        wide ? 'h-44 flex-row items-stretch' : 'h-78 flex-col',
         ready ? 'cursor-pointer' : 'cursor-not-allowed',
       )}
       style={{ '--door': color } as CSSProperties}
     >
       {/* the archway, dark inside and lit in the simulation's colour */}
-      <span className="door-arch relative flex-1 min-h-0 w-full flex items-center justify-center p-6 overflow-hidden">
+      <span
+        className={cn(
+          'door-arch relative min-h-0 flex items-center justify-center overflow-hidden',
+          wide ? 'w-1/2 shrink-0 p-2' : 'flex-1 w-full p-6',
+        )}
+      >
         <PixelArt
           {...DOOR_ART[art]}
           className={cn('shrink-0', !ready && 'opacity-30 grayscale')}
@@ -54,7 +68,12 @@ export default function Card({ title, color, art, ready, onClick }: Props) {
           </span>
         )}
       </span>
-      <span className="pixel-control bg-stone-800 px-3 pt-1 pb-1.5 font-pixel text-xl text-center text-stone-100">
+      <span
+        className={cn(
+          'pixel-control bg-stone-800 px-3 pt-1 pb-1.5 font-pixel text-xl text-center text-stone-100',
+          wide && 'self-center flex-1',
+        )}
+      >
         {title}
       </span>
     </button>
