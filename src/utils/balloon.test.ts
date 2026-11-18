@@ -47,7 +47,7 @@ describe('the gas inside', () => {
     );
   });
 
-  it('swells as it rises into thinner air (Boyle’s law)', () => {
+  it('expands as it rises into thinner air (Boyle’s law)', () => {
     const t = 280;
     const low = gasInside(balloon, flight(20000, 0, t));
     const high = gasInside(balloon, flight(20000, 1500, t));
@@ -58,7 +58,7 @@ describe('the gas inside', () => {
     );
   });
 
-  it('swells when heated (Charles’s law)', () => {
+  it('expands when heated (Charles’s law)', () => {
     const cool = gasInside(balloon, flight(20000, 0, 280));
     const warm = gasInside(balloon, flight(20000, 0, 320));
     expect(warm.volume / cool.volume).toBeCloseTo(320 / 280, 9);

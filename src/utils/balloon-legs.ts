@@ -27,8 +27,8 @@ const between = (rng: () => number, [low, high]: number[]) =>
 
 /**
  * A Boyle's law leg: the heater holds the temperature and the tank's shut,
- * so as the balloon climbs into thinner air it swells, P₁V₁ = P₂V₂. Mr. G
- * ties the envelope off at a volume; the balloon stops swelling there, and
+ * so as the balloon climbs into thinner air it expands, P₁V₁ = P₂V₂. Mr. G
+ * ties the envelope off at a volume; the balloon stops expanding there, and
  * he holds it at that height to drift across.
  */
 export function boyleLeg(index: number, seed: number): GasLeg {

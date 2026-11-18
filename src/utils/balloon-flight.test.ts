@@ -47,7 +47,7 @@ describe('flying a Boyle’s law leg', () => {
     expect(there.height).toBeCloseTo(groundAt(g.leg, there.distance), 6);
   });
 
-  it('swells by Boyle’s law as it climbs, and stops swelling once tied off', () => {
+  it('expands by Boyle’s law as it climbs, and stops expanding once tied off', () => {
     const tiedAt = right * 1.1;
     const plan = planFlight(g, tiedAt);
     const balloon = balloonFor(g, tiedAt);

@@ -9,9 +9,9 @@ import {
   type GasLeg,
 } from '~/utils/balloon-legs';
 
-// A leg flown on the student's answer. The balloon climbs slack, swelling as
+// A leg flown on the student's answer. The balloon climbs slack, expanding as
 // the air thins, until it reaches the volume Mr. G tied it off at; it stops
-// swelling there, and he holds it at that height while the wind carries it.
+// expanding there, and he holds it at that height while the wind carries it.
 
 export type Outcome = 'landed' | 'over' | 'short';
 
@@ -34,7 +34,7 @@ export interface FlightPlan {
 const smooth = (t: number) => t * t * (3 - 2 * t);
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/** Where the balloon stops swelling: the height whose air pressure is nRT/V */
+/** Where the balloon stops expanding: the height whose air pressure is nRT/V */
 function tiedHeight(g: GasLeg, tiedAt: number) {
   const now = gasInside(balloonFor(g), startFlight(g)).volume;
   if (tiedAt <= now) return g.leg.from.height; // already that big: no lift to climb

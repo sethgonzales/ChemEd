@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { BALLOON, type Platform } from '~/constants/balloon-world';
 import { ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
@@ -166,31 +166,79 @@ function Cylinder() {
   );
 }
 
-/** The envelope's volume sensor: a little balloon with a scale beside it */
-function VolumeSensor({ fraction }: { fraction: number }) {
-  const r = 6 + 12 * Math.cbrt(Math.min(1, fraction));
+/** The envelope's volume: a shaded sphere inside a dashed ring, the whole envelope */
+function VolumeSphere({ fraction }: { fraction: number }) {
+  const id = `sphere-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  // the radius grows as the cube root of the volume, as a real sphere's does
+  const r = round(7 + 13 * Math.cbrt(Math.min(1, Math.max(0, fraction))));
   return (
     <svg viewBox="0 0 48 48" className="h-full w-full" aria-hidden="true">
-      <rect x={2} y={2} width={44} height={44} rx={4} fill="#1e293b" />
-      <circle cx={22} cy={22} r={r} fill="#e4572e" />
+      <defs>
+        <radialGradient id={id} cx="0.35" cy="0.32" r="0.75">
+          <stop offset="0" stopColor="#fbbf8a" />
+          <stop offset="0.45" stopColor="#e4572e" />
+          <stop offset="1" stopColor="#7f1d1d" />
+        </radialGradient>
+      </defs>
       <circle
-        cx={22}
-        cy={22}
-        r={r}
+        cx={24}
+        cy={24}
+        r={21}
         fill="none"
-        stroke="#f4d35e"
-        strokeWidth={1}
-        strokeDasharray="2 2"
+        stroke="#e0f2fe"
+        strokeWidth={1.2}
+        strokeDasharray="2.5 2"
       />
-      <rect x={20} y={22 + r - 1} width={4} height={6} fill="#c08a4a" />
-      <rect x={40} y={6} width={2} height={36} fill="#475569" />
-      <rect
-        x={38}
-        y={42 - 36 * Math.min(1, fraction)}
-        width={6}
-        height={2}
-        fill="#86efac"
+      <circle cx={24} cy={24} r={r} fill={`url(#${id})`} />
+      <ellipse
+        cx={24}
+        cy={24}
+        rx={r}
+        ry={round(r * 0.32)}
+        fill="none"
+        stroke="#7f1d1d"
+        strokeOpacity={0.45}
+        strokeWidth={0.8}
       />
+      <ellipse
+        cx={round(24 - r * 0.35)}
+        cy={round(24 - r * 0.4)}
+        rx={round(r * 0.22)}
+        ry={round(r * 0.14)}
+        fill="#fff"
+        fillOpacity={0.7}
+      />
+    </svg>
+  );
+}
+
+/** A height staff, like a surveyor's ruler, with a marker at the altitude */
+function HeightStaff({ value, max }: { value: number; max: number }) {
+  const top = 4;
+  const bottom = 44;
+  const y = round(
+    bottom - (Math.min(Math.max(value, 0), max) / max) * (bottom - top),
+  );
+  return (
+    <svg viewBox="0 0 48 48" className="h-full w-full" aria-hidden="true">
+      <rect x={17} y={2} width={14} height={44} rx={1.5} fill="#facc15" />
+      <rect x={17} y={2} width={3} height={44} fill="#eab308" />
+      {Array.from({ length: 11 }, (_, i) => {
+        const at = bottom - (i * (bottom - top)) / 10;
+        const major = i % 5 === 0;
+        return (
+          <rect
+            key={i}
+            x={31 - (major ? 9 : 5)}
+            y={at - 0.5}
+            width={major ? 9 : 5}
+            height={1}
+            fill="#1f2937"
+          />
+        );
+      })}
+      <path d={`M3 ${y - 5} L14 ${y} L3 ${y + 5} Z`} fill="#dc2626" />
+      <rect x={14} y={y - 0.6} width={20} height={1.2} fill="#dc2626" />
     </svg>
   );
 }
@@ -233,7 +281,7 @@ export function balloonDevices(balloon: Balloon, flight: Flight): Device[] {
       reading: `${fmt(r.volume)} m³`,
       measures: 'How much space the helium fills: the size of the balloon.',
       // against the whole envelope, even when it's tied off smaller
-      picture: <VolumeSensor fraction={r.volume / BALLOON.fullVolume} />,
+      picture: <VolumeSphere fraction={r.volume / BALLOON.fullVolume} />,
     },
     {
       name: 'Helium counter',
@@ -253,7 +301,7 @@ export function airDevices(balloon: Balloon, flight: Flight): Device[] {
       name: 'Altimeter',
       reading: `${fmt(r.altitude)} m`,
       measures: 'How high the basket is, in metres above sea level.',
-      picture: <Dial value={r.altitude} min={0} max={3000} unit="m" />,
+      picture: <HeightStaff value={r.altitude} max={3000} />,
     },
     {
       name: 'Outside thermometer',

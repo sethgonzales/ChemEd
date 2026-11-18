@@ -10,7 +10,7 @@ Replaces the sealed "Gas Law Balloon" door (`GAMES` in `src/constants/index.ts`)
 
 A hot air balloon is open at the bottom, so its pressure always matches the air's and only Charles's law moves it. A sealed balloon, like a weather or research balloon, obeys all the laws on its own:
 
-- **Slack** (not yet stretched full): the gas pressure matches the air outside, so the volume follows the gas: V = nRT/P. Rising into thinner air makes it swell (Boyle), heating swells it (Charles), adding helium swells it (Avogadro).
+- **Slack** (not yet stretched full): the gas pressure matches the air outside, so the volume follows the gas: V = nRT/P. Rising into thinner air makes it expand (Boyle), heating expands it (Charles), adding helium expands it (Avogadro).
 - **Taut** (the fabric at its full size): the volume can't grow, so heating or adding gas raises the pressure instead (Gay-Lussac). The gauge has a burst line.
 - **Lift**: the balloon floats when the air it pushes aside weighs as much as everything it carries (Archimedes). The air's density comes from the ideal gas law too: ρ = PM/RT.
 
@@ -44,7 +44,7 @@ Each level is a short flight of 3–5 legs, one law at a time to begin with. The
 
 How Mr. G might brief each law (the bracketed values are the student's to read off the instruments):
 
-- **Boyle's**: "Up to the mesa. The heater's holding the temperature and we're not touching the tank. We'll float there once we've swelled to 920 m³. We're [600 m³] at [95 kPa] now: help me find the air pressure up there, and I'll know which ledge we'll stop at."
+- **Boyle's**: "Up to the mesa. The heater's holding the temperature and we're not touching the tank. We'll float there once we've expanded to 920 m³. We're [600 m³] at [95 kPa] now: help me find the air pressure up there, and I'll know which ledge we'll stop at."
 - **Charles's**: "Over to the ridge, same height. Tank's empty, so the gas and the pressure aren't changing. To float there we need 850 m³. We're [780 m³] at [285 K]: help me find the temperature."
 - **Gay-Lussac's**: "We're stretched full, so the volume's fixed. The gauge's red line is 112 kPa. We're at [101 kPa] and [290 K]: how hot can I run the heater before we pop?"
 - **Avogadro's**: "Down to the tower. The heater's off and we're holding height, so temperature and pressure aren't changing. We need to shrink to 640 m³. We're [710 m³] with [29,800 mol]: help me find how many moles to keep."
@@ -85,7 +85,7 @@ How Mr. G might brief each law (the bracketed values are the student's to read o
   - `gas-laws.ts`: solvers for each law, used both to fly the balloon and to grade and show worked answers, so the two can't disagree.
   - `balloon.ts`: the balloon's state (n, T, P, V, slack or taut, height, speed) stepped through time: lift, weight and air drag, with the fabric's full volume and burst pressure.
   - `balloon-legs.ts`: each level's legs (platform heights, starting state, locked controls, what's asked), and seeded random numbers within each leg so retries get fresh values.
-- **Tests step the model and check outcomes**: the balloon swells as it climbs, a taut balloon's pressure rises when heated, the right answer lands on the platform, and a 10% error misses.
+- **Tests step the model and check outcomes**: the balloon expands as it climbs, a taut balloon's pressure rises when heated, the right answer lands on the platform, and a 10% error misses.
 - **The rider is a prop**: `BalloonScene` takes the rider's sprite rather than drawing Mr. G itself, so swapping in a student's avatar later is a one-line change. The default is Mr. G.
 - **Components**: `BalloonScene` (the sky, the platforms and the balloon), `Instrument` (a gauge and its close-up), `CalcPad` (typed answer and unit), plus `Container game`, as the games section in CLAUDE.md says.
 - **Dungeon Quest**: once the engine exists, a gas laws question source can come from the same data, with a chamber of its own (a later phase).

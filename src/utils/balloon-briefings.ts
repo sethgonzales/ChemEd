@@ -16,7 +16,7 @@ const fmt = (n: number, digits = 0) =>
 export const briefing = ({ leg }: GasLeg) => [
   `Next stop: ${leg.to.name}, up ahead.`,
   'The heater’s holding the helium at the same temperature, and the tank’s shut, so the temperature and the amount of helium aren’t changing.',
-  `As we climb, the air thins and we swell. I’ll tie the envelope off so we stop swelling just as we reach ${leg.to.name}’s height: then we’ll float level with it and drift in.`,
+  `As we climb, the air thins and the balloon expands. I’ll tie the envelope off so it stops expanding just as we reach ${leg.to.name}’s height: then we’ll float level with it and drift in.`,
   'Help me find the volume to tie it off at.',
 ];
 
@@ -38,8 +38,8 @@ export function worked(g: GasLeg) {
 export function verdict(plan: FlightPlan, { leg }: GasLeg) {
   if (plan.outcome === 'landed') return `We’re down on ${leg.to.name}!`;
   if (plan.outcome === 'over')
-    return `Tied off too big: we kept swelling, climbed too high and sailed right over ${leg.to.name}.`;
+    return `Tied off too big: we kept expanding, climbed too high and sailed right over ${leg.to.name}.`;
   if (plan.stopAt === leg.from.distance)
-    return `We’re already bigger than that, so tied off there we couldn’t swell, and without swelling we couldn’t climb. We never left ${leg.from.name}.`;
-  return `Tied off too small: we stopped swelling too low and couldn’t clear the climb to ${leg.to.name}.`;
+    return `We’re already bigger than that, so tied off there we couldn’t expand, and without expanding we couldn’t climb. We never left ${leg.from.name}.`;
+  return `Tied off too small: we stopped expanding too low and couldn’t clear the climb to ${leg.to.name}.`;
 }

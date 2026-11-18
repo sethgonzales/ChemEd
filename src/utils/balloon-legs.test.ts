@@ -16,7 +16,7 @@ describe('Boyle’s law legs', () => {
       expect(legs[i].leg.from).toEqual(legs[i - 1].leg.to);
   });
 
-  it('climbs every leg, so the air thins and the balloon swells', () => {
+  it('climbs every leg, so the air thins and the balloon expands', () => {
     for (const { leg } of legs)
       expect(leg.to.height).toBeGreaterThan(leg.from.height);
   });
