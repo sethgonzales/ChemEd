@@ -50,18 +50,20 @@ export default function FadeSwap({
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   return (
-    <div className={cn('grid', className)}>
+    // one column no wider than the space it's in, so wide content shrinks to
+    // fit rather than pushing out past the edge
+    <div className={cn('grid grid-cols-1', className)}>
       {leaving.map((l) => (
         <div
           key={l.id}
           inert
           aria-hidden="true"
-          className="pointer-events-none fade-out [grid-area:1/1]"
+          className="pointer-events-none min-w-0 fade-out [grid-area:1/1]"
         >
           {l.children}
         </div>
       ))}
-      <div key={step} className="fade-in [grid-area:1/1]">
+      <div key={step} className="min-w-0 fade-in [grid-area:1/1]">
         {children}
       </div>
     </div>
