@@ -71,6 +71,10 @@ const ASKS: Record<Law, Ask> = {
 /** What the calculation pad asks for on this leg */
 export const ask = (g: GasLeg) => ASKS[g.law];
 
+/** What Mr. G shouts the moment the fabric tears */
+export const POPPED =
+  'Pop! The fabric’s torn and the helium’s pouring out. Hold on, we’re coming down!';
+
 /** Where we're going, what's holding steady, and the one thing to find */
 export function briefing(g: GasLeg): string[] {
   const to = g.leg.to.name;

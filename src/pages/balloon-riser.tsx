@@ -6,6 +6,7 @@ import CalcPad from '~/components/calc-pad';
 import Container from '~/components/container';
 import { ATMOSPHERE_SOURCE } from '~/constants/atmosphere';
 import {
+  POPPED,
   ask,
   briefing,
   hint,
@@ -200,7 +201,9 @@ function Flight({
       <BalloonRadio>
         {game.phase === 'brief' &&
           briefing(g).map((line) => <p key={line}>{line}</p>)}
-        {game.phase === 'flying' && <p role="status">{question.flying}</p>}
+        {game.phase === 'flying' && (
+          <p role="status">{shown.flight.burst ? POPPED : question.flying}</p>
+        )}
         {game.phase === 'landed' && (
           <p role="status" className="font-semibold text-green-300">
             {plan && verdict(plan, g)}

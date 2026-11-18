@@ -142,6 +142,20 @@ describe('the heater, the burst line and the tank', () => {
     expect(screen.getByText(/T₂ = T₁ × P₂ ÷ P₁/)).toBeInTheDocument();
   });
 
+  it('has Mr. G react the moment it pops, mid-flight', async () => {
+    const u = user();
+    await startLevel(u, /^Gay-Lussac’s law/);
+    const right = rightAnswer(gayLussacLeg(0, seed));
+    await u.type(
+      screen.getByRole('textbox', { name: 'Temperature to vent at' }),
+      (right * 1.1).toFixed(0),
+    );
+    await u.click(screen.getByRole('button', { name: 'Set the vent and fly' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Vent’s set');
+    act(() => jest.advanceTimersByTime(FLIGHT_MS / 2));
+    expect(screen.getByRole('status')).toHaveTextContent(/^Pop!/);
+  });
+
   it('sets the helium on Avogadro’s law', async () => {
     const u = user();
     await startLevel(u, /^Avogadro’s law/);

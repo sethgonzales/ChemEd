@@ -175,6 +175,8 @@ describe('the burst line on a Gay-Lussac’s law leg', () => {
     const end = at(1);
     expect(end.burst).toBe(true);
     expect(end.moles).toBe(0);
+    // with the helium gone, its thermometer reads the air that's left
+    expect(end.gasTemperature).toBeCloseTo(airAt(end.height).temperature, 6);
     const gas = gasInside(balloonFor(leg), { ...end, moles: 1 });
     expect(gas.volume).toBeLessThan(1);
     expect(gas.pressure).toBeCloseTo(airAt(end.height).pressure, 6);

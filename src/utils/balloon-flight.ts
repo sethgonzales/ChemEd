@@ -163,7 +163,12 @@ export function flightAt(g: GasLeg, plan: FlightPlan, t: number) {
 }
 
 /** A Gay-Lussac's law leg's helium: the sun heats it, and Mr. G vents at the answer */
-function sunlit(g: GasLeg, plan: FlightPlan, t: number): Partial<Flight> {
+function sunlit(
+  g: GasLeg,
+  plan: FlightPlan,
+  t: number,
+  height: number, // m, where it is now
+): Partial<Flight> {
   const t1 = g.gasTemperature;
   const line = burstTemperature(g);
   // landing, it never quite passes the line; otherwise the sun takes it past
@@ -184,9 +189,14 @@ function sunlit(g: GasLeg, plan: FlightPlan, t: number): Partial<Flight> {
       else low = mid;
     }
     if (t < high) return { gasTemperature: heated };
-    // torn open, the helium rushes out
+    // torn open, the helium rushes out, and the outside air takes its place
+    // round the thermometer
     const left = Math.max(0, 1 - (t - high) / ESCAPE);
-    return { gasTemperature: heated, moles: g.moles * left, burst: true };
+    return {
+      gasTemperature: lerp(airAt(height).temperature, heated, left),
+      moles: g.moles * left,
+      burst: true,
+    };
   }
   if (plan.outcome !== 'short') return { gasTemperature: heated };
   // vented: past the answer he lets helium out to hold the pressure there,
@@ -220,7 +230,7 @@ export function flightState(
       gasTemperature: lerp(start.gasTemperature, answered.gasTemperature, ramp),
     },
     avogadro: { moles: lerp(start.moles, answered.moles, ramp) },
-    'gay-lussac': g.law === 'gay-lussac' ? sunlit(g, plan, t) : {},
+    'gay-lussac': g.law === 'gay-lussac' ? sunlit(g, plan, t, at.height) : {},
   }[g.law];
   return {
     balloon: balloonFor(g, plan.tiedAt),
