@@ -219,3 +219,35 @@ describe('dev tools, for testing a leg', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('moving between screens', () => {
+  it('keeps the one scene, rather than building a new one each time', async () => {
+    const u = user();
+    render(<BalloonRiser />);
+    const basket = () => screen.getByRole('img', { name: /balloon’s basket/ });
+    const first = basket();
+    await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
+    expect(basket()).toBe(first);
+    await u.click(screen.getByRole('button', { name: /^Boyle’s law/ }));
+    expect(basket()).toBe(first);
+  });
+});
+
+describe('the back arrow', () => {
+  it('leaves for the simulations from the level select', async () => {
+    const u = user();
+    render(<BalloonRiser />);
+    await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
+    expect(
+      screen.getByRole('link', { name: 'Back to simulations' }),
+    ).toHaveAttribute('href', '/');
+  });
+
+  it('goes back to the level select from inside a game', async () => {
+    const u = user();
+    await startBoyle(u);
+    await u.click(screen.getByRole('button', { name: 'Back to levels' }));
+    expect(screen.getByRole('button', { name: /^Boyle’s law/ })).toBeEnabled();
+    expect(screen.queryByText('Leg 1 of 3')).not.toBeInTheDocument();
+  });
+});

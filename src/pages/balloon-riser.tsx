@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import BalloonRadio from '~/components/balloon-radio';
 import BalloonScene from '~/components/balloon-scene';
 import Button from '~/components/button';
@@ -83,24 +83,9 @@ const IN_SKY =
 const LAUNCH = boyleLeg(0, 0);
 const AT_LAUNCH = flightState(LAUNCH, undefined, 0);
 
-/** The launch field, resting, with Mr. G's card in its sky */
-function LaunchField({ children }: { children: ReactNode }) {
-  return (
-    <BalloonScene
-      balloon={AT_LAUNCH.balloon}
-      flight={AT_LAUNCH.flight}
-      distance={AT_LAUNCH.distance}
-      leg={LAUNCH.leg}
-      instruments={false}
-    >
-      <BalloonRadio className={IN_SKY}>{children}</BalloonRadio>
-    </BalloonScene>
-  );
-}
-
 function Gate({ onPick }: { onPick: (c: Course) => void }) {
   return (
-    <LaunchField>
+    <>
       <p>
         Morning! Before we take off: which course are you taking? It decides
         which flights I’ll take you on.
@@ -112,7 +97,7 @@ function Gate({ onPick }: { onPick: (c: Course) => void }) {
           </Button>
         ))}
       </div>
-    </LaunchField>
+    </>
   );
 }
 
@@ -130,7 +115,7 @@ function Levels({
   const levels = levelsFor(course);
   const general = levels.filter((l) => !l.ap).length;
   return (
-    <LaunchField>
+    <>
       <p>Pick a flight. Each one is a few hops, platform to platform.</p>
       <ol className="grid gap-1.5 text-sm sm:grid-cols-2">
         {levels.map((l, i) => {
@@ -168,7 +153,7 @@ function Levels({
       <div className="font-pixel">
         <Button onClick={onChangeCourse}>Change course</Button>
       </div>
-    </LaunchField>
+    </>
   );
 }
 
@@ -180,30 +165,20 @@ const DEV_ANSWERS: [string, number][] = [
   ['Fly 10% too low', 0.9],
 ];
 
-function Flight({
+/** Mr. G on the radio through a leg: the briefing, the answer, the verdict */
+function FlightRadio({
   game,
   setGame,
+  burst,
   onLevels,
 }: {
   game: GameState;
   setGame: (g: GameState) => void;
+  burst: boolean;
   onLevels: () => void;
 }) {
-  const playTreasure = useTreasureSound();
-  const playMiss = useMissSound();
   const g = gasLeg(game);
-  const t = useFlightClock(game.phase === 'flying', () => {
-    const done = arrive(game);
-    (done.phase === 'landed' ? playTreasure : playMiss)();
-    setGame(done);
-  });
-
   const plan = game.plan;
-  const shown = flightState(
-    g,
-    game.phase === 'brief' ? undefined : plan,
-    game.phase === 'flying' ? t : 1,
-  );
   const question = ask(g);
   const last = game.leg + 1 >= game.legs;
 
@@ -215,101 +190,63 @@ function Flight({
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm text-white/80">
-        <span>{`Leg ${game.leg + 1} of ${game.legs}`}</span>
-        <span className="font-sans">
-          {' '}
-          · {g.leg.from.name} → {g.leg.to.name}
-        </span>
-      </p>
-      <BalloonScene
-        balloon={shown.balloon}
-        flight={shown.flight}
-        distance={shown.distance}
-        leg={g.leg}
-      >
-        <BalloonRadio className={IN_SKY}>
-          {game.phase === 'brief' &&
-            briefing(g).map((line) => <p key={line}>{line}</p>)}
-          {game.phase === 'flying' && (
-            <p role="status">{shown.flight.burst ? POPPED : question.flying}</p>
-          )}
-          {game.phase === 'landed' && (
-            <p role="status" className="font-semibold text-green-300">
-              {plan && verdict(plan, g)}
-            </p>
-          )}
-          {game.phase === 'missed' && plan && (
-            <>
-              <p role="status">{verdict(plan, g)}</p>
-              <p>Here’s the working, from the same readings:</p>
-              <div className="flex flex-col font-mono text-sm">
-                {worked(g).map((line) => (
-                  <span key={line}>{line}</span>
-                ))}
-              </div>
-            </>
-          )}
+    <>
+      {game.phase === 'brief' &&
+        briefing(g).map((line) => <p key={line}>{line}</p>)}
+      {game.phase === 'flying' && (
+        <p role="status">{burst ? POPPED : question.flying}</p>
+      )}
+      {game.phase === 'landed' && (
+        <p role="status" className="font-semibold text-green-300">
+          {plan && verdict(plan, g)}
+        </p>
+      )}
+      {game.phase === 'missed' && plan && (
+        <>
+          <p role="status">{verdict(plan, g)}</p>
+          <p>Here’s the working, from the same readings:</p>
+          <div className="flex flex-col font-mono text-sm">
+            {worked(g).map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+          </div>
+        </>
+      )}
 
-          {game.phase === 'brief' && (
-            <CalcPad
-              key={`${game.leg}-${game.seed}`}
-              label={question.label}
-              units={question.units}
-              hint={hint(g)}
-              action={question.action}
-              onSubmit={(v) => setGame(fly(game, v))}
-              working={false}
-            />
-          )}
-          {game.phase === 'landed' && (
-            <div className="font-pixel">
-              <Button pressed onClick={goOn}>
-                {last ? 'Finish' : 'Next leg'}
-              </Button>
-            </div>
-          )}
-          {game.phase === 'missed' && (
-            <div className="flex gap-2 font-pixel">
-              <Button
-                pressed
-                onClick={() => setGame(retry(game, game.seed + 1))}
-              >
-                Try again
-              </Button>
-              <Button onClick={onLevels}>Levels</Button>
-            </div>
-          )}
-        </BalloonRadio>
-      </BalloonScene>
-
-      {game.phase === 'brief' && <Working key={`${game.leg}-${game.seed}`} />}
-      {game.phase === 'brief' && DEV_TOOLS && (
-        <div
-          role="group"
-          aria-label="Dev tools"
-          className="flex flex-wrap items-center gap-2 border border-dashed border-white/30 p-2 text-xs"
-        >
-          <span className="text-white/60">Dev tools</span>
-          {DEV_ANSWERS.map(([name, by]) => (
-            <Button
-              key={name}
-              onClick={() => setGame(fly(game, rightAnswer(g) * by))}
-            >
-              {name}
-            </Button>
-          ))}
+      {game.phase === 'brief' && (
+        <CalcPad
+          key={`${game.leg}-${game.seed}`}
+          label={question.label}
+          units={question.units}
+          hint={hint(g)}
+          action={question.action}
+          onSubmit={(v) => setGame(fly(game, v))}
+          working={false}
+        />
+      )}
+      {game.phase === 'landed' && (
+        <div className="font-pixel">
+          <Button pressed onClick={goOn}>
+            {last ? 'Finish' : 'Next leg'}
+          </Button>
         </div>
       )}
-    </div>
+      {game.phase === 'missed' && (
+        <div className="flex gap-2 font-pixel">
+          <Button pressed onClick={() => setGame(retry(game, game.seed + 1))}>
+            Try again
+          </Button>
+          <Button onClick={onLevels}>Levels</Button>
+        </div>
+      )}
+    </>
   );
 }
 
 function Done({ game, onLevels }: { game: GameState; onLevels: () => void }) {
   const stars = starsFor(game.misses);
   return (
-    <LaunchField>
+    <>
       <p role="status" className="font-semibold text-green-300">
         Flight complete!
       </p>
@@ -329,7 +266,7 @@ function Done({ game, onLevels }: { game: GameState; onLevels: () => void }) {
           Levels
         </Button>
       </div>
-    </LaunchField>
+    </>
   );
 }
 
@@ -341,28 +278,99 @@ export default function BalloonRiser() {
 
   const toLevels = () => setGame(null);
 
+  const playTreasure = useTreasureSound();
+  const playMiss = useMissSound();
+  const t = useFlightClock(game?.phase === 'flying', () => {
+    if (!game) return;
+    const done = arrive(game);
+    (done.phase === 'landed' ? playTreasure : playMiss)();
+    setGame(done);
+  });
+
+  // one scene for every screen, so moving between them doesn't rebuild it:
+  // the launch field until a leg is under way
+  const flying = game && game.phase !== 'done' ? game : null;
+  const g = flying ? gasLeg(flying) : LAUNCH;
+  const shown = flying
+    ? flightState(
+        g,
+        flying.phase === 'brief' ? undefined : flying.plan,
+        flying.phase === 'flying' ? t : 1,
+      )
+    : AT_LAUNCH;
+  const briefed = flying?.phase === 'brief' ? flying : null;
+
   return (
     <Container
       game
       header="Balloon Riser"
       description="Fly from platform to platform. Read the instruments, work out the gas law, and the balloon flies on your answer."
-      backHref="/"
+      {...(game
+        ? { back: { label: 'Back to levels', onClick: toLevels } }
+        : { backHref: '/' })}
       sources={[ATMOSPHERE_SOURCE, 'codata', 'siBrochure', 'ciaawWeights']}
     >
-      {!course ? (
-        <Gate onPick={setCourse} />
-      ) : !game ? (
-        <Levels
-          course={course}
-          stars={stars}
-          onPlay={(level) => setGame(startLevel(course, level, newSeed()))}
-          onChangeCourse={() => setCourse(null)}
-        />
-      ) : game.phase === 'done' ? (
-        <Done game={game} onLevels={toLevels} />
-      ) : (
-        <Flight game={game} setGame={setGame} onLevels={toLevels} />
-      )}
+      <div className="flex flex-col gap-4">
+        {flying && (
+          <p className="text-sm text-white/80">
+            <span>{`Leg ${flying.leg + 1} of ${flying.legs}`}</span>
+            <span className="font-sans">
+              {' '}
+              · {g.leg.from.name} → {g.leg.to.name}
+            </span>
+          </p>
+        )}
+        <BalloonScene
+          balloon={shown.balloon}
+          flight={shown.flight}
+          distance={shown.distance}
+          leg={g.leg}
+          instruments={!!flying}
+        >
+          <BalloonRadio className={IN_SKY}>
+            {!course ? (
+              <Gate onPick={setCourse} />
+            ) : !game ? (
+              <Levels
+                course={course}
+                stars={stars}
+                onPlay={(level) =>
+                  setGame(startLevel(course, level, newSeed()))
+                }
+                onChangeCourse={() => setCourse(null)}
+              />
+            ) : game.phase === 'done' ? (
+              <Done game={game} onLevels={toLevels} />
+            ) : (
+              <FlightRadio
+                game={game}
+                setGame={setGame}
+                burst={!!shown.flight.burst}
+                onLevels={toLevels}
+              />
+            )}
+          </BalloonRadio>
+        </BalloonScene>
+
+        {briefed && <Working key={`${briefed.leg}-${briefed.seed}`} />}
+        {briefed && DEV_TOOLS && (
+          <div
+            role="group"
+            aria-label="Dev tools"
+            className="flex flex-wrap items-center gap-2 border border-dashed border-white/30 p-2 text-xs"
+          >
+            <span className="text-white/60">Dev tools</span>
+            {DEV_ANSWERS.map(([name, by]) => (
+              <Button
+                key={name}
+                onClick={() => setGame(fly(briefed, rightAnswer(g) * by))}
+              >
+                {name}
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
     </Container>
   );
 }

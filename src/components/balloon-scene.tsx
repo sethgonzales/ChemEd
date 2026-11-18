@@ -842,7 +842,10 @@ export default function BalloonScene({
     worldX(leg, next.distance) + STATION_AT[next.kind] + 3,
     worldY(leg, next.height - STRUCTURE[next.kind]) - 12,
   );
-  const stationInView = station.x > 40 && station.x < screen.width - 40;
+  // a level leg's station would only repeat the air gauges
+  const hasStation = next.height !== leg.from.height;
+  const stationInView =
+    hasStation && station.x > 40 && station.x < screen.width - 40;
   // its readouts hang above it, or step aside on a tether when the balloon's
   // gauges are in the way, as you arrive
   const ring = {
@@ -1065,7 +1068,7 @@ export default function BalloonScene({
               <Gauge key={device.name} device={device} opens="left" />
             ))}
           </div>
-          {!stationInView && (
+          {hasStation && !stationInView && (
             <div
               role="group"
               aria-label={`${next.name} weather station, by radio`}

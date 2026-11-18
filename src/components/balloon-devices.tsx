@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { BALLOON, type Platform } from '~/constants/balloon-world';
-import { ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
 import type { Balloon, Flight } from '~/utils/balloon';
 import { readings } from '~/utils/balloon-view';
@@ -296,24 +295,18 @@ export function airDevices(balloon: Balloon, flight: Flight): Device[] {
   ];
 }
 
-/** A place's weather station: the air where it stands */
+/** A place's weather station: the air pressure where it stands, all a
+ * Boyle's law leg needs that the basket's own air gauges don't show */
 export function stationDevices(place: Platform): Device[] {
   const air = airAt(place.height);
-  const where = `at ${place.name}, ${fmt(place.height)} m up, from its weather station`;
   return [
     {
       name: 'Barometer',
       reading: `${fmt(air.pressure / 1000, 1)} kPa`,
-      measures: `The air pressure ${where}.`,
+      measures: `The air pressure at ${place.name}, ${fmt(place.height)} m up, from its weather station.`,
       picture: (
         <Dial value={air.pressure / 1000} min={60} max={110} unit="kPa" />
       ),
-    },
-    {
-      name: 'Thermometer',
-      reading: `${fmt(air.temperature - ZERO_CELSIUS, 1)} °C`,
-      measures: `The air temperature ${where}.`,
-      picture: <Thermometer celsius={air.temperature - ZERO_CELSIUS} />,
     },
   ];
 }

@@ -112,9 +112,22 @@ describe('BalloonScene', () => {
     expect(gauge(station, 'Barometer')).toHaveAccessibleName(
       `Barometer: ${(air.pressure / 1000).toFixed(1)} kPa`,
     );
-    expect(gauge(station, 'Thermometer')).toHaveAccessibleName(
-      `Thermometer: ${(air.temperature - 273.15).toFixed(1)} °C`,
+    // just the pressure a Boyle's law leg needs: the air gauges have the rest
+    expect(within(station).getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('leaves the station out on a level leg, where it’d repeat the air’s gauges', () => {
+    render(
+      <BalloonScene
+        balloon={balloon}
+        flight={flight}
+        distance={0}
+        leg={{ ...leg, to: { ...leg.to, height: leg.from.height } }}
+      />,
     );
+    expect(
+      screen.queryByRole('group', { name: /weather station/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('has a height ruler for what’s in view', () => {
