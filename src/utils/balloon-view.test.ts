@@ -53,6 +53,11 @@ describe('envelopeRadius', () => {
   it('never draws bigger than full', () => {
     expect(envelopeRadius(2000, 1000)).toBe(ENVELOPE_RADIUS);
   });
+
+  it('still shows an empty balloon’s fabric, limp, rather than nothing', () => {
+    expect(envelopeRadius(0, 1000)).toBeGreaterThanOrEqual(2);
+    expect(envelopeRadius(0, 1000)).toBeLessThan(ENVELOPE_RADIUS / 2);
+  });
 });
 
 describe('the size of the view', () => {

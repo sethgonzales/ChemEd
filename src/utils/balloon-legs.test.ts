@@ -8,6 +8,7 @@ import {
   boyleLeg,
   charlesLeg,
   combinedLeg,
+  idealLeg,
   gayLussacLeg,
   rightAnswer,
   startFlight,
@@ -282,5 +283,57 @@ describe('combined gas law legs', () => {
 
   it('reads helium in whole hundreds of moles, like the counter shows', () => {
     for (const g of these) expect(g.moles % 100).toBe(0);
+  });
+});
+
+describe('ideal gas law legs', () => {
+  const these = Array.from({ length: LEGS_PER_LEVEL }, (_, i) =>
+    idealLeg(i, 42),
+  );
+  const many = Array.from({ length: 200 }, (_, s) =>
+    Array.from({ length: LEGS_PER_LEVEL }, (_, i) => idealLeg(i, s)),
+  ).flat();
+
+  it('hop platform to platform at the same height', () => {
+    for (let i = 1; i < these.length; i++)
+      expect(these[i].leg.from).toEqual(these[i - 1].leg.to);
+    for (const { leg } of these) expect(leg.to.height).toBe(leg.from.height);
+  });
+
+  it('start empty, so there’s no V₁ or n₁ to scale from: it takes PV = nRT', () => {
+    for (const g of these) {
+      expect(g.moles).toBe(0);
+      expect(gasInside(balloonFor(g), startFlight(g)).volume).toBe(0);
+      expect(liftOff(balloonFor(g), startFlight(g))).toBe(false);
+    }
+  });
+
+  it('ask for the moles PV = nRT gives from the readings and the volume Mr. G needs', () => {
+    for (const g of these) {
+      const p = airAt(g.leg.from.height).pressure; // balloon gauge
+      const t = g.gasTemperature; // helium thermometer
+      expect(rightAnswer(g) / ((p * g.said) / (8.314462618 * t))).toBeCloseTo(
+        1,
+        9,
+      );
+    }
+  });
+
+  it('need the volume that floats there: a little more helium lifts, a little less doesn’t', () => {
+    for (const g of many) {
+      const n = rightAnswer(g);
+      expect(liftOff(balloonFor(g), withGas(g, { moles: n * 1.01 }))).toBe(
+        true,
+      );
+      expect(liftOff(balloonFor(g), withGas(g, { moles: n * 0.99 }))).toBe(
+        false,
+      );
+      expect(g.said).toBeLessThan(g.envelope);
+    }
+  });
+
+  it('gives fresh numbers on a retry, and the same ones for the same seed', () => {
+    expect(idealLeg(0, 42)).toEqual(idealLeg(0, 42));
+    expect(idealLeg(0, 43)).not.toEqual(idealLeg(0, 42));
   });
 });

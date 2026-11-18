@@ -71,3 +71,11 @@ export const COMBINED_ROUTE: Platform[] = [
   { name: 'Windy Lookout', kind: 'lookout', distance: 2 * HOP, height: 2000 },
   { name: 'Snowcap Ridge', kind: 'ridge', distance: 3 * HOP, height: 2700 },
 ];
+
+// a fresh fill each morning: camping across the high plateau
+export const IDEAL_ROUTE = level(1000, [
+  ['Camp Mesa', 'mesa'],
+  ['Lake Lookout', 'lookout'],
+  ['Elk Field', 'field'],
+  ['Far Ridge', 'ridge'],
+]);

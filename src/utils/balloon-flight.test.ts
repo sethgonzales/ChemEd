@@ -13,6 +13,7 @@ import {
   boyleLeg,
   charlesLeg,
   combinedLeg,
+  idealLeg,
   gayLussacLeg,
   rightAnswer,
   startFlight,
@@ -281,5 +282,24 @@ describe('flying a combined gas law leg', () => {
     expect(start.gasTemperature).toBeCloseTo(c.gasTemperature, 6);
     expect(there.flight.gasTemperature).toBeCloseTo(c.said, 6);
     expect(gasInside(there.balloon, there.flight).volume).toBeCloseTo(right, 0);
+  });
+});
+
+describe('flying an ideal gas law leg', () => {
+  const i = idealLeg(0, 7);
+  const right = rightAnswer(i);
+
+  it('lands with the right amount, climbs over with too much, and never leaves with too little', () => {
+    expect(planFlight(i, right).outcome).toBe('landed');
+    expect(planFlight(i, right * 1.015).outcome).toBe('landed');
+    expect(planFlight(i, right * 1.1).outcome).toBe('over');
+    expect(planFlight(i, right * 0.9).outcome).toBe('short');
+    expect(planFlight(i, right * 0.9).stopAt).toBe(i.leg.from.distance);
+  });
+
+  it('fills from empty as it sets off', () => {
+    const plan = planFlight(i, right);
+    expect(flightState(i, plan, 0).flight.moles).toBe(0);
+    expect(flightState(i, plan, 1).flight.moles).toBeCloseTo(right, 6);
   });
 });

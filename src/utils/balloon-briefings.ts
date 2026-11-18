@@ -1,4 +1,4 @@
-import { ZERO_CELSIUS } from '~/constants/physical';
+import { GAS_CONSTANT, ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
 import { gasInside } from '~/utils/balloon';
 import type { FlightPlan } from '~/utils/balloon-flight';
@@ -34,6 +34,8 @@ function shown(g: GasLeg) {
 }
 
 const kPa = (pa: number) => fmt(pa / 1000, 1);
+// R as students use it, to four figures
+const R = GAS_CONSTANT.toFixed(3);
 
 export interface Ask {
   label: string; // the calculation pad's
@@ -54,6 +56,12 @@ const ASKS: Record<Law, Ask> = {
     units: ['m³', 'L'],
     action: 'Tie off and fly',
     flying: 'Tied off, and the heater’s turned down. Up we go…',
+  },
+  ideal: {
+    label: 'Helium to fill',
+    units: ['mol'],
+    action: 'Fill and fly',
+    flying: 'Filling up. Here we go…',
   },
   charles: {
     label: 'Heater temperature',
@@ -93,6 +101,13 @@ export function briefing(g: GasLeg): string[] {
         `As we climb, the air thins and the balloon expands. I’ll tie the envelope off so it stops expanding just as we reach ${to}’s height: then we’ll float level with it and drift in.`,
         'Help me find the volume to tie it off at.',
       ];
+    case 'ideal':
+      return [
+        `Next stop: ${to}, across at the same height.`,
+        'We packed the balloon away for the night, so it’s empty: the volume meter and the helium counter both read zero, and there’s nothing to scale from.',
+        `The heater’s warming the helium in the tank. To float across, we need to fill out to ${fmt(g.said)} m³: then the air we push aside weighs as much as we do, camping gear and all.`,
+        'Help me find how many moles of helium to fill it with.',
+      ];
     case 'combined':
       return [
         `Next stop: ${to}, high up ahead.`,
@@ -130,6 +145,8 @@ export function hint(g: GasLeg): string {
   switch (g.law) {
     case 'boyle':
       return `Boyle’s law: with the temperature and the helium fixed, P₁V₁ = P₂V₂. P₁ and V₁ are ours now, on the balloon gauge and the volume meter. P₂ is the air pressure at ${g.leg.to.name}: its weather station reads it.`;
+    case 'ideal':
+      return `The ideal gas law: PV = nRT, so n = PV ÷ RT, with P in pascals, V in cubic metres, T in kelvin and R = ${R} J/(mol·K). Filling, the balloon’s slack, so P is the air pressure: the balloon gauge or the barometer reads it. T is on the helium thermometer, and V is the volume I need.`;
     case 'combined':
       return `The combined gas law: with the helium fixed, P₁V₁/T₁ = P₂V₂/T₂, with T in kelvin. P₁, V₁ and T₁ are ours now, on the balloon gauge, the volume meter and the helium thermometer. P₂ is the air pressure at ${g.leg.to.name}: its weather station reads it. T₂ is the heater’s new setting.`;
     case 'charles':
@@ -149,6 +166,16 @@ export function worked(g: GasLeg): string[] {
     `T₂ = ${fmt(t, 1)} K (${fmt(t - ZERO_CELSIUS, 1)} °C)`;
   const p2 = Number((airAt(g.leg.to.height).pressure / 1000).toFixed(1));
   switch (g.law) {
+    case 'ideal': {
+      const pa = r.p1 * 1000;
+      return [
+        'PV = nRT, so n = PV ÷ RT',
+        `P = ${fmt(r.p1, 1)} kPa = ${fmt(pa)} Pa`,
+        `T = ${fmt(r.celsius, 1)} °C + 273.15 = ${fmt(r.kelvin, 2)} K`,
+        `n = ${fmt(pa)} Pa × ${fmt(g.said)} m³ ÷ (${R} J/(mol·K) × ${fmt(r.kelvin, 2)} K)`,
+        `n = ${fmt((pa * g.said) / (Number(R) * r.kelvin))} mol`,
+      ];
+    }
     case 'combined': {
       const t2 = g.said; // K: he says a whole or half °C, so this is exact
       return [
@@ -205,6 +232,11 @@ const MISSES: Record<Law, Partial<Record<FlightPlan['outcome'], string>>> = {
     over: 'Too hot: we grew bigger than we needed, had lift to spare, and climbed right over {to}.',
     short:
       'Too cool: we didn’t grow big enough to lift us, so we never left {from}.',
+  },
+  ideal: {
+    over: 'Too much helium: we filled out bigger than we needed, had lift to spare, and climbed right over {to}.',
+    short:
+      'Too little helium: we didn’t fill out big enough to lift us, so we never left {from}.',
   },
   avogadro: {
     over: 'Too much helium: we were bigger than we needed, had lift to spare, and climbed right over {to}.',

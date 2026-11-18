@@ -7,6 +7,7 @@ import {
   boyleLeg,
   charlesLeg,
   combinedLeg,
+  idealLeg,
   gayLussacLeg,
   rightAnswer,
   tieOffVolume,
@@ -49,7 +50,7 @@ describe('Balloon Riser page', () => {
     await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
     expect(screen.getByRole('button', { name: /^Boyle’s law/ })).toBeEnabled();
     expect(
-      screen.getByRole('button', { name: /^Ideal gas law \(coming soon\)/ }),
+      screen.getByRole('button', { name: /^Free flight \(coming soon\)/ }),
     ).toBeDisabled();
   });
 
@@ -299,6 +300,24 @@ describe('the combined gas law level', () => {
     await answer(u, rightAnswer(combinedLeg(0, seed)));
     expect(
       screen.getByText(`We’re down on ${combinedLeg(0, seed).leg.to.name}!`),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('the ideal gas law level', () => {
+  it('fills an empty balloon and flies a right answer onto the next platform', async () => {
+    const u = user();
+    render(<BalloonRiser />);
+    await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
+    await u.click(screen.getByRole('button', { name: /^Ideal gas law/ }));
+    await u.type(
+      screen.getByRole('textbox', { name: 'Helium to fill' }),
+      String(Math.round(rightAnswer(idealLeg(0, seed)))),
+    );
+    await u.click(screen.getByRole('button', { name: 'Fill and fly' }));
+    act(() => jest.advanceTimersByTime(FLIGHT_MS + 500));
+    expect(
+      screen.getByText(`We’re down on ${idealLeg(0, seed).leg.to.name}!`),
     ).toBeInTheDocument();
   });
 });

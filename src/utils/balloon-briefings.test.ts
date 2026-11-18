@@ -8,6 +8,7 @@ import {
   boyleLeg,
   charlesLeg,
   combinedLeg,
+  idealLeg,
   gayLussacLeg,
   rightAnswer,
   startFlight,
@@ -163,5 +164,44 @@ describe('Mr. G on a combined gas law leg', () => {
     expect(verdict(planFlight(c, right), c)).toMatch(/down on/);
     expect(verdict(planFlight(c, right * 1.1), c)).toMatch(/over/);
     expect(verdict(planFlight(c, right * 0.96), c)).toMatch(/small/);
+  });
+});
+
+describe('Mr. G on an ideal gas law leg', () => {
+  const i = idealLeg(0, 3);
+
+  it('names the next stop, and gives only the volume he needs', () => {
+    const text = briefing(i).join(' ');
+    expect(text).toMatch(new RegExp(i.leg.to.name));
+    const numbers = text.match(/[\d,.]*\d/g) ?? [];
+    expect(numbers).toHaveLength(1);
+    expect(Number(numbers[0]!.replace(/,/g, ''))).toBe(i.said);
+  });
+
+  it('hints at PV = nRT, with R and the units it takes', () => {
+    expect(hint(i)).toContain('PV = nRT');
+    expect(hint(i)).toContain('8.314');
+  });
+
+  it('works the answer from the readings', () => {
+    const lines = worked(i);
+    expect(lines[0]).toContain('PV = nRT');
+    const last = Number(
+      lines
+        .at(-1)!
+        .match(/= ([\d,.]+) mol/)![1]
+        .replace(/,/g, ''),
+    );
+    expect(last / rightAnswer(i)).toBeCloseTo(1, 2);
+  });
+
+  it('asks for moles of helium', () => {
+    expect(ask(i).units).toContain('mol');
+  });
+
+  it('says what went wrong', () => {
+    const right = rightAnswer(i);
+    expect(verdict(planFlight(i, right * 1.1), i)).toMatch(/over/);
+    expect(verdict(planFlight(i, right * 0.9), i)).toMatch(/never left/);
   });
 });

@@ -29,9 +29,15 @@ export function readings(balloon: Balloon, flight: Flight): Readings {
   };
 }
 
-/** The envelope's drawn radius: a sphere's, growing as the cube root of its volume */
+const EMPTY_RADIUS = 2; // art px: an empty envelope, a limp scrap of fabric
+
+/** The envelope's drawn radius: a sphere's, growing as the cube root of its
+ * volume, and never vanishing when it's empty */
 export const envelopeRadius = (volume: number, fullVolume: number) =>
-  ENVELOPE_RADIUS * Math.cbrt(Math.min(volume, fullVolume) / fullVolume);
+  Math.max(
+    EMPTY_RADIUS,
+    ENVELOPE_RADIUS * Math.cbrt(Math.min(volume, fullVolume) / fullVolume),
+  );
 
 // The view is a window on the leg's world, in art pixels. It's sized from the
 // screen so pixels stay about the same size everywhere; on a phone you see

@@ -3,6 +3,7 @@ import {
   BALLOON,
   CHARLES_ROUTE,
   COMBINED_ROUTE,
+  IDEAL_ROUTE,
   GAY_LUSSAC_ROUTE,
   ROUTE,
   type Leg,
@@ -17,7 +18,13 @@ import { createRng } from '~/utils/quest';
 // Each leg of a level: the platforms, and the balloon's helium as it sets off.
 // The numbers are seeded, so a retry gets fresh ones and a test can replay them.
 
-export type Law = 'boyle' | 'charles' | 'gay-lussac' | 'avogadro' | 'combined';
+export type Law =
+  | 'boyle'
+  | 'charles'
+  | 'gay-lussac'
+  | 'avogadro'
+  | 'combined'
+  | 'ideal';
 
 export const LEGS_PER_LEVEL = ROUTE.length - 1;
 export const BOYLE_LEGS = LEGS_PER_LEVEL;
@@ -34,6 +41,9 @@ const FULL_PRESSURE = [2000, 6000]; // Pa over the air's, stretched full
 const LOAD = [760, 840];
 const CARGO = [80, 160]; // kg picked up or dropped off (game values)
 const CARGO_STEP = 10; // kg
+// kg on an ideal gas law leg, camping gear and all, so each morning's fill
+// differs (game values)
+const CAMP_LOAD = [620, 760];
 const MOLE_STEP = 100; // the helium counter reads in hundreds
 // K: where the heater holds the helium before a climb into the cold, warm
 // enough that turning it down still leaves it above freezing
@@ -233,6 +243,29 @@ export function combinedLeg(index: number, seed: number): GasLeg {
   };
 }
 
+/**
+ * An ideal gas law leg: the balloon was packed away overnight, so it starts
+ * empty, with no volume or moles to scale from. Mr. G needs it filled to the
+ * volume that floats here; the student finds the moles from the air pressure
+ * and the helium's temperature: PV = nRT.
+ */
+export function idealLeg(index: number, seed: number): GasLeg {
+  const rng = seeded(seed, index);
+  const from = IDEAL_ROUTE[index];
+  const to = IDEAL_ROUTE[index + 1];
+  const gasTemperature = Math.round(between(rng, HEATER) * 2) / 2;
+  const payload = toStep(between(rng, CAMP_LOAD), CARGO_STEP);
+  return {
+    law: 'ideal',
+    leg: legBetween(from, to),
+    moles: 0,
+    gasTemperature,
+    envelope: BALLOON.fullVolume,
+    payload,
+    said: Math.round(floatingVolume(from.height, payload, gasTemperature)),
+  };
+}
+
 /** Whether Mr. G ties the envelope off at the answer, as a volume */
 export const tiesOff = (g: GasLeg) => g.law === 'boyle' || g.law === 'combined';
 
@@ -278,6 +311,12 @@ export function rightAnswer(g: GasLeg): number {
       return (g.gasTemperature * g.said) / now.v;
     case 'avogadro':
       return (g.moles * g.said) / now.v;
+    case 'ideal':
+      return solveGas({
+        p: airAt(g.leg.from.height).pressure,
+        v: g.said,
+        t: g.gasTemperature,
+      }).n;
     case 'gay-lussac': {
       const full = solveGas({ v: g.envelope, n: g.moles, t: g.gasTemperature });
       return (g.gasTemperature * g.said) / full.p;
