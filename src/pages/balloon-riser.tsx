@@ -39,6 +39,7 @@ import {
 import { takenBy } from '~/utils/balloon-free';
 import { DEV_TOOLS } from '~/utils/dev-tools';
 import { COURSES, type Course } from '~/utils/quest';
+import { ARRIVE_PAUSE, useMusic } from '~/utils/music-player';
 import { useCoinSound, useMissSound, useTreasureSound } from '~/utils/sounds';
 import { useFlightClock } from '~/utils/use-flight-clock';
 import { useMedia } from '~/utils/use-media';
@@ -273,6 +274,7 @@ export default function BalloonRiser() {
   const [game, setGame] = useState<GameState | null>(null);
   const [stars, setStars] = useState<Stars>({});
   useEffect(() => setStars(loadStars()), [game?.phase]);
+  useMusic('balloon', false, ARRIVE_PAUSE);
 
   const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
   const [dipping, setDipping] = useState(false);

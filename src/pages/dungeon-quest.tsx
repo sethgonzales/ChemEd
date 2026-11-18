@@ -20,7 +20,7 @@ import {
   saveSetup,
 } from '~/utils/quest-storage';
 import { QUESTION_SOURCES } from '~/utils/quest-sources';
-import { useMusic } from '~/utils/music-player';
+import { ARRIVE_PAUSE, useMusic } from '~/utils/music-player';
 import { useChimeSound } from '~/utils/sounds';
 
 type View =
@@ -33,9 +33,6 @@ const newSeed = () => Math.floor(Math.random() * 2 ** 32);
 
 const ALL: QuestSetup = { topics: CHAMBER_IDS, course: 'general' };
 const ENTER_PAUSE = 1800; // ms of quiet, with a chime, before a chamber's theme
-// ms before the lobby's theme on arrival, so it doesn't play over the home
-// card's door thud (useDoorSound rings for 1.65 s)
-const ARRIVE_PAUSE = 1700;
 
 /**
  * Where a visit starts: a chamber link opens its story, a setup link fills in

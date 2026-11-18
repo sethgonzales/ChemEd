@@ -1,7 +1,8 @@
-// The Dungeon Quest's soundtrack: short chiptune loops, written as notes and
-// played by Web Audio oscillators (see music-player.ts), so there are no audio
-// files to load. The gate and map have one theme; each chamber has its own,
-// in the mood of its boss, which quickens into a fight with a drum.
+// The games' soundtrack: short chiptune loops, written as notes and played by
+// Web Audio oscillators (see music-player.ts), so there are no audio files to
+// load. In Dungeon Quest the gate and map have one theme; each chamber has its
+// own, in the mood of its boss, which quickens into a fight with a drum.
+// Balloon Riser has a theme of its own.
 
 // lead: square; bass: triangle; pluck: short square; bell: ringing sine;
 // pad: soft sawtooth, held; kick: a drum
@@ -159,6 +160,33 @@ export function finaleVersion(track: Track): Track {
 }
 
 const SLIME_ROOTS = ['G', 'F', 'G', 'D', 'G', 'F', 'C', 'D']; // a bar each
+
+const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+// Balloon Riser's chords, a bar each (half a bar each where two share one),
+// with the two notes plucked off the beat over them
+const BALLOON_CHORDS: [
+  root: string,
+  fifth: string,
+  low: string,
+  high: string,
+][][] = [
+  [['F2', 'C3', 'A3', 'C4']],
+  [['D2', 'A2', 'A3', 'D4']],
+  [['A#1', 'F2', 'A#3', 'D4']],
+  [['C2', 'G2', 'G3', 'E4']],
+  [['F2', 'C3', 'A3', 'C4']],
+  [['D2', 'A2', 'A3', 'D4']],
+  [
+    ['G2', 'D2', 'A#3', 'D4'],
+    ['C2', 'G2', 'G3', 'E4'],
+  ],
+  [['F2', 'C3', 'A3', 'C4']],
+];
+// a voice over the chords, written two beats at a time
+const balloonVoice = (twoBeats: (chord: string[]) => string) =>
+  BALLOON_CHORDS.map((bar) =>
+    bar.map((chord) => repeat(twoBeats(chord), 2 / bar.length)).join(' '),
+  ).join(' ');
 
 const WRITTEN: Record<string, Track> = {
   // the gate and map: background music while choosing. A minor, slow and
@@ -409,6 +437,46 @@ const WRITTEN: Record<string, Track> = {
         instrument: 'blip',
         volume: 0.03,
         notes: repeat('-:1.5 D5:0.5 -:1 G5:0.25 -:0.75', SLIME_ROOTS.length),
+      },
+    ],
+  },
+
+  // Balloon Riser: F major, bouncy and carefree, like waiting on the launch
+  // field: an oom-pah bass and plucked chords under a skipping tune
+  balloon: {
+    bpm: 112,
+    key: { tonic: 'F', scale: MAJOR },
+    voices: [
+      {
+        instrument: 'lead',
+        volume: 0.03,
+        notes: bars(
+          'F4:0.75 G4:0.25 A4:0.5 C5:0.5 A4:1 -:1',
+          'D4:0.5 F4:0.5 A4:0.5 G4:0.5 F4:1 -:1',
+          'A#4:0.75 A4:0.25 G4:0.5 A#4:0.5 D5:1 -:1',
+          'C5:0.5 A#4:0.5 A4:0.5 G4:0.5 E4:1 -:1',
+          'F4:0.75 G4:0.25 A4:0.5 C5:0.5 D5:0.5 C5:0.5 A4:1',
+          'D5:0.5 -:0.5 A4:0.5 -:0.5 F4:0.5 G4:0.5 A4:1',
+          'A#4:0.5 A4:0.5 G4:0.5 A#4:0.5 E4:0.5 G4:0.5 C5:1',
+          'A4:0.5 G4:0.5 F4:1 -:2',
+        ),
+      },
+      // oom: the root and fifth in turn, on every beat
+      {
+        instrument: 'bass',
+        volume: 0.07,
+        notes: balloonVoice(([root, fifth]) => `${root}:1 ${fifth}:1`),
+      },
+      // pah: the chord plucked off the beat, two notes of it
+      {
+        instrument: 'pluck',
+        volume: 0.02,
+        notes: balloonVoice(([, , low]) => repeat(`-:0.5 ${low}:0.5`, 2)),
+      },
+      {
+        instrument: 'pluck',
+        volume: 0.015,
+        notes: balloonVoice(([, , , high]) => repeat(`-:0.5 ${high}:0.5`, 2)),
       },
     ],
   },

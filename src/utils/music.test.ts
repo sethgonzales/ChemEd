@@ -75,6 +75,27 @@ describe('the soundtrack', () => {
       expect(total(gate)).toBeLessThan(total(THEMES[id]));
   });
 
+  it('gives Balloon Riser a bouncy, carefree theme, for waiting on a flight', () => {
+    const balloon = THEMES.balloon;
+    // a major key, at an easy, lively walk
+    expect(balloon.key.scale).toEqual([0, 2, 4, 5, 7, 9, 11]);
+    expect(balloon.bpm).toBeGreaterThanOrEqual(100);
+    expect(balloon.bpm).toBeLessThanOrEqual(126);
+    // the bounce: a bass on every beat, chords off the beat between them
+    const bass = parseVoice(
+      balloon.voices.find((v) => v.instrument === 'bass')!.notes,
+    );
+    for (let beat = 0; beat < trackBeats(balloon); beat++)
+      expect(bass.some((e) => e.beat === beat)).toBe(true);
+    const offBeats = balloon.voices
+      .filter((v) => v.instrument === 'pluck')
+      .flatMap((v) => parseVoice(v.notes))
+      .filter((e) => e.beat % 1 === 0.5);
+    expect(offBeats.length).toBeGreaterThanOrEqual(trackBeats(balloon) / 2);
+    // nothing dark: no slow organ pad holding it down
+    expect(balloon.voices.some((v) => v.instrument === 'pad')).toBe(false);
+  });
+
   it('falls back to the dungeon theme for a place without one', () => {
     expect(themeFor('nowhere')).toBe(THEMES.dungeon);
     expect(themeFor('states')).toBe(THEMES.states);

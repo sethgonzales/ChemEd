@@ -16,6 +16,16 @@ import {
   tieOffVolume,
 } from '~/utils/balloon-legs';
 
+const music: (string | null)[] = [];
+const pauses: number[] = [];
+jest.mock('~/utils/music-player', () => ({
+  ...jest.requireActual('~/utils/music-player'),
+  useMusic: (place: string | null, _fight?: boolean, pause = 0) => {
+    music.push(place);
+    pauses.push(pause);
+  },
+}));
+
 const SEED_RANDOM = 0.25; // Math.random, so the page's seed is known
 const seed = Math.floor(SEED_RANDOM * 2 ** 31);
 
@@ -23,6 +33,8 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.spyOn(Math, 'random').mockReturnValue(SEED_RANDOM);
   localStorage.clear();
+  music.length = 0;
+  pauses.length = 0;
 });
 afterEach(() => {
   jest.useRealTimers();
@@ -48,6 +60,16 @@ async function answer(u: ReturnType<typeof user>, value: number) {
 }
 
 describe('Balloon Riser page', () => {
+  it('plays its own bouncy theme, after the home card’s door thud', async () => {
+    const u = user();
+    await startBoyle(u);
+    expect(music[0]).toBe('balloon');
+    expect(pauses[0]).toBeGreaterThanOrEqual(1650); // the thud rings 1.65 s
+    // and the same tune throughout, never restarting with a new pause
+    expect(new Set(music)).toEqual(new Set(['balloon']));
+    expect(new Set(pauses)).toEqual(new Set([pauses[0]]));
+  });
+
   it('asks for the course, then offers every level, the AP ones too', async () => {
     const u = user();
     render(<BalloonRiser />);

@@ -14,6 +14,10 @@ import { MUTE_EVENT, audioContext, isMuted, speakers } from '~/utils/sounds';
 // a place's or its fight version; it follows the sounds' mute switch in the
 // header.
 
+// ms before a game's theme on arrival, so it doesn't play over the home
+// card's door thud (useDoorSound rings for 1.65 s)
+export const ARRIVE_PAUSE = 1700;
+
 const TICK_MS = 100; // how often the scheduler looks ahead
 const LOOKAHEAD = 0.3; // s of notes scheduled in advance
 const START_DELAY = 0.05; // s, so the first note isn't scheduled in the past
