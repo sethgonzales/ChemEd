@@ -5,7 +5,7 @@ import type { AreaKind, Leg } from '~/constants/balloon-world';
 
 export const M_PER_PX = 5; // m of world per art pixel
 const MARGIN = 700; // m of country beyond each platform
-const SKY_ROOM = 450; // m of sky above the higher platform
+export const SKY_ROOM = 1200; // m of sky above the higher platform, room to overshoot
 const UNDERGROUND = 80; // m of ground drawn under the valley floor
 const AREA = 350; // m: half the flat width of a platform's area
 const RULER_STEP = 100; // m between ruler marks

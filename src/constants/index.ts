@@ -78,10 +78,10 @@ export const GAMES: Simulation[] = [
     ready: true,
   },
   {
-    title: 'Gas Law Balloon',
-    path: '/gas-balloon',
+    title: 'Balloon Riser',
+    path: '/balloon-riser',
     art: 'balloon',
     color: '#0ea5e9', // sky
-    ready: false,
+    ready: true,
   },
 ];

@@ -1,4 +1,4 @@
-import { airAt } from './atmosphere';
+import { airAt, heightAt } from './atmosphere';
 
 describe('airAt (the U.S. Standard Atmosphere, 1976)', () => {
   it('gives the standard sea-level air', () => {
@@ -36,5 +36,16 @@ describe('airAt (the U.S. Standard Atmosphere, 1976)', () => {
 
   it('treats a height below the ground as the ground', () => {
     expect(airAt(-50)).toEqual(airAt(0));
+  });
+});
+
+describe('heightAt', () => {
+  it('finds the height where the air has a given pressure', () => {
+    for (const h of [0, 350, 800, 2400, 9000])
+      expect(heightAt(airAt(h).pressure)).toBeCloseTo(h, 1);
+  });
+
+  it('puts pressures above sea level’s at the ground', () => {
+    expect(heightAt(110000)).toBe(0);
   });
 });

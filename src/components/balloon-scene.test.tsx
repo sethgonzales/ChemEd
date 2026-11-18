@@ -90,11 +90,14 @@ describe('BalloonScene', () => {
     expect(within(air).getAllByRole('button')).toHaveLength(3);
   });
 
-  it('reads the next stop’s weather station on the station, once it’s in view', () => {
+  it('radios the next stop’s weather station readings while it’s out of sight', () => {
     renderScene();
-    expect(
-      screen.queryByRole('group', { name: 'Red Mesa weather station' }),
-    ).not.toBeInTheDocument();
+    const station = screen.getByRole('group', {
+      name: 'Red Mesa weather station, by radio',
+    });
+    expect(gauge(station, 'Barometer')).toHaveAccessibleName(
+      `Barometer: ${(airAt(800).pressure / 1000).toFixed(1)} kPa`,
+    );
   });
 
   it('shows the station’s readings as you arrive', () => {

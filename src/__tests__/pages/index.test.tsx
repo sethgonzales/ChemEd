@@ -28,12 +28,12 @@ describe('Home page', () => {
     ).toBeNull();
   });
 
-  it('keeps the gas balloon game sealed until it’s built', async () => {
+  it('opens Balloon Riser’s door now it’s built', async () => {
     render(<Home />);
     await userEvent.click(
-      screen.getByRole('button', { name: 'Gas Law Balloon (coming soon)' }),
+      screen.getByRole('button', { name: 'Balloon Riser' }),
     );
-    expect(push).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith('/balloon-riser');
   });
 
   it('shows a card for every simulation', () => {

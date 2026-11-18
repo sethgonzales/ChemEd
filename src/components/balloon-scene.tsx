@@ -7,7 +7,12 @@ import {
 import Gauge, { CARD_WIDTH } from '~/components/balloon-gauges';
 import PixelArt from '~/components/pixel-art';
 import { BALLOON_PALETTE, balloonOutfit } from '~/constants/balloon-outfit';
-import type { AreaKind, Leg, Platform } from '~/constants/balloon-world';
+import {
+  BALLOON,
+  type AreaKind,
+  type Leg,
+  type Platform,
+} from '~/constants/balloon-world';
 import { MR_G, type Rider } from '~/constants/riders';
 import { gasInside, type Balloon, type Flight } from '~/utils/balloon';
 import {
@@ -31,7 +36,8 @@ const CSS_PER_ART = 3.4; // screen px per art px, roughly
 const MIN_VIEW = 170; // art px wide; a phone sees less, so its gauges have room
 const MAX_VIEW = 520;
 const ASPECT = 0.36; // height over width: room for the land and a balloon above it
-const MIN_VIEW_HEIGHT = 160; // a taller-than-wide-ratio view on phones
+// a taller view on phones: room for the column of five gauges at the right
+const MIN_VIEW_HEIGHT = 190;
 const COLUMN = 2; // art px per column of ground
 const PARALLAX = 0.5; // the far hills move half as fast as the camera
 const SIGN_OFFSET = 330; // m from a landing spot to its signpost, clear of the balloon's gauges
@@ -684,7 +690,8 @@ export default function BalloonScene({
   const { frame, view, scale, measured } = useViewSize();
   const world = worldSize(leg);
   const gas = gasInside(balloon, flight);
-  const radius = Math.round(envelopeRadius(gas.volume, balloon.fullVolume));
+  // drawn against the whole envelope, even when Mr. G has tied it off smaller
+  const radius = Math.round(envelopeRadius(gas.volume, BALLOON.fullVolume));
   const envelope = useMemo(
     () => envelopeRows(radius, gas.taut),
     [radius, gas.taut],
@@ -963,15 +970,32 @@ export default function BalloonScene({
         )}
       </div>
 
-      {/* the sky's instruments, apart from the balloon's */}
-      <div
-        role="group"
-        aria-label="The air here"
-        className="absolute right-1.5 top-1.5 flex flex-col items-center gap-1 rounded-sm bg-primary-800/40 p-1 has-[[aria-expanded=true]]:z-30 sm:right-2 sm:top-2 sm:gap-2 sm:p-1.5"
-      >
-        {airDevices(balloon, flight).map((device) => (
-          <Gauge key={device.name} device={device} opens="left" />
-        ))}
+      {/* the sky's instruments, apart from the balloon's, and below them the
+          next stop's station, radioing its readings while it's out of sight */}
+      <div className="absolute top-1.5 right-1.5 flex flex-col items-stretch gap-1.5 has-[[aria-expanded=true]]:z-30 sm:top-2 sm:right-2">
+        <div
+          role="group"
+          aria-label="The air here"
+          className="flex flex-col items-center gap-1 rounded-sm bg-primary-800/40 p-1 sm:gap-2 sm:p-1.5"
+        >
+          {airDevices(balloon, flight).map((device) => (
+            <Gauge key={device.name} device={device} opens="left" />
+          ))}
+        </div>
+        {!stationInView && (
+          <div
+            role="group"
+            aria-label={`${next.name} weather station, by radio`}
+            className="flex flex-col items-center gap-1 rounded-sm bg-primary-800/40 p-1 sm:gap-2 sm:p-1.5"
+          >
+            <span className="max-w-16 text-center font-sans text-[10px] leading-tight text-white sm:max-w-20 sm:text-xs">
+              {next.name} ›
+            </span>
+            {stationDevices(next).map((device) => (
+              <Gauge key={device.name} device={device} opens="left" />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

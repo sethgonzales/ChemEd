@@ -1,29 +1,276 @@
 import { useEffect, useState } from 'react';
+import BalloonRadio from '~/components/balloon-radio';
 import BalloonScene from '~/components/balloon-scene';
+import Button from '~/components/button';
+import CalcPad from '~/components/calc-pad';
 import Container from '~/components/container';
 import { ATMOSPHERE_SOURCE } from '~/constants/atmosphere';
+import { briefing, hint, verdict, worked } from '~/utils/balloon-briefings';
+import { flightAt } from '~/utils/balloon-flight';
 import {
-  BALLOON,
-  PREVIEW_FLIGHT,
-  PREVIEW_LEG,
-} from '~/constants/balloon-world';
+  arrive,
+  fly,
+  gasLeg,
+  levelsFor,
+  next,
+  retry,
+  startLevel,
+  type GameState,
+} from '~/utils/balloon-game';
+import { balloonFor, startFlight } from '~/utils/balloon-legs';
+import {
+  loadStars,
+  saveStars,
+  starsFor,
+  type Stars,
+} from '~/utils/balloon-progress';
+import { COURSES, type Course } from '~/utils/quest';
+import { useMissSound, useTreasureSound } from '~/utils/sounds';
+import { useMedia } from '~/utils/use-media';
 
-// Phase 2: the look, before any levels. The door stays sealed until they exist.
-export default function BalloonRiser() {
-  const leg = PREVIEW_LEG;
-  // for reviewing the look: ?distance=2500&height=600 puts the balloon mid-leg
-  const [spot, setSpot] = useState({ distance: leg.from.distance, height: 0 });
+export const FLIGHT_MS = 6000; // a leg's flight, from take-off to landing or miss
+const QUICK_FLIGHT_MS = 1500; // with reduced motion
+const TICK_MS = 50;
+
+const newSeed = () => Math.floor(Math.random() * 2 ** 31);
+
+/** Runs a flight's clock from 0 to 1, then calls onDone */
+function useFlightClock(running: boolean, onDone: () => void) {
+  const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
+  const duration = reducedMotion ? QUICK_FLIGHT_MS : FLIGHT_MS;
+  const [t, setT] = useState(0);
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    setSpot({
-      distance: Number(q.get('distance') ?? leg.from.distance),
-      height: Number(q.get('height') ?? 0),
-    });
-  }, [leg.from.distance]);
-  const flight = {
-    ...PREVIEW_FLIGHT,
-    height: spot.height || PREVIEW_FLIGHT.height,
+    if (!running) return;
+    setT(0);
+    let elapsed = 0;
+    const id = setInterval(() => {
+      elapsed += TICK_MS;
+      setT(Math.min(1, elapsed / duration));
+      if (elapsed >= duration) {
+        clearInterval(id);
+        onDone();
+      }
+    }, TICK_MS);
+    return () => clearInterval(id);
+    // onDone changes each render; the clock only restarts with a new flight
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, duration]);
+  return t;
+}
+
+const starText = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
+
+function Gate({ onPick }: { onPick: (c: Course) => void }) {
+  return (
+    <BalloonRadio>
+      <p>
+        Morning! Before we take off: which course are you taking? It decides
+        which flights I’ll take you on.
+      </p>
+      <div className="flex flex-wrap gap-2 font-pixel">
+        {(Object.keys(COURSES) as Course[]).map((id) => (
+          <Button key={id} onClick={() => onPick(id)}>
+            {COURSES[id]}
+          </Button>
+        ))}
+      </div>
+    </BalloonRadio>
+  );
+}
+
+function Levels({
+  course,
+  stars,
+  onPlay,
+  onChangeCourse,
+}: {
+  course: Course;
+  stars: Stars;
+  onPlay: (level: string) => void;
+  onChangeCourse: () => void;
+}) {
+  const levels = levelsFor(course);
+  const general = levels.filter((l) => !l.ap).length;
+  return (
+    <div className="flex flex-col gap-4">
+      <BalloonRadio>
+        <p>Pick a flight. Each one is a few hops, platform to platform.</p>
+      </BalloonRadio>
+      <ol className="grid gap-2 sm:grid-cols-2">
+        {levels.map((l, i) => {
+          const got = stars[course]?.[l.id];
+          return (
+            <li key={l.id}>
+              <button
+                type="button"
+                disabled={!l.ready}
+                onClick={() => onPlay(l.id)}
+                className="pixel-control flex w-full cursor-pointer items-center justify-between gap-2 bg-primary-700 px-3 py-2 text-left text-white hover:bg-primary-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <span>
+                  {l.title}
+                  {!l.ready && ' (coming soon)'}
+                  <span className="sr-only">
+                    {l.ap
+                      ? `, AP level ${i - general + 1}`
+                      : `, level ${i + 1}`}
+                  </span>
+                </span>
+                {got !== undefined && (
+                  <span
+                    aria-label={`${got} of 3 stars`}
+                    className="text-secondary-500"
+                  >
+                    {starText(got)}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      <div>
+        <Button onClick={onChangeCourse}>Change course</Button>
+      </div>
+    </div>
+  );
+}
+
+function Flight({
+  game,
+  setGame,
+  onLevels,
+}: {
+  game: GameState;
+  setGame: (g: GameState) => void;
+  onLevels: () => void;
+}) {
+  const playTreasure = useTreasureSound();
+  const playMiss = useMissSound();
+  const g = gasLeg(game);
+  const t = useFlightClock(game.phase === 'flying', () => {
+    const done = arrive(game);
+    (done.phase === 'landed' ? playTreasure : playMiss)();
+    setGame(done);
+  });
+
+  const plan = game.plan;
+  const at =
+    plan && game.phase !== 'brief'
+      ? flightAt(g, plan, game.phase === 'flying' ? t : 1)
+      : { distance: g.leg.from.distance, height: g.leg.from.height };
+  const last = game.leg + 1 >= game.legs;
+
+  const goOn = () => {
+    const after = next(game);
+    if (after.phase === 'done')
+      saveStars(game.course, game.level, starsFor(game.misses));
+    setGame(after);
   };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-white/80">
+        <span>{`Leg ${game.leg + 1} of ${game.legs}`}</span>
+        <span className="font-sans">
+          {' '}
+          · {g.leg.from.name} → {g.leg.to.name}
+        </span>
+      </p>
+      <BalloonScene
+        balloon={balloonFor(g, plan?.tiedAt)}
+        flight={{ ...startFlight(g), height: at.height }}
+        distance={at.distance}
+        leg={g.leg}
+      />
+      <BalloonRadio>
+        {game.phase === 'brief' &&
+          briefing(g).map((line) => <p key={line}>{line}</p>)}
+        {game.phase === 'flying' && <p role="status">Tied off. Here we go…</p>}
+        {game.phase === 'landed' && (
+          <p role="status" className="font-semibold text-green-300">
+            {plan && verdict(plan, g)}
+          </p>
+        )}
+        {game.phase === 'missed' && plan && (
+          <>
+            <p role="status">{verdict(plan, g)}</p>
+            <p>Here’s the working, from the same readings:</p>
+            <div className="flex flex-col font-mono text-sm">
+              {worked(g).map((line) => (
+                <span key={line}>{line}</span>
+              ))}
+            </div>
+          </>
+        )}
+      </BalloonRadio>
+
+      {game.phase === 'brief' && (
+        <CalcPad
+          key={`${game.leg}-${game.seed}`}
+          label="Volume to tie off at"
+          units={['m³', 'L']}
+          hint={hint(g)}
+          action="Tie off and fly"
+          onSubmit={(v) => setGame(fly(game, v))}
+        />
+      )}
+      {game.phase === 'landed' && (
+        <div>
+          <Button pressed onClick={goOn}>
+            {last ? 'Finish' : 'Next leg'}
+          </Button>
+        </div>
+      )}
+      {game.phase === 'missed' && (
+        <div className="flex gap-2">
+          <Button pressed onClick={() => setGame(retry(game, game.seed + 1))}>
+            Try again
+          </Button>
+          <Button onClick={onLevels}>Levels</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Done({ game, onLevels }: { game: GameState; onLevels: () => void }) {
+  const stars = starsFor(game.misses);
+  return (
+    <div className="flex flex-col gap-4">
+      <BalloonRadio>
+        <p role="status" className="font-semibold text-green-300">
+          Flight complete!
+        </p>
+        <p
+          aria-label={`${stars} of 3 stars`}
+          className="text-2xl text-secondary-500"
+        >
+          {starText(stars)}
+        </p>
+        <p>
+          {game.misses === 0
+            ? 'Every landing first time. Boyle would be proud.'
+            : `${game.misses} missed landing${game.misses === 1 ? '' : 's'} on the way. Fly it again for all three stars.`}
+        </p>
+      </BalloonRadio>
+      <div>
+        <Button pressed onClick={onLevels}>
+          Levels
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function BalloonRiser() {
+  const [course, setCourse] = useState<Course | null>(null);
+  const [game, setGame] = useState<GameState | null>(null);
+  const [stars, setStars] = useState<Stars>({});
+  useEffect(() => setStars(loadStars()), [game?.phase]);
+
+  const toLevels = () => setGame(null);
+
   return (
     <Container
       game
@@ -32,12 +279,20 @@ export default function BalloonRiser() {
       backHref="/"
       sources={[ATMOSPHERE_SOURCE, 'codata', 'siBrochure', 'ciaawWeights']}
     >
-      <BalloonScene
-        balloon={BALLOON}
-        flight={flight}
-        distance={spot.distance}
-        leg={leg}
-      />
+      {!course ? (
+        <Gate onPick={setCourse} />
+      ) : !game ? (
+        <Levels
+          course={course}
+          stars={stars}
+          onPlay={(level) => setGame(startLevel(course, level, newSeed()))}
+          onChangeCourse={() => setCourse(null)}
+        />
+      ) : game.phase === 'done' ? (
+        <Done game={game} onLevels={toLevels} />
+      ) : (
+        <Flight game={game} setGame={setGame} onLevels={toLevels} />
+      )}
     </Container>
   );
 }

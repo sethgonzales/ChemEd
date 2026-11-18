@@ -50,3 +50,21 @@ export function airAt(height: number): Air {
     (pressure * AIR_MOLAR_MASS) / (STANDARD_GAS_CONSTANT * temperature);
   return { temperature, pressure, density };
 }
+
+const CEILING = 30000; // m: higher than any balloon here flies
+
+/**
+ * The height (m) where the standard air has this pressure (Pa): airAt turned
+ * round, by bisection, since pressure falls steadily with height
+ */
+export function heightAt(pressure: number): number {
+  if (pressure >= SEA_LEVEL_PRESSURE) return 0;
+  let low = 0;
+  let high = CEILING;
+  for (let i = 0; i < 60; i++) {
+    const mid = (low + high) / 2;
+    if (airAt(mid).pressure > pressure) low = mid;
+    else high = mid;
+  }
+  return (low + high) / 2;
+}

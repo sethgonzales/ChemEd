@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Platform } from '~/constants/balloon-world';
+import { BALLOON, type Platform } from '~/constants/balloon-world';
 import { ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
 import type { Balloon, Flight } from '~/utils/balloon';
@@ -232,7 +232,8 @@ export function balloonDevices(balloon: Balloon, flight: Flight): Device[] {
       name: 'Volume meter',
       reading: `${fmt(r.volume)} m³`,
       measures: 'How much space the helium fills: the size of the balloon.',
-      picture: <VolumeSensor fraction={r.volume / balloon.fullVolume} />,
+      // against the whole envelope, even when it's tied off smaller
+      picture: <VolumeSensor fraction={r.volume / BALLOON.fullVolume} />,
     },
     {
       name: 'Helium counter',

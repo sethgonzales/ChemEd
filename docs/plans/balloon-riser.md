@@ -1,6 +1,6 @@
 # Balloon Riser — plan
 
-Status: **approved** (18 Nov 2026), see Decisions. Phase 1 (engine) built; phase 2 (the look) next.
+Status: **approved** (18 Nov 2026), see Decisions. Phases 1 (engine), 2 (the look) and 3 (Boyle's law level, end to end) built; phase 4 next.
 
 A game where Mr. G flies a sealed gas balloon from platform to platform across a side-on sky. Each hop is a gas law problem worked out with real numbers: the student reads the instruments, types an answer, and the balloon flies on that number. The flight is the feedback: a right answer lands on the platform, a wrong one overshoots or sinks short. It covers Boyle's, Charles's, Gay-Lussac's and Avogadro's laws, and the combined and ideal gas laws. Dalton's law, Graham's law and real gases are AP extras.
 

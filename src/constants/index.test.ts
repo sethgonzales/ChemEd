@@ -40,7 +40,7 @@ describe('GAMES', () => {
   it('lists the games apart from the simulations, unbuilt ones last', () => {
     expect(GAMES.map((g) => [g.title, g.ready])).toEqual([
       ['Dungeon Quest', true],
-      ['Gas Law Balloon', false],
+      ['Balloon Riser', true],
     ]);
   });
 
