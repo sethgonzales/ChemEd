@@ -33,3 +33,33 @@ export const ROUTE: Platform[] = [
   { name: 'Eagle Lookout', kind: 'lookout', distance: 10000, height: 1300 },
   { name: 'Granite Ridge', kind: 'ridge', distance: 15000, height: 1900 },
 ];
+
+const HOP = 5000; // m between platforms
+
+/** A route of platforms all at one height, so the air pressure holds */
+const level = (height: number, stops: [string, AreaKind][]): Platform[] =>
+  stops.map(([name, kind], i) => ({ name, kind, distance: i * HOP, height }));
+
+// the heater: across the mesa country
+export const CHARLES_ROUTE = level(800, [
+  ['Red Mesa', 'mesa'],
+  ['Lone Tower', 'lookout'],
+  ['Table Mesa', 'mesa'],
+  ['Hawk Ridge', 'ridge'],
+]);
+
+// the burst line: high over a sunny valley
+export const GAY_LUSSAC_ROUTE = level(1300, [
+  ['Eagle Lookout', 'lookout'],
+  ['Dry Lake Tower', 'lookout'],
+  ['White Ridge', 'ridge'],
+  ['Sun Mesa', 'mesa'],
+]);
+
+// the tank and the vent: low over the farms, picking up and dropping off
+export const AVOGADRO_ROUTE = level(400, [
+  ['Mill Field', 'field'],
+  ['Clay Mesa', 'mesa'],
+  ['Pine Lookout', 'lookout'],
+  ['Long Field', 'field'],
+]);

@@ -1,14 +1,18 @@
 import { airAt } from './atmosphere';
 import { gasInside } from './balloon';
-import { briefing, hint, verdict, worked } from './balloon-briefings';
+import { ask, briefing, hint, verdict, worked } from './balloon-briefings';
 import { planFlight } from './balloon-flight';
 import {
+  avogadroLeg,
   balloonFor,
   boyleLeg,
+  charlesLeg,
+  gayLussacLeg,
+  rightAnswer,
   startFlight,
   tieOffVolume,
+  type GasLeg,
 } from './balloon-legs';
-
 const g = boyleLeg(0, 3);
 
 describe('Mr. G’s briefing', () => {
@@ -59,5 +63,65 @@ describe('the verdict', () => {
 
   it('says so when the balloon was already bigger and never left', () => {
     expect(after(100)).toMatch(/already bigger/);
+  });
+});
+
+const LEGS = {
+  charles: charlesLeg(0, 3),
+  'gay-lussac': gayLussacLeg(0, 3),
+  avogadro: avogadroLeg(0, 3),
+};
+const EQUATIONS = {
+  charles: 'V₁/T₁ = V₂/T₂',
+  'gay-lussac': 'P₁/T₁ = P₂/T₂',
+  avogadro: 'V₁/n₁ = V₂/n₂',
+};
+const lastNumber = (line: string) =>
+  Number(line.match(/= ([\d,.]+) (K|mol)/)![1].replace(/,/g, ''));
+
+describe.each(Object.entries(LEGS))('Mr. G on a %s leg', (law, leg) => {
+  it('names the next stop, and gives only the one number he must', () => {
+    const text = briefing(leg).join(' ');
+    expect(text).toMatch(new RegExp(leg.leg.to.name));
+    const numbers = text.match(/[\d,.]*\d/g) ?? [];
+    expect(numbers).toHaveLength(1);
+  });
+
+  it('hints at the law', () => {
+    expect(hint(leg)).toContain(EQUATIONS[law as keyof typeof EQUATIONS]);
+  });
+
+  it('works the answer from the readings', () => {
+    const lines = worked(leg);
+    expect(lines[0]).toContain(EQUATIONS[law as keyof typeof EQUATIONS]);
+    expect(lastNumber(lines.at(-1)!) / rightAnswer(leg)).toBeCloseTo(1, 2);
+  });
+
+  it('asks for the answer in the units the control takes', () => {
+    const { units } = ask(leg);
+    expect(units).toContain(law === 'avogadro' ? 'mol' : 'K');
+  });
+});
+
+describe('what Mr. G says when it goes wrong', () => {
+  const after = (leg: GasLeg, by: number) =>
+    verdict(planFlight(leg, rightAnswer(leg) * by), leg);
+
+  it('on the heater: too hot climbs over, too cool never lifts', () => {
+    const leg = LEGS.charles;
+    expect(after(leg, 1.1)).toMatch(/hot.*over/);
+    expect(after(leg, 0.9)).toMatch(/cool.*never left/);
+  });
+
+  it('on the tank: too much climbs over, too little never lifts', () => {
+    const leg = LEGS.avogadro;
+    expect(after(leg, 1.1)).toMatch(/much.*over/);
+    expect(after(leg, 0.9)).toMatch(/little.*never left/);
+  });
+
+  it('on the burst line: too hot pops, too cool vents what we needed', () => {
+    const leg = LEGS['gay-lussac'];
+    expect(after(leg, 1.1)).toMatch(/burst/);
+    expect(after(leg, 0.9)).toMatch(/vented/);
   });
 });

@@ -1,6 +1,6 @@
 # Balloon Riser — plan
 
-Status: **approved** (18 Nov 2026), see Decisions. Phases 1 (engine), 2 (the look) and 3 (Boyle's law level, end to end) built; phase 4 next.
+Status: **approved** (18 Nov 2026), see Decisions. Phases 1–4 built (engine, the look, Boyle's, then Charles's, Gay-Lussac's and Avogadro's); phase 5 next.
 
 A game where Mr. G flies a sealed gas balloon from platform to platform across a side-on sky. Each hop is a gas law problem worked out with real numbers: the student reads the instruments, types an answer, and the balloon flies on that number. The flight is the feedback: a right answer lands on the platform, a wrong one overshoots or sinks short. It covers Boyle's, Charles's, Gay-Lussac's and Avogadro's laws, and the combined and ideal gas laws. Dalton's law, Graham's law and real gases are AP extras.
 
@@ -106,7 +106,10 @@ Each goes in `src/constants/sources.ts` and the page's Sources footer before it'
 1. **Engine**: atmosphere, gas law solvers and balloon physics, all cited.
 2. **The look**: the sky, platforms, the balloon with its rider (Mr. G in his flying outfit), instruments and controls. Reviewed from screenshots before going further.
 3. **Level 1 (Boyle's law) end to end**: briefing, instruments, calculation pad, flight, landing and retry, stars saved, course picker, and the door unsealed and renamed.
-4. **Levels 2–4**: Charles's, Gay-Lussac's and Avogadro's laws.
+4. **Levels 2–4**: Charles's, Gay-Lussac's and Avogadro's laws. Each is a same-height hop, so only its law is in play:
+   - **Charles's**: rested and cooled, the balloon's too small to lift. Mr. G gives the volume that floats there (real buoyancy, ρ_air·V = mass); the student finds the heater temperature. Too hot climbs over; too cool never leaves.
+   - **Gay-Lussac's**: loaded so it floats only stretched full; the sun heats it toward the gauge's red line. The student finds the temperature at the red line, where Mr. G vents. Too high bursts; too low vents helium it needed, and it sinks short once it cools.
+   - **Avogadro's**: cargo comes on or off at each platform, changing the volume that floats; the student finds the moles to keep. Too many climbs over; too few never leaves.
 5. **Levels 5–7**: combined, ideal and free flight.
 6. **AP levels**: Dalton's law, Graham's law, real gases.
 7. **Dungeon Quest**: a gas laws question source and chamber.

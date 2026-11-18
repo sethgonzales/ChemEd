@@ -13,7 +13,7 @@ const DRAG_COEFFICIENT = 0.5; // a sphere's, roughly, at these speeds
 const TOP = 20000; // m; the highest float height looked for
 const SEARCH_STEP = 10; // m between checks when looking for the float height
 
-const HELIUM_MOLAR_MASS =
+export const HELIUM_MOLAR_MASS =
   ELEMENTS.find((e) => e.symbol === 'He')!.atomicMass! / 1000; // kg/mol
 
 export interface Balloon {

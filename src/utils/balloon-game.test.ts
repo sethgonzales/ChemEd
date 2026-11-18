@@ -8,7 +8,7 @@ import {
   retry,
   startLevel,
 } from './balloon-game';
-import { BOYLE_LEGS, tieOffVolume } from './balloon-legs';
+import { BOYLE_LEGS, rightAnswer, tieOffVolume } from './balloon-legs';
 
 const begin = () => startLevel('general', 'boyle', 11);
 const flyRight = (s: ReturnType<typeof begin>) =>
@@ -53,6 +53,25 @@ describe('a level of Balloon Riser', () => {
   it('only opens the levels that are built, and the AP ones for AP', () => {
     expect(levelsFor('general').every((l) => !l.ap)).toBe(true);
     expect(levelsFor('ap').some((l) => l.ap)).toBe(true);
-    expect(LEVELS.filter((l) => l.ready).map((l) => l.id)).toEqual(['boyle']);
+    expect(LEVELS.filter((l) => l.ready).map((l) => l.id)).toEqual([
+      'boyle',
+      'charles',
+      'gay-lussac',
+      'avogadro',
+    ]);
   });
+
+  it.each(['boyle', 'charles', 'gay-lussac', 'avogadro'])(
+    'flies the %s level on its own law, all the way through',
+    (level) => {
+      let s = startLevel('general', level, 5);
+      expect(gasLeg(s).law).toBe(level);
+      for (let i = 0; i < s.legs; i++) {
+        s = arrive(fly(s, rightAnswer(gasLeg(s))));
+        expect(s.phase).toBe('landed');
+        s = next(s);
+      }
+      expect(s.phase).toBe('done');
+    },
+  );
 });

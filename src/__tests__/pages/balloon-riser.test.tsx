@@ -2,7 +2,14 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SOURCES } from '~/constants/sources';
 import BalloonRiser, { FLIGHT_MS } from '~/pages/balloon-riser';
-import { boyleLeg, tieOffVolume } from '~/utils/balloon-legs';
+import {
+  avogadroLeg,
+  boyleLeg,
+  charlesLeg,
+  gayLussacLeg,
+  rightAnswer,
+  tieOffVolume,
+} from '~/utils/balloon-legs';
 
 const SEED_RANDOM = 0.25; // Math.random, so the page's seed is known
 const seed = Math.floor(SEED_RANDOM * 2 ** 31);
@@ -41,7 +48,7 @@ describe('Balloon Riser page', () => {
     await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
     expect(screen.getByRole('button', { name: /^Boyle’s law/ })).toBeEnabled();
     expect(
-      screen.getByRole('button', { name: /^Charles’s law \(coming soon\)/ }),
+      screen.getByRole('button', { name: /^Combined gas law \(coming soon\)/ }),
     ).toBeDisabled();
   });
 
@@ -81,5 +88,70 @@ describe('Balloon Riser page', () => {
       screen.getByText(SOURCES.standardAtmosphere.title),
     ).toBeInTheDocument();
     expect(screen.getByText(SOURCES.codata.title)).toBeInTheDocument();
+  });
+});
+
+async function startLevel(u: ReturnType<typeof user>, name: RegExp) {
+  render(<BalloonRiser />);
+  await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
+  await u.click(screen.getByRole('button', { name }));
+}
+
+async function answerIn(
+  u: ReturnType<typeof user>,
+  label: string,
+  action: string,
+  value: string,
+) {
+  await u.type(screen.getByRole('textbox', { name: label }), value);
+  await u.click(screen.getByRole('button', { name: action }));
+  act(() => jest.advanceTimersByTime(FLIGHT_MS + 500));
+}
+
+describe('the heater, the burst line and the tank', () => {
+  it('heats the helium on Charles’s law, and lands on a right answer', async () => {
+    const u = user();
+    await startLevel(u, /^Charles’s law/);
+    expect(screen.getByText(/Next stop: Lone Tower/)).toBeInTheDocument();
+    const right = rightAnswer(charlesLeg(0, seed));
+    await answerIn(u, 'Heater temperature', 'Heat and fly', right.toFixed(1));
+    expect(screen.getByText('We’re down on Lone Tower!')).toBeInTheDocument();
+  });
+
+  it('takes the heater temperature in °C too', async () => {
+    const u = user();
+    await startLevel(u, /^Charles’s law/);
+    const celsius = rightAnswer(charlesLeg(0, seed)) - 273.15;
+    await u.click(screen.getByRole('button', { name: /^Unit/ }));
+    await u.click(screen.getByRole('button', { name: '°C' }));
+    await answerIn(u, 'Heater temperature', 'Heat and fly', celsius.toFixed(1));
+    expect(screen.getByText('We’re down on Lone Tower!')).toBeInTheDocument();
+  });
+
+  it('bursts on Gay-Lussac’s law when the vent’s set too hot', async () => {
+    const u = user();
+    await startLevel(u, /^Gay-Lussac’s law/);
+    const right = rightAnswer(gayLussacLeg(0, seed));
+    await answerIn(
+      u,
+      'Temperature to vent at',
+      'Set the vent and fly',
+      (right * 1.1).toFixed(0),
+    );
+    expect(screen.getByText(/the fabric burst/)).toBeInTheDocument();
+    expect(screen.getByText(/T₂ = T₁ × P₂ ÷ P₁/)).toBeInTheDocument();
+  });
+
+  it('sets the helium on Avogadro’s law', async () => {
+    const u = user();
+    await startLevel(u, /^Avogadro’s law/);
+    const right = rightAnswer(avogadroLeg(0, seed));
+    await answerIn(
+      u,
+      'Helium to have',
+      'Fill or vent and fly',
+      right.toFixed(0),
+    );
+    expect(screen.getByText('We’re down on Clay Mesa!')).toBeInTheDocument();
   });
 });

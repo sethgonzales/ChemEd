@@ -5,8 +5,14 @@ import Button from '~/components/button';
 import CalcPad from '~/components/calc-pad';
 import Container from '~/components/container';
 import { ATMOSPHERE_SOURCE } from '~/constants/atmosphere';
-import { briefing, hint, verdict, worked } from '~/utils/balloon-briefings';
-import { flightAt } from '~/utils/balloon-flight';
+import {
+  ask,
+  briefing,
+  hint,
+  verdict,
+  worked,
+} from '~/utils/balloon-briefings';
+import { flightState } from '~/utils/balloon-flight';
 import {
   arrive,
   fly,
@@ -17,7 +23,6 @@ import {
   startLevel,
   type GameState,
 } from '~/utils/balloon-game';
-import { balloonFor, startFlight } from '~/utils/balloon-legs';
 import {
   loadStars,
   saveStars,
@@ -57,6 +62,13 @@ function useFlightClock(running: boolean, onDone: () => void) {
   }, [running, duration]);
   return t;
 }
+
+const SCIENTISTS: Record<string, string> = {
+  boyle: 'Boyle',
+  charles: 'Charles',
+  'gay-lussac': 'Gay-Lussac',
+  avogadro: 'Avogadro',
+};
 
 const starText = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
 
@@ -155,10 +167,12 @@ function Flight({
   });
 
   const plan = game.plan;
-  const at =
-    plan && game.phase !== 'brief'
-      ? flightAt(g, plan, game.phase === 'flying' ? t : 1)
-      : { distance: g.leg.from.distance, height: g.leg.from.height };
+  const shown = flightState(
+    g,
+    game.phase === 'brief' ? undefined : plan,
+    game.phase === 'flying' ? t : 1,
+  );
+  const question = ask(g);
   const last = game.leg + 1 >= game.legs;
 
   const goOn = () => {
@@ -178,15 +192,15 @@ function Flight({
         </span>
       </p>
       <BalloonScene
-        balloon={balloonFor(g, plan?.tiedAt)}
-        flight={{ ...startFlight(g), height: at.height }}
-        distance={at.distance}
+        balloon={shown.balloon}
+        flight={shown.flight}
+        distance={shown.distance}
         leg={g.leg}
       />
       <BalloonRadio>
         {game.phase === 'brief' &&
           briefing(g).map((line) => <p key={line}>{line}</p>)}
-        {game.phase === 'flying' && <p role="status">Tied off. Here we go…</p>}
+        {game.phase === 'flying' && <p role="status">{question.flying}</p>}
         {game.phase === 'landed' && (
           <p role="status" className="font-semibold text-green-300">
             {plan && verdict(plan, g)}
@@ -208,10 +222,10 @@ function Flight({
       {game.phase === 'brief' && (
         <CalcPad
           key={`${game.leg}-${game.seed}`}
-          label="Volume to tie off at"
-          units={['m³', 'L']}
+          label={question.label}
+          units={question.units}
           hint={hint(g)}
-          action="Tie off and fly"
+          action={question.action}
           onSubmit={(v) => setGame(fly(game, v))}
         />
       )}
@@ -250,7 +264,7 @@ function Done({ game, onLevels }: { game: GameState; onLevels: () => void }) {
         </p>
         <p>
           {game.misses === 0
-            ? 'Every landing first time. Boyle would be proud.'
+            ? `Every landing first time. ${SCIENTISTS[game.level] ?? 'Your teacher'} would be proud.`
             : `${game.misses} missed landing${game.misses === 1 ? '' : 's'} on the way. Fly it again for all three stars.`}
         </p>
       </BalloonRadio>

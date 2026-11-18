@@ -1,5 +1,12 @@
 import { planFlight, type FlightPlan } from '~/utils/balloon-flight';
-import { BOYLE_LEGS, boyleLeg } from '~/utils/balloon-legs';
+import {
+  LEGS_PER_LEVEL,
+  avogadroLeg,
+  boyleLeg,
+  charlesLeg,
+  gayLussacLeg,
+  type GasLeg,
+} from '~/utils/balloon-legs';
 import type { Course } from '~/utils/quest';
 
 // A level of Balloon Riser as pure state: brief, fly, land or miss, retry,
@@ -14,9 +21,9 @@ export interface Level {
 
 export const LEVELS: Level[] = [
   { id: 'boyle', title: 'Boyle’s law', ready: true },
-  { id: 'charles', title: 'Charles’s law' },
-  { id: 'gay-lussac', title: 'Gay-Lussac’s law' },
-  { id: 'avogadro', title: 'Avogadro’s law' },
+  { id: 'charles', title: 'Charles’s law', ready: true },
+  { id: 'gay-lussac', title: 'Gay-Lussac’s law', ready: true },
+  { id: 'avogadro', title: 'Avogadro’s law', ready: true },
   { id: 'combined', title: 'Combined gas law' },
   { id: 'ideal', title: 'Ideal gas law' },
   { id: 'free', title: 'Free flight' },
@@ -47,16 +54,23 @@ export const startLevel = (
   course,
   level,
   leg: 0,
-  legs: BOYLE_LEGS,
+  legs: LEGS_PER_LEVEL,
   seed,
   misses: 0,
   phase: 'brief',
 });
 
-/** The leg being flown, with its numbers */
-export const gasLeg = (s: GameState) => boyleLeg(s.leg, s.seed);
+const LEGS: Record<string, (index: number, seed: number) => GasLeg> = {
+  boyle: boyleLeg,
+  charles: charlesLeg,
+  'gay-lussac': gayLussacLeg,
+  avogadro: avogadroLeg,
+};
 
-/** Takes off on the student's answer (m³) */
+/** The leg being flown, with its numbers */
+export const gasLeg = (s: GameState) => LEGS[s.level](s.leg, s.seed);
+
+/** Takes off on the student's answer, in SI */
 export const fly = (s: GameState, answer: number): GameState => ({
   ...s,
   phase: 'flying',

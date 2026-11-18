@@ -4,7 +4,8 @@ import type { AreaKind, Leg } from '~/constants/balloon-world';
 // looks as tall as it is. The balloon is small in it, and the camera follows.
 
 export const M_PER_PX = 5; // m of world per art pixel
-const MARGIN = 700; // m of country beyond each platform
+// m of country beyond each platform: room to watch a balloon sail past
+const MARGIN = 1300;
 export const SKY_ROOM = 1200; // m of sky above the higher platform, room to overshoot
 const UNDERGROUND = 80; // m of ground drawn under the valley floor
 const AREA = 350; // m: half the flat width of a platform's area
