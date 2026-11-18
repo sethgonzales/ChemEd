@@ -1,0 +1,52 @@
+import {
+  AIR_MOLAR_MASS,
+  LAPSE_RATE,
+  SEA_LEVEL_PRESSURE,
+  SEA_LEVEL_TEMPERATURE,
+  STANDARD_GAS_CONSTANT,
+  STANDARD_GRAVITY,
+  TROPOPAUSE,
+} from '~/constants/atmosphere';
+
+export interface Air {
+  temperature: number; // K
+  pressure: number; // Pa
+  density: number; // kg/m³
+}
+
+// the exponent in the barometric formula, gM/(R*L)
+const EXPONENT =
+  (STANDARD_GRAVITY * AIR_MOLAR_MASS) / (STANDARD_GAS_CONSTANT * LAPSE_RATE);
+const TROPOPAUSE_TEMPERATURE = SEA_LEVEL_TEMPERATURE - LAPSE_RATE * TROPOPAUSE;
+const TROPOPAUSE_PRESSURE =
+  SEA_LEVEL_PRESSURE *
+  (TROPOPAUSE_TEMPERATURE / SEA_LEVEL_TEMPERATURE) ** EXPONENT;
+
+/**
+ * The standard air at a height (m above sea level), from the U.S. Standard
+ * Atmosphere 1976. Heights are taken as geopotential: under 0.2% apart from
+ * true height this low.
+ */
+export function airAt(height: number): Air {
+  const h = Math.max(0, height);
+  let temperature: number, pressure: number;
+  if (h <= TROPOPAUSE) {
+    // the air cools steadily, and the pressure falls as a power of it
+    temperature = SEA_LEVEL_TEMPERATURE - LAPSE_RATE * h;
+    pressure =
+      SEA_LEVEL_PRESSURE * (temperature / SEA_LEVEL_TEMPERATURE) ** EXPONENT;
+  } else {
+    // a layer at one temperature: the pressure falls exponentially
+    temperature = TROPOPAUSE_TEMPERATURE;
+    pressure =
+      TROPOPAUSE_PRESSURE *
+      Math.exp(
+        (-STANDARD_GRAVITY * AIR_MOLAR_MASS * (h - TROPOPAUSE)) /
+          (STANDARD_GAS_CONSTANT * temperature),
+      );
+  }
+  // the ideal gas law for the air itself: ρ = PM/RT
+  const density =
+    (pressure * AIR_MOLAR_MASS) / (STANDARD_GAS_CONSTANT * temperature);
+  return { temperature, pressure, density };
+}

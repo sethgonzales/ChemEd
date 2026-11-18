@@ -1,10 +1,10 @@
 import type { SourceId } from '~/constants/sources';
 
-// exact in the 2019 SI (F = Nₐe, R = Nₐk)
+export { ATMOSPHERE, GAS_CONSTANT } from '~/constants/physical';
+
+// exact in the 2019 SI (F = Nₐe)
 export const FARADAY = 96485.33212; // C/mol
-export const GAS_CONSTANT = 8.314462618; // J/(mol·K)
 export const ROOM_TEMPERATURE = 298.15; // K
-export const ATMOSPHERE = 101325; // Pa
 export const CONSTANTS_SOURCE: SourceId = 'codata';
 
 export const HALF_CELL_VOLUME = 0.1; // L of solution in each beaker

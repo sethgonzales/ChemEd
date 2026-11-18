@@ -223,6 +223,25 @@ const ALL = {
     url: 'https://cccbdb.nist.gov/expgeom2x.asp?casno=7732185',
     accessed: '2026-11-16',
   },
+  standardAtmosphere: {
+    topic:
+      'The air at each height: sea-level 288.15 K and 101 325 Pa, cooling 6.5 K/km up to 11 km, with dry air’s molar mass 28.9644 g/mol',
+    author: 'NOAA, NASA and the U.S. Air Force',
+    year: 1976,
+    title: 'U.S. Standard Atmosphere, 1976',
+    publisher: 'U.S. Government Printing Office (NTRS 19770009539)',
+    url: 'https://ntrs.nasa.gov/citations/19770009539',
+    accessed: '2026-11-18',
+  },
+  siBrochure: {
+    topic: 'Celsius and kelvin: t/°C = T/K − 273.15',
+    author: 'Bureau International des Poids et Mesures (BIPM)',
+    year: 2019,
+    title: 'The International System of Units (SI), 9th edition',
+    publisher: 'BIPM',
+    url: 'https://www.bipm.org/en/publications/si-brochure',
+    accessed: '2026-11-18',
+  },
 } satisfies Record<string, Source>;
 
 export type SourceId = keyof typeof ALL;
