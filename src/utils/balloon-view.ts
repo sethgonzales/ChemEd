@@ -60,3 +60,24 @@ export function viewSize(frameWidth: number, windowHeight: number) {
 
 /** The frame width the scene guesses before it's measured, CSS px */
 export const GUESSED_WIDTH = 400 * CSS_PER_ART;
+
+// the balloon's gauges arc over its top, from low on the left to low on the
+// right, degrees from the right, anticlockwise
+const ARC_FROM = 165;
+const ARC_TO = 15;
+const ARC_GAP = 4; // CSS px between neighbouring gauges
+
+/**
+ * Where n gauges of a width sit on an arc over the balloon, CSS px from the
+ * middle of its envelope (y down): wide enough that neighbours don't overlap
+ */
+export function gaugeArc(n: number, width: number) {
+  const step = n > 1 ? (ARC_FROM - ARC_TO) / (n - 1) : 0;
+  // neighbours a chord apart: 2r·sin(step/2) is a gauge wide plus the gap
+  const radius =
+    n > 1 ? (width + ARC_GAP) / (2 * Math.sin((step * Math.PI) / 360)) : width;
+  return Array.from({ length: n }, (_, i) => {
+    const angle = ((n > 1 ? ARC_FROM - i * step : 90) * Math.PI) / 180;
+    return { x: radius * Math.cos(angle), y: -radius * Math.sin(angle) };
+  });
+}

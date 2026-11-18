@@ -251,3 +251,26 @@ describe('the back arrow', () => {
     expect(screen.queryByText('Leg 1 of 3')).not.toBeInTheDocument();
   });
 });
+
+describe('between steps', () => {
+  const faded = () => document.querySelector('[data-fade]');
+
+  it('fades Mr. G’s words in afresh from the briefing to the flight, and from landing to the next leg', async () => {
+    const u = user();
+    await startBoyle(u);
+    const brief = faded();
+    expect(brief).not.toBeNull();
+    await u.type(
+      screen.getByRole('textbox', { name: 'Volume to tie off at' }),
+      String(Math.round(tieOffVolume(boyleLeg(0, seed)))),
+    );
+    await u.click(screen.getByRole('button', { name: 'Tie off and fly' }));
+    const flying = faded();
+    expect(flying).not.toBe(brief);
+    act(() => jest.advanceTimersByTime(FLIGHT_MS + 500));
+    const landed = faded();
+    expect(landed).not.toBe(flying);
+    await u.click(screen.getByRole('button', { name: 'Next leg' }));
+    expect(faded()).not.toBe(landed);
+  });
+});

@@ -3,6 +3,7 @@ import type { Balloon, Flight } from './balloon';
 import {
   ENVELOPE_RADIUS,
   envelopeRadius,
+  gaugeArc,
   readings,
   viewSize,
 } from './balloon-view';
@@ -71,5 +72,32 @@ describe('the size of the view', () => {
   it('stays tall enough for the gauge column on a short screen', () => {
     const { height, scale } = viewSize(1200, 400);
     expect(height * scale).toBeGreaterThanOrEqual(370);
+  });
+});
+
+describe('gaugeArc', () => {
+  const width = 64; // CSS px, a gauge with its readout
+  const slots = gaugeArc(4, width);
+
+  it('arcs the gauges over the top, left to right', () => {
+    slots.forEach((s) => expect(s.y).toBeLessThan(0));
+    for (let i = 1; i < slots.length; i++)
+      expect(slots[i].x).toBeGreaterThan(slots[i - 1].x);
+  });
+
+  it('bows up in the middle, symmetric about the balloon', () => {
+    expect(slots[1].y).toBeLessThan(slots[0].y);
+    expect(slots[0].x).toBeCloseTo(-slots[3].x);
+    expect(slots[0].y).toBeCloseTo(slots[3].y);
+  });
+
+  it('spaces them so neighbours never overlap', () => {
+    for (let i = 1; i < slots.length; i++) {
+      const apart = Math.hypot(
+        slots[i].x - slots[i - 1].x,
+        slots[i].y - slots[i - 1].y,
+      );
+      expect(apart).toBeGreaterThanOrEqual(width);
+    }
   });
 });

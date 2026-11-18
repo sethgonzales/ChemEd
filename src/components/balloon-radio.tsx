@@ -31,7 +31,7 @@ export default function BalloonRadio({
         scale={0.6}
         className="shrink-0"
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5 font-pixel text-sm leading-normal">
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 font-pixel text-sm font-medium leading-normal">
         {children}
       </div>
     </section>

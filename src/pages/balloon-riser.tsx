@@ -4,6 +4,7 @@ import BalloonScene from '~/components/balloon-scene';
 import Button from '~/components/button';
 import CalcPad, { Working } from '~/components/calc-pad';
 import Container from '~/components/container';
+import { Said, TypedBriefing } from '~/components/typed-text';
 import { ATMOSPHERE_SOURCE } from '~/constants/atmosphere';
 import {
   POPPED,
@@ -86,8 +87,10 @@ function Gate({ onPick }: { onPick: (c: Course) => void }) {
   return (
     <>
       <p>
-        Morning! Before we take off: which course are you taking? It decides
-        which flights I’ll take you on.
+        <Said>
+          Morning! Before we take off: which course are you taking? It decides
+          which flights I’ll take you on.
+        </Said>
       </p>
       <div className="flex flex-wrap gap-2 font-pixel">
         {(Object.keys(COURSES) as Course[]).map((id) => (
@@ -115,7 +118,11 @@ function Levels({
   const general = levels.filter((l) => !l.ap).length;
   return (
     <>
-      <p>Pick a flight. Each one is a few hops, platform to platform.</p>
+      <p>
+        <Said>
+          Pick a flight. Each one is a few hops, platform to platform.
+        </Said>
+      </p>
       <ol className="grid gap-1.5 text-sm sm:grid-cols-2">
         {levels.map((l, i) => {
           const got = stars[course]?.[l.id];
@@ -190,19 +197,22 @@ function FlightRadio({
 
   return (
     <>
-      {game.phase === 'brief' &&
-        briefing(g).map((line) => <p key={line}>{line}</p>)}
+      {game.phase === 'brief' && <TypedBriefing lines={briefing(g)} />}
       {game.phase === 'flying' && (
-        <p role="status">{burst ? POPPED : question.flying}</p>
+        <p role="status">
+          <Said>{burst ? POPPED : question.flying}</Said>
+        </p>
       )}
-      {game.phase === 'landed' && (
+      {game.phase === 'landed' && plan && (
         <p role="status" className="font-semibold text-green-300">
-          {plan && verdict(plan, g)}
+          <Said>{verdict(plan, g)}</Said>
         </p>
       )}
       {game.phase === 'missed' && plan && (
         <>
-          <p role="status">{verdict(plan, g)}</p>
+          <p role="status">
+            <Said>{verdict(plan, g)}</Said>
+          </p>
           <p>Here’s the working, from the same readings:</p>
           <div className="flex flex-col font-mono text-sm">
             {worked(g).map((line) => (
@@ -247,7 +257,7 @@ function Done({ game, onLevels }: { game: GameState; onLevels: () => void }) {
   return (
     <>
       <p role="status" className="font-semibold text-green-300">
-        Flight complete!
+        <Said>Flight complete!</Said>
       </p>
       <p
         aria-label={`${stars} of 3 stars`}
@@ -256,9 +266,11 @@ function Done({ game, onLevels }: { game: GameState; onLevels: () => void }) {
         {starText(stars)}
       </p>
       <p>
-        {game.misses === 0
-          ? `Every landing first time. ${SCIENTISTS[game.level] ?? 'Your teacher'} would be proud.`
-          : `${game.misses} missed landing${game.misses === 1 ? '' : 's'} on the way. Fly it again for all three stars.`}
+        <Said>
+          {game.misses === 0
+            ? `Every landing first time. ${SCIENTISTS[game.level] ?? 'Your teacher'} would be proud.`
+            : `${game.misses} missed landing${game.misses === 1 ? '' : 's'} on the way. Fly it again for all three stars.`}
+        </Said>
       </p>
       <div className="font-pixel">
         <Button pressed onClick={onLevels}>
@@ -327,27 +339,40 @@ export default function BalloonRiser() {
           instruments={!!flying}
         >
           <BalloonRadio className={IN_SKY}>
-            {!course ? (
-              <Gate onPick={setCourse} />
-            ) : !game ? (
-              <Levels
-                course={course}
-                stars={stars}
-                onPlay={(level) =>
-                  setGame(startLevel(course, level, newSeed()))
-                }
-                onChangeCourse={() => setCourse(null)}
-              />
-            ) : game.phase === 'done' ? (
-              <Done game={game} onLevels={toLevels} />
-            ) : (
-              <FlightRadio
-                game={game}
-                setGame={setGame}
-                burst={!!shown.flight.burst}
-                onLevels={toLevels}
-              />
-            )}
+            {/* each step fades in afresh, rather than snapping into place */}
+            <div
+              key={
+                !course
+                  ? 'gate'
+                  : !game
+                    ? 'levels'
+                    : `${game.phase}-${game.leg}-${game.seed}`
+              }
+              data-fade
+              className="fade-in flex flex-col gap-1.5"
+            >
+              {!course ? (
+                <Gate onPick={setCourse} />
+              ) : !game ? (
+                <Levels
+                  course={course}
+                  stars={stars}
+                  onPlay={(level) =>
+                    setGame(startLevel(course, level, newSeed()))
+                  }
+                  onChangeCourse={() => setCourse(null)}
+                />
+              ) : game.phase === 'done' ? (
+                <Done game={game} onLevels={toLevels} />
+              ) : (
+                <FlightRadio
+                  game={game}
+                  setGame={setGame}
+                  burst={!!shown.flight.burst}
+                  onLevels={toLevels}
+                />
+              )}
+            </div>
           </BalloonRadio>
         </BalloonScene>
 

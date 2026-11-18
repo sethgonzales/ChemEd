@@ -29,6 +29,7 @@ import {
   ENVELOPE_RADIUS,
   GUESSED_WIDTH,
   envelopeRadius,
+  gaugeArc,
   viewSize,
 } from '~/utils/balloon-view';
 import { halfSize } from '~/utils/mini-sprite';
@@ -722,16 +723,7 @@ function useViewSize() {
   };
 }
 
-// The balloon's gauges sit round it, CSS px from the middle of the craft:
-// helium temperature and pressure above, its volume and amount below
-const ORBIT = { x: 74, y: 36 };
 const GAUGE = { width: 64, height: 56 }; // CSS px, about, with its readout
-const ORBIT_AT = [
-  [-1, -1],
-  [1, -1],
-  [-1, 1],
-  [1, 1],
-] as const;
 
 const STATION_BOARD = { width: 132, height: 56 }; // CSS px: two gauges side by side
 const SKY_COLUMN = 84; // CSS px kept clear at the right for the air's gauges
@@ -817,20 +809,28 @@ export default function BalloonScene({
     x: (wx - cam.x) * scale,
     y: (wy - cam.y) * scale,
   });
-  const craft = toScreen(at.x, craftY + CRAFT_H / 2);
-  const own = balloonDevices(balloon, flight).map((device, i) => {
-    const [sx, sy] = ORBIT_AT[i];
+  // the balloon's gauges arc over its envelope, each tethered to its edge
+  const middle = toScreen(at.x, craftY + 1 + ENVELOPE_RADIUS);
+  const edge = radius * scale;
+  const devices = balloonDevices(balloon, flight);
+  const arc = gaugeArc(devices.length, GAUGE.width);
+  const own = devices.map((device, i) => {
     const x = clamp(
-      craft.x + sx * ORBIT.x,
+      middle.x + arc[i].x,
       GAUGE.width / 2 + 4,
       screen.width - GAUGE.width / 2 - 4,
     );
     const y = clamp(
-      craft.y + sy * ORBIT.y,
+      middle.y + arc[i].y,
       GAUGE.height / 2 + 4,
       screen.height - GAUGE.height / 2 - 4,
     );
-    return { device, x, y };
+    const toward = Math.hypot(arc[i].x, arc[i].y);
+    const from = {
+      x: middle.x + (arc[i].x / toward) * edge,
+      y: middle.y + (arc[i].y / toward) * edge,
+    };
+    return { device, x, y, from };
   });
   // a card opening up or down is nudged back inside the scene's edges
   const cardShift = (x: number) =>
@@ -849,10 +849,11 @@ export default function BalloonScene({
   // its readouts hang above it, or step aside on a tether when the balloon's
   // gauges are in the way, as you arrive
   const ring = {
-    left: craft.x - ORBIT.x - GAUGE.width / 2,
-    right: craft.x + ORBIT.x + GAUGE.width / 2,
-    top: craft.y - ORBIT.y - GAUGE.height / 2,
-    bottom: craft.y + ORBIT.y + GAUGE.height / 2,
+    left: Math.min(...own.map((g) => g.x)) - GAUGE.width / 2,
+    right: Math.max(...own.map((g) => g.x)) + GAUGE.width / 2,
+    top: Math.min(...own.map((g) => g.y)) - GAUGE.height / 2,
+    // down to the basket, under the arc
+    bottom: toScreen(at.x, craftY + CRAFT_H).y,
   };
   const half = STATION_BOARD.width / 2;
   const blocked =
@@ -995,11 +996,11 @@ export default function BalloonScene({
             className="pointer-events-none absolute inset-0 h-full w-full"
             aria-hidden="true"
           >
-            {own.map(({ device, x, y }) => (
+            {own.map(({ device, x, y, from }) => (
               <line
                 key={device.name}
-                x1={craft.x}
-                y1={craft.y}
+                x1={from.x}
+                y1={from.y}
                 x2={x}
                 y2={y}
                 stroke="#fff7d6"
@@ -1087,10 +1088,12 @@ export default function BalloonScene({
       )}
 
       {/* Mr. G and the controls, across the top of the sky: black on the
-          pale sky, with a light halo to keep it clear of clouds */}
+          pale sky, with a light halo to keep it clear of clouds. Buttons and
+          fields have their own backgrounds, so no halo; and the "correct"
+          green darkens, as the light one washes out on the sky */}
       {children && inSky && (
         <div
-          className="absolute top-2 z-20 flex flex-col gap-3 text-black [text-shadow:0_0_3px_rgb(255_255_255/0.9),0_0_8px_rgb(255_255_255/0.6)] has-[[aria-expanded=true]]:z-40"
+          className="absolute top-2 z-20 flex flex-col gap-3 text-black [text-shadow:0_0_3px_rgb(255_255_255/0.9),0_0_8px_rgb(255_255_255/0.6)] [&_.text-green-300]:text-green-800 [&_button,&_input]:[text-shadow:none] has-[[aria-expanded=true]]:z-40"
           style={{
             left: PANEL_INSET,
             right: instruments ? SKY_COLUMN + 8 : 8,
