@@ -203,4 +203,53 @@ describe('BalloonScene, on a wide screen', () => {
     expect(left).toBeLessThanOrEqual(parseFloat(ruler.style.width) + 16);
     expect(panel).toHaveClass('text-black');
   });
+
+  it('puts the answer controls apart from Mr. G’s words, down at the bottom right under the gauges, in black', () => {
+    render(
+      <BalloonScene
+        balloon={balloon}
+        flight={flight}
+        distance={0}
+        leg={leg}
+        controls={<button type="button">Tie off and fly</button>}
+      >
+        <p>Next stop: Red Mesa.</p>
+      </BalloonScene>,
+    );
+    const answer = screen.getByRole('group', { name: 'Your answer' });
+    expect(answer).toContainElement(
+      screen.getByRole('button', { name: 'Tie off and fly' }),
+    );
+    expect(answer).not.toContainElement(
+      screen.getByText('Next stop: Red Mesa.'),
+    );
+    // after the air's gauges, so it stacks under them
+    const air = screen.getByRole('group', { name: 'The air here' });
+    expect(
+      air.compareDocumentPosition(answer) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(answer).toHaveClass('text-black');
+  });
+});
+
+describe('BalloonScene, on a phone', () => {
+  it('puts the answer controls under the scene, after Mr. G’s words', () => {
+    render(
+      <BalloonScene
+        balloon={balloon}
+        flight={flight}
+        distance={0}
+        leg={leg}
+        controls={<button type="button">Tie off and fly</button>}
+      >
+        <p>Next stop: Red Mesa.</p>
+      </BalloonScene>,
+    );
+    const words = screen.getByText('Next stop: Red Mesa.');
+    const answer = screen.getByRole('group', { name: 'Your answer' });
+    expect(
+      words.compareDocumentPosition(answer) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(answer).not.toHaveClass('text-black');
+  });
 });

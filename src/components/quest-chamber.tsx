@@ -7,6 +7,7 @@ import {
 } from '@tabler/icons-react';
 import Button from '~/components/button';
 import { cn } from '~/utils/cn';
+import { useDevTools } from '~/utils/dev-tools';
 import { CheckSlot, type SlotCheck } from '~/components/check-slot';
 import { useGuide } from '~/components/guide';
 import MrG from '~/components/mr-g';
@@ -50,11 +51,9 @@ interface Props {
     stage: QuestState<QuickQuestion>['stage'] | 'door',
     bossHp: number,
   ) => void;
-  devTools?: boolean; // shortcuts for testing by hand: solve, hit, miss
+  devTools?: boolean; // shortcuts for testing by hand: solve, hit, miss (default: the dev tools flag)
 }
 
-// the shortcuts are on while developing, never in the built app
-const DEV = process.env.NODE_ENV === 'development';
 export const DOOR_MS = 1800; // the boss's door swinging open, in a hush
 
 // each screen fades in from the dark as it opens
@@ -460,8 +459,11 @@ export default function QuestChamber({
   onExit,
   onReplay,
   onStage,
-  devTools = DEV,
+  devTools: devToolsProp,
 }: Props) {
+  // on while developing, and in the deployed app with ?dev=on
+  const devToolsOn = useDevTools();
+  const devTools = devToolsProp ?? devToolsOn;
   const [state, setState] = useState<QuestState<QuickQuestion>>(() =>
     startChamber(chamber, course, seed),
   );

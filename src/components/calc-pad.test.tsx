@@ -52,6 +52,12 @@ describe('CalcPad', () => {
     expect(screen.getByText('P₁V₁ = P₂V₂')).toBeInTheDocument();
   });
 
+  it('writes the hint in its surroundings’ colour: black on the sky, white below it', async () => {
+    renderPad();
+    await userEvent.click(screen.getByRole('button', { name: 'Hint' }));
+    expect(screen.getByText('P₁V₁ = P₂V₂').className).not.toMatch(/text-white/);
+  });
+
   it('has room to work it out', () => {
     renderPad();
     expect(

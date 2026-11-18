@@ -274,3 +274,17 @@ describe('between steps', () => {
     expect(faded()).not.toBe(landed);
   });
 });
+
+describe('the answer', () => {
+  it('sits apart from Mr. G’s briefing, with its hint', async () => {
+    await startBoyle(user());
+    const answer = screen.getByRole('group', { name: 'Your answer' });
+    const mrG = screen.getByRole('region', { name: 'Mr. G' });
+    expect(mrG).not.toContainElement(
+      screen.getByRole('textbox', { name: 'Volume to tie off at' }),
+    );
+    expect(answer).toContainElement(
+      screen.getByRole('button', { name: 'Hint' }),
+    );
+  });
+});

@@ -13,6 +13,7 @@ interface Props {
   onSubmit: (value: number) => void; // in SI units
   disabled?: boolean;
   working?: boolean; // its own scratch space; false when it sits elsewhere
+  stacked?: boolean; // label, answer, button and hint one under another, for a narrow corner
 }
 
 // "540,000" or "5.4e5": commas and spaces are only for reading
@@ -30,6 +31,7 @@ export default function CalcPad({
   onSubmit,
   disabled,
   working = true,
+  stacked = false,
 }: Props) {
   const [text, setText] = useState('');
   const [unit, setUnit] = useState<GasUnit>(units[0]);
@@ -50,34 +52,42 @@ export default function CalcPad({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-end gap-2">
+      <div
+        className={cn(
+          'flex gap-2',
+          stacked ? 'flex-col items-stretch' : 'flex-wrap items-end',
+        )}
+      >
         <label htmlFor={`${id}-answer`} className="w-full text-sm">
           {label}
         </label>
-        <input
-          id={`${id}-answer`}
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={disabled}
-          className={cn(
-            PIXEL_CONTROL,
-            'w-28 bg-white px-3 py-2 font-mono text-gray-900 tabular-nums',
-          )}
-        />
-        <Dropdown label={unit} ariaLabel={`Unit: ${unit}`} inline readable>
-          {units.map((u) => (
-            <DropdownItem
-              key={u}
-              selected={u === unit}
-              onSelect={() => setUnit(u)}
-            >
-              {u}
-            </DropdownItem>
-          ))}
-        </Dropdown>
+        <div className="flex items-end gap-2">
+          <input
+            id={`${id}-answer`}
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={disabled}
+            className={cn(
+              PIXEL_CONTROL,
+              'bg-white px-3 py-2 font-mono text-gray-900 tabular-nums',
+              stacked ? 'min-w-0 flex-1' : 'w-28',
+            )}
+          />
+          <Dropdown label={unit} ariaLabel={`Unit: ${unit}`} inline readable>
+            {units.map((u) => (
+              <DropdownItem
+                key={u}
+                selected={u === unit}
+                onSelect={() => setUnit(u)}
+              >
+                {u}
+              </DropdownItem>
+            ))}
+          </Dropdown>
+        </div>
         <Button type="submit" pressed disabled={disabled}>
           {action}
         </Button>
@@ -90,7 +100,8 @@ export default function CalcPad({
           {problem}
         </p>
       )}
-      {hinted && <p className="font-sans text-sm text-white/90">{hint}</p>}
+      {/* in its surroundings' colour, so it reads on the sky too */}
+      {hinted && <p className="font-sans text-sm">{hint}</p>}
       {working && <Working />}
     </form>
   );

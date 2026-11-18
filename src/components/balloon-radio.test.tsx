@@ -19,6 +19,8 @@ describe('BalloonRadio', () => {
     expect(screen.getByText('Next stop: Red Mesa.')).toHaveClass('font-pixel');
     // a weight up from the body text, so the pixels read clearly
     expect(screen.getByText('Next stop: Red Mesa.')).toHaveClass('font-medium');
+    // a size up from the small print, for reading while flying
+    expect(screen.getByText('Next stop: Red Mesa.')).toHaveClass('text-base');
   });
 
   it('takes any rider, for a student’s avatar later', () => {

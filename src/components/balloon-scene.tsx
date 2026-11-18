@@ -14,6 +14,7 @@ import {
   type Platform,
 } from '~/constants/balloon-world';
 import { MR_G, type Rider } from '~/constants/riders';
+import { cn } from '~/utils/cn';
 import { gasInside, type Balloon, type Flight } from '~/utils/balloon';
 import {
   STRUCTURE,
@@ -738,12 +739,20 @@ interface Props {
   leg: Leg;
   rider?: Rider; // Mr. G, until a student's avatar takes his place
   instruments?: boolean; // the gauges, once there's a leg to fly
-  children?: ReactNode; // Mr. G and the controls: in the sky when there's room
+  children?: ReactNode; // Mr. G's words: in the sky when there's room
+  controls?: ReactNode; // the answer: bottom right, under the gauges, when there's room
 }
 
 const RULER_WIDTH = 48; // CSS px: the height ruler down the left edge
 // CSS px: Mr. G's panel starts just past the ruler, so it never hides a height
 const PANEL_INSET = RULER_WIDTH + 8;
+
+// Writing on the sky: black on the pale blue, with a light halo to keep it
+// clear of clouds. Buttons and fields have their own backgrounds, so no halo;
+// and the "correct" green and the problems' red darken, as the light ones
+// wash out on the sky
+const ON_SKY =
+  'text-black [text-shadow:0_0_3px_rgb(255_255_255/0.9),0_0_8px_rgb(255_255_255/0.6)] [&_.text-green-300]:text-green-800 [&_.text-red-100]:text-red-800 [&_button,&_input]:[text-shadow:none]';
 
 /** One leg of the journey, side on, with the camera following the balloon */
 export default function BalloonScene({
@@ -754,6 +763,7 @@ export default function BalloonScene({
   rider = MR_G,
   instruments = true,
   children,
+  controls,
 }: Props) {
   const { frame, view, scale, measured } = useViewSize();
   const inSky = useMedia('(min-width: 1024px)');
@@ -1087,13 +1097,27 @@ export default function BalloonScene({
         </div>
       )}
 
-      {/* Mr. G and the controls, across the top of the sky: black on the
-          pale sky, with a light halo to keep it clear of clouds. Buttons and
-          fields have their own backgrounds, so no halo; and the "correct"
-          green darkens, as the light one washes out on the sky */}
+      {/* the answer, stacked in the bottom right corner under the gauges */}
+      {controls && inSky && (
+        <div
+          role="group"
+          aria-label="Your answer"
+          className={cn(
+            'absolute right-2 bottom-2 z-20 flex w-60 flex-col gap-2 has-[[aria-expanded=true]]:z-40',
+            ON_SKY,
+          )}
+        >
+          {controls}
+        </div>
+      )}
+
+      {/* Mr. G's words, across the top of the sky */}
       {children && inSky && (
         <div
-          className="absolute top-2 z-20 flex flex-col gap-3 text-black [text-shadow:0_0_3px_rgb(255_255_255/0.9),0_0_8px_rgb(255_255_255/0.6)] [&_.text-green-300]:text-green-800 [&_button,&_input]:[text-shadow:none] has-[[aria-expanded=true]]:z-40"
+          className={cn(
+            'absolute top-2 z-20 flex flex-col gap-3 has-[[aria-expanded=true]]:z-40',
+            ON_SKY,
+          )}
           style={{
             left: PANEL_INSET,
             right: instruments ? SKY_COLUMN + 8 : 8,
@@ -1110,6 +1134,11 @@ export default function BalloonScene({
     <div className="flex flex-col gap-4">
       {scene}
       {!inSky && children}
+      {!inSky && controls && (
+        <div role="group" aria-label="Your answer">
+          {controls}
+        </div>
+      )}
     </div>
   );
 }

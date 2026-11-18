@@ -32,6 +32,7 @@ import {
   starsFor,
   type Stars,
 } from '~/utils/balloon-progress';
+import { useDevTools } from '~/utils/dev-tools';
 import { COURSES, type Course } from '~/utils/quest';
 import { useMissSound, useTreasureSound } from '~/utils/sounds';
 import { useMedia } from '~/utils/use-media';
@@ -163,8 +164,7 @@ function Levels({
   );
 }
 
-// test a leg without working it out: never in the built app
-const DEV_TOOLS = process.env.NODE_ENV !== 'production';
+// test a leg without working it out: while developing, or with ?dev=on
 const DEV_ANSWERS: [string, number][] = [
   ['Fly the right answer', 1],
   ['Fly 10% too high', 1.1],
@@ -222,17 +222,6 @@ function FlightRadio({
         </>
       )}
 
-      {game.phase === 'brief' && (
-        <CalcPad
-          key={`${game.leg}-${game.seed}`}
-          label={question.label}
-          units={question.units}
-          hint={hint(g)}
-          action={question.action}
-          onSubmit={(v) => setGame(fly(game, v))}
-          working={false}
-        />
-      )}
       {game.phase === 'landed' && (
         <div className="font-pixel">
           <Button pressed onClick={goOn}>
@@ -285,6 +274,7 @@ export default function BalloonRiser() {
   const [course, setCourse] = useState<Course | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
   const [stars, setStars] = useState<Stars>({});
+  const devTools = useDevTools();
   useEffect(() => setStars(loadStars()), [game?.phase]);
 
   const toLevels = () => setGame(null);
@@ -337,6 +327,20 @@ export default function BalloonRiser() {
           distance={shown.distance}
           leg={g.leg}
           instruments={!!flying}
+          controls={
+            briefed && (
+              <CalcPad
+                key={`${briefed.leg}-${briefed.seed}`}
+                label={ask(g).label}
+                units={ask(g).units}
+                hint={hint(g)}
+                action={ask(g).action}
+                onSubmit={(v) => setGame(fly(briefed, v))}
+                working={false}
+                stacked
+              />
+            )
+          }
         >
           <BalloonRadio className={IN_SKY}>
             {/* each step fades in afresh, rather than snapping into place */}
@@ -377,7 +381,7 @@ export default function BalloonRiser() {
         </BalloonScene>
 
         {briefed && <Working key={`${briefed.leg}-${briefed.seed}`} />}
-        {briefed && DEV_TOOLS && (
+        {briefed && devTools && (
           <div
             role="group"
             aria-label="Dev tools"
