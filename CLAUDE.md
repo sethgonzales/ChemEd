@@ -11,7 +11,7 @@ Interactive chemistry simulations for students. Next.js 15 (pages router), React
 - `npx tsc --noEmit` — type check
 - `npm run build` — production build, exported as static files to `out/`. It shares `.next/` with the dev server and breaks a running one (500s), so stop `npm run dev` first or restart it afterwards with a fresh `.next/`.
 - `npm run deploy` — build and deploy `out/` to Firebase Hosting (project `chemed-app`, https://chemed-app.web.app). Same `.next/` caveat as `build`. The app must stay static: no API routes, `getServerSideProps` or image optimization. Never deploy to `chemed-6a31a`: that's the archived original ChemEd.
-- Dev tools in the games (fly the right answer, solve a room…) are on while developing. On the deployed site, open any page with `?dev=on` to switch them on in that browser, and `?dev=off` to switch them off (`src/utils/dev-tools.ts`).
+- Dev tools in the games (fly the right answer, solve a room…) are on while developing. To have them on the deployed site, build with `NEXT_PUBLIC_DEV_TOOLS=true` (e.g. `NEXT_PUBLIC_DEV_TOOLS=true npm run deploy`); a plain `npm run deploy` turns them off again. It's baked in at build time (`src/utils/dev-tools.ts`).
 - Firestore (`chemed-app`, nam5) rules live in `firestore.rules`, locked until logins exist; deploy them with `firebase deploy --only firestore:rules`.
 
 ## Test-driven development (required for every feature and bug fix)

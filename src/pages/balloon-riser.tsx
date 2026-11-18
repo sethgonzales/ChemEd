@@ -32,7 +32,7 @@ import {
   starsFor,
   type Stars,
 } from '~/utils/balloon-progress';
-import { useDevTools } from '~/utils/dev-tools';
+import { DEV_TOOLS } from '~/utils/dev-tools';
 import { COURSES, type Course } from '~/utils/quest';
 import { useMissSound, useTreasureSound } from '~/utils/sounds';
 import { useMedia } from '~/utils/use-media';
@@ -164,7 +164,8 @@ function Levels({
   );
 }
 
-// test a leg without working it out: while developing, or with ?dev=on
+// test a leg without working it out: while developing, or in a build with
+// NEXT_PUBLIC_DEV_TOOLS=true
 const DEV_ANSWERS: [string, number][] = [
   ['Fly the right answer', 1],
   ['Fly 10% too high', 1.1],
@@ -274,7 +275,6 @@ export default function BalloonRiser() {
   const [course, setCourse] = useState<Course | null>(null);
   const [game, setGame] = useState<GameState | null>(null);
   const [stars, setStars] = useState<Stars>({});
-  const devTools = useDevTools();
   useEffect(() => setStars(loadStars()), [game?.phase]);
 
   const toLevels = () => setGame(null);
@@ -381,7 +381,7 @@ export default function BalloonRiser() {
         </BalloonScene>
 
         {briefed && <Working key={`${briefed.leg}-${briefed.seed}`} />}
-        {briefed && devTools && (
+        {briefed && DEV_TOOLS && (
           <div
             role="group"
             aria-label="Dev tools"
