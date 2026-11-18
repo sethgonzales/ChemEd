@@ -33,6 +33,7 @@ const SCAN_STEP = 10; // m
 const BURST_AT = 0.5; // of the way across, where an overheated balloon bursts
 const VENTED_AT = 0.7; // of the way across, where a vented balloon runs out of lift
 const SUN = 1.05; // the sun heats the helium this far past the red line
+const ESCAPE = 0.1; // of the flight it takes a burst balloon's helium to escape
 
 export interface FlightPlan {
   answer: number; // SI, what the student answered
@@ -170,7 +171,23 @@ function sunlit(g: GasLeg, plan: FlightPlan, t: number): Partial<Flight> {
     plan.outcome === 'landed'
       ? Math.min(plan.answer, line * 0.999)
       : line * SUN;
-  const heated = lerp(t1, peak, smooth(Math.min(1, t / CLIMB)));
+  const heatedAt = (at: number) =>
+    lerp(t1, peak, smooth(Math.min(1, at / CLIMB)));
+  const heated = heatedAt(t);
+  if (plan.outcome === 'burst') {
+    // the moment it passes the line, found by halving: heating only rises
+    let low = 0;
+    let high = CLIMB;
+    for (let i = 0; i < 30; i++) {
+      const mid = (low + high) / 2;
+      if (heatedAt(mid) > line) high = mid;
+      else low = mid;
+    }
+    if (t < high) return { gasTemperature: heated };
+    // torn open, the helium rushes out
+    const left = Math.max(0, 1 - (t - high) / ESCAPE);
+    return { gasTemperature: heated, moles: g.moles * left, burst: true };
+  }
   if (plan.outcome !== 'short') return { gasTemperature: heated };
   // vented: past the answer he lets helium out to hold the pressure there,
   // then over the far side it cools, with too little helium left to stay full

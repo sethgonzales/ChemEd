@@ -160,10 +160,24 @@ describe('the burst line on a Gay-Lussac’s law leg', () => {
   it('bursts and comes down short when the vent’s set too hot', () => {
     const plan = planFlight(leg, answer * 1.05);
     expect(plan.outcome).toBe('burst');
-    expect(
-      gasInside(balloonFor(leg), flightState(leg, plan, 0.5).flight).burst,
-    ).toBe(true);
+    expect(flightState(leg, plan, 0.5).flight.burst).toBe(true);
     downShort(answer * 1.05);
+  });
+
+  it('holds until the pressure passes the red line, then loses its helium', () => {
+    const plan = planFlight(leg, answer * 1.05);
+    const at = (t: number) => flightState(leg, plan, t).flight;
+    // early on, the sun hasn't heated it past the line yet
+    expect(at(0.1).burst).toBeFalsy();
+    expect(at(0.1).moles).toBe(leg.moles);
+    // torn open, the helium escapes: the balloon shrinks to nothing and its
+    // gauge falls to the air's pressure
+    const end = at(1);
+    expect(end.burst).toBe(true);
+    expect(end.moles).toBe(0);
+    const gas = gasInside(balloonFor(leg), { ...end, moles: 1 });
+    expect(gas.volume).toBeLessThan(1);
+    expect(gas.pressure).toBeCloseTo(airAt(end.height).pressure, 6);
   });
 
   it('vents helium it needed and comes down short when set too cool', () => {

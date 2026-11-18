@@ -614,6 +614,42 @@ function envelopeRows(radius: number, taut: boolean) {
   return p.rows();
 }
 
+// lengths (art px) of the torn gores, left to right: ragged on purpose
+const SHREDS = [6, 10, 8, 11, 7];
+const LEAN = 3; // rows per px the fabric trails sideways in the wind
+
+/**
+ * A burst envelope: limp, torn gores trailing up and off to one side from
+ * the ropes, the way a falling balloon's fabric streams above it
+ */
+function burstRows() {
+  const p = new Painter(CRAFT_W, CRAFT_H - BASKET_H);
+  const cx = CRAFT_W / 2;
+  const mouth = CRAFT_H - BASKET_H - RIDER_SHOWN - ROPE; // where the ropes meet it
+  const left = Math.round(cx - SHREDS.length / 2);
+  SHREDS.forEach((length, i) => {
+    for (let k = 0; k < length; k++)
+      // dark folds and faded panels, never bright: it's slack cloth
+      p.set(
+        left + i + Math.floor(k / LEAN),
+        mouth - 1 - k,
+        (i + Math.floor(k / 4)) % 2 ? 'f' : 'N',
+      );
+  });
+  const rimY = CRAFT_H - BASKET_H;
+  const bx = (CRAFT_W - BASKET_W) / 2;
+  p.line(left, mouth, bx, rimY - 1, 'T', false);
+  p.line(
+    left + SHREDS.length - 1,
+    mouth,
+    bx + BASKET_W - 1,
+    rimY - 1,
+    'T',
+    false,
+  );
+  return p.rows();
+}
+
 function basketRows() {
   const p = new Painter(BASKET_W + 2, BASKET_H + 1);
   p.rect(1, 0, BASKET_W, BASKET_H, 'O');
@@ -692,9 +728,10 @@ export default function BalloonScene({
   const gas = gasInside(balloon, flight);
   // drawn against the whole envelope, even when Mr. G has tied it off smaller
   const radius = Math.round(envelopeRadius(gas.volume, BALLOON.fullVolume));
+  const burst = gas.burst || !!flight.burst;
   const envelope = useMemo(
-    () => envelopeRows(radius, gas.taut),
-    [radius, gas.taut],
+    () => (burst ? burstRows() : envelopeRows(radius, gas.taut)),
+    [burst, radius, gas.taut],
   );
   const basket = useMemo(basketRows, []);
   const riderRows = halfSize(balloonOutfit(rider.rows('idle')));
@@ -853,7 +890,7 @@ export default function BalloonScene({
         viewBox={`${cam.x} ${cam.y} ${view.width} ${view.height}`}
         className="pointer-events-none absolute inset-0 h-full w-full"
         role="img"
-        aria-label={`${rider.name} in the balloon’s basket, at ${fmt(Math.round(flight.height))} m`}
+        aria-label={`${rider.name} in the balloon’s basket, at ${fmt(Math.round(flight.height))} m${burst ? ': the envelope’s burst' : ''}`}
       >
         <g transform={`translate(${craftX} ${craftY})`}>
           <PixelArt rows={envelope} palette={CRAFT_PALETTE} scale={1 / 4} />

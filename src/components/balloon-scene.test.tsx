@@ -122,4 +122,18 @@ describe('BalloonScene', () => {
     const ruler = screen.getByRole('list', { name: 'Height' });
     expect(within(ruler).getByText('200 m')).toBeInTheDocument();
   });
+
+  it('shows the envelope torn open once the helium bursts it', () => {
+    // stretched full and far too hot: way past the 15 kPa it holds
+    const burst = { ...flight, moles: 40000, gasTemperature: 360 };
+    renderScene(undefined, { distance: 0, flight: burst });
+    expect(
+      screen.getByRole('img', { name: /envelope’s burst/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('says nothing of bursting while it holds', () => {
+    renderScene();
+    expect(screen.queryByRole('img', { name: /burst/ })).toBeNull();
+  });
 });
