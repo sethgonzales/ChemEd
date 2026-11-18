@@ -13,6 +13,7 @@ import {
   boyleLeg,
   charlesLeg,
   combinedLeg,
+  daltonLeg,
   idealLeg,
   gayLussacLeg,
   rightAnswer,
@@ -301,5 +302,23 @@ describe('flying an ideal gas law leg', () => {
     const plan = planFlight(i, right);
     expect(flightState(i, plan, 0).flight.moles).toBe(0);
     expect(flightState(i, plan, 1).flight.moles).toBeCloseTo(right, 6);
+  });
+});
+
+describe('flying a Dalton’s law leg', () => {
+  const d = daltonLeg(0, 7);
+  const right = rightAnswer(d);
+
+  it('lands with the right helium, climbs over with too much, never leaves with too little', () => {
+    expect(planFlight(d, right).outcome).toBe('landed');
+    expect(planFlight(d, right * 1.1).outcome).toBe('over');
+    expect(planFlight(d, right * 0.9).outcome).toBe('short');
+  });
+
+  it('tops up or vents the helium as it sets off, the air staying in', () => {
+    const plan = planFlight(d, right);
+    const end = flightState(d, plan, 1).flight;
+    expect(end.moles).toBeCloseTo(right, 6);
+    expect(end.airMoles).toBe(d.airMoles);
   });
 });

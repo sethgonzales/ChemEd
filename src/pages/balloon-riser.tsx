@@ -75,6 +75,7 @@ const SCIENTISTS: Record<string, string> = {
   charles: 'Charles',
   'gay-lussac': 'Gay-Lussac',
   avogadro: 'Avogadro',
+  dalton: 'Dalton',
 };
 
 const starText = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);

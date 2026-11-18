@@ -3,12 +3,14 @@ import {
   BALLOON,
   CHARLES_ROUTE,
   COMBINED_ROUTE,
+  DALTON_ROUTE,
   IDEAL_ROUTE,
   GAY_LUSSAC_ROUTE,
   ROUTE,
   type Leg,
   type Platform,
 } from '~/constants/balloon-world';
+import { AIR_MOLAR_MASS } from '~/constants/atmosphere';
 import { ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
 import { HELIUM_MOLAR_MASS, type Balloon, type Flight } from '~/utils/balloon';
@@ -24,7 +26,8 @@ export type Law =
   | 'gay-lussac'
   | 'avogadro'
   | 'combined'
-  | 'ideal';
+  | 'ideal'
+  | 'dalton';
 
 export const LEGS_PER_LEVEL = ROUTE.length - 1;
 export const BOYLE_LEGS = LEGS_PER_LEVEL;
@@ -44,6 +47,9 @@ const CARGO_STEP = 10; // kg
 // kg on an ideal gas law leg, camping gear and all, so each morning's fill
 // differs (game values)
 const CAMP_LOAD = [620, 760];
+// overnight, air seeps into the envelope and helium out (game values)
+const AIR_LEAK = [1500, 4000]; // mol
+const HELIUM_LOSS = [0.06, 0.12]; // of the helium
 const MOLE_STEP = 100; // the helium counter reads in hundreds
 // K: where the heater holds the helium before a climb into the cold, warm
 // enough that turning it down still leaves it above freezing
@@ -61,6 +67,7 @@ export interface GasLeg {
   payload: number; // kg: rider, basket, fabric, ballast and any cargo
   said: number; // the one number Mr. G gives: a volume (m³) or a pressure (Pa)
   cargo?: 'picked up' | 'dropped off';
+  airMoles?: number; // mol of air leaked in, on a Dalton's law leg
 }
 
 const between = (rng: () => number, [low, high]: number[]) =>
@@ -264,6 +271,44 @@ function idealBetween(from: Platform, to: Platform, rng: () => number): GasLeg {
   };
 }
 
+/**
+ * A Dalton's law leg: overnight, air seeped into the envelope and some helium
+ * out. The air's heavier, so the balloon must be bigger to float, and it
+ * stays in: Mr. G tops up or vents helium. Each gas fills the space as if
+ * alone, so the air's moles come from its own partial pressure, and the
+ * helium is the rest of the moles that fill the volume he needs.
+ */
+function daltonBetween(
+  from: Platform,
+  to: Platform,
+  rng: () => number,
+): GasLeg {
+  const gasTemperature = Math.round(between(rng, HEATER) * 2) / 2;
+  const { pressure } = airAt(from.height);
+  // it floated in on helium alone
+  const before = molesFor(
+    pressure,
+    floatingVolume(from.height, BALLOON.payload, gasTemperature),
+    gasTemperature,
+  );
+  const moles = toStep(before * (1 - between(rng, HELIUM_LOSS)), MOLE_STEP);
+  const airMoles = toStep(between(rng, AIR_LEAK), MOLE_STEP);
+  // the air weighs what it does less the helium it stands in for
+  const extra = airMoles * (AIR_MOLAR_MASS - HELIUM_MOLAR_MASS);
+  return {
+    law: 'dalton',
+    leg: legBetween(from, to),
+    moles,
+    airMoles,
+    gasTemperature,
+    envelope: BALLOON.fullVolume,
+    payload: BALLOON.payload,
+    said: Math.round(
+      floatingVolume(from.height, BALLOON.payload + extra, gasTemperature),
+    ),
+  };
+}
+
 type Builder = (from: Platform, to: Platform, rng: () => number) => GasLeg;
 
 /** Each law's leg between any two platforms, for a route of mixed laws */
@@ -274,6 +319,7 @@ export const BUILDERS: Record<Law, Builder> = {
   avogadro: avogadroBetween,
   combined: combinedBetween,
   ideal: idealBetween,
+  dalton: daltonBetween,
 };
 
 /** A level's legs along its own route, the numbers seeded per leg */
@@ -287,6 +333,7 @@ export const gayLussacLeg = onRoute(GAY_LUSSAC_ROUTE, gayLussacBetween);
 export const avogadroLeg = onRoute(AVOGADRO_ROUTE, avogadroBetween);
 export const combinedLeg = onRoute(COMBINED_ROUTE, combinedBetween);
 export const idealLeg = onRoute(IDEAL_ROUTE, idealBetween);
+export const daltonLeg = onRoute(DALTON_ROUTE, daltonBetween);
 
 /** Whether Mr. G ties the envelope off at the answer, as a volume */
 export const tiesOff = (g: GasLeg) => g.law === 'boyle' || g.law === 'combined';
@@ -298,6 +345,7 @@ export const arrivalTemperature = (g: GasLeg) =>
 /** Resting on its platform, ready to go */
 export const startFlight = (g: GasLeg): Flight => ({
   moles: g.moles,
+  airMoles: g.airMoles,
   gasTemperature: g.gasTemperature,
   height: g.leg.from.height,
   speed: 0,
@@ -339,6 +387,15 @@ export function rightAnswer(g: GasLeg): number {
         v: g.said,
         t: g.gasTemperature,
       }).n;
+    case 'dalton':
+      // all the moles that fill the volume at the total pressure, less the air's
+      return (
+        solveGas({
+          p: airAt(g.leg.from.height).pressure,
+          v: g.said,
+          t: g.gasTemperature,
+        }).n - g.airMoles!
+      );
     case 'gay-lussac': {
       const full = solveGas({ v: g.envelope, n: g.moles, t: g.gasTemperature });
       return (g.gasTemperature * g.said) / full.p;

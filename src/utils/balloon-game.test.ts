@@ -64,22 +64,28 @@ describe('a level of Balloon Riser', () => {
       'combined',
       'ideal',
       'free',
+      'dalton',
     ]);
   });
 
-  it.each(['boyle', 'charles', 'gay-lussac', 'avogadro', 'combined', 'ideal'])(
-    'flies the %s level on its own law, all the way through',
-    (level) => {
-      let s = startLevel('general', level, 5);
-      expect(gasLeg(s).law).toBe(level);
-      for (let i = 0; i < s.legs; i++) {
-        s = arrive(fly(s, rightAnswer(gasLeg(s))));
-        expect(s.phase).toBe('landed');
-        s = next(s);
-      }
-      expect(s.phase).toBe('done');
-    },
-  );
+  it.each([
+    'boyle',
+    'charles',
+    'gay-lussac',
+    'avogadro',
+    'combined',
+    'ideal',
+    'dalton',
+  ])('flies the %s level on its own law, all the way through', (level) => {
+    let s = startLevel('general', level, 5);
+    expect(gasLeg(s).law).toBe(level);
+    for (let i = 0; i < s.legs; i++) {
+      s = arrive(fly(s, rightAnswer(gasLeg(s))));
+      expect(s.phase).toBe('landed');
+      s = next(s);
+    }
+    expect(s.phase).toBe('done');
+  });
 });
 
 describe('free flight', () => {

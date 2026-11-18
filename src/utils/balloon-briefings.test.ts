@@ -8,6 +8,7 @@ import {
   boyleLeg,
   charlesLeg,
   combinedLeg,
+  daltonLeg,
   idealLeg,
   gayLussacLeg,
   rightAnswer,
@@ -203,5 +204,40 @@ describe('Mr. G on an ideal gas law leg', () => {
     const right = rightAnswer(i);
     expect(verdict(planFlight(i, right * 1.1), i)).toMatch(/over/);
     expect(verdict(planFlight(i, right * 0.9), i)).toMatch(/never left/);
+  });
+});
+
+describe('Mr. G on a Dalton’s law leg', () => {
+  const d = daltonLeg(0, 3);
+
+  it('names the next stop, and gives only the volume he needs', () => {
+    const text = briefing(d).join(' ');
+    expect(text).toMatch(new RegExp(d.leg.to.name));
+    const numbers = text.match(/[\d,.]*\d/g) ?? [];
+    expect(numbers).toHaveLength(1);
+    expect(Number(numbers[0]!.replace(/,/g, ''))).toBe(d.said);
+  });
+
+  it('hints at partial pressures adding up, and where each is read', () => {
+    expect(hint(d)).toContain('P = p(He) + p(air)');
+    expect(hint(d)).toContain('gas analyser');
+  });
+
+  it('works the answer from the readings', () => {
+    const lines = worked(d);
+    const last = Number(
+      lines
+        .at(-1)!
+        .match(/= ([\d,.]+) mol/)![1]
+        .replace(/,/g, ''),
+    );
+    expect(last / rightAnswer(d)).toBeCloseTo(1, 2);
+  });
+
+  it('asks for moles of helium, and says what went wrong', () => {
+    expect(ask(d).units).toContain('mol');
+    const right = rightAnswer(d);
+    expect(verdict(planFlight(d, right * 1.1), d)).toMatch(/over/);
+    expect(verdict(planFlight(d, right * 0.9), d)).toMatch(/never left/);
   });
 });

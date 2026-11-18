@@ -125,3 +125,28 @@ describe('flying', () => {
     expect(f.height).toBe(0);
   });
 });
+
+describe('air leaked into the envelope (Dalton’s law)', () => {
+  const helium = flight(30000, 0);
+  const mixed = { ...helium, airMoles: 3000 };
+
+  it('fills space by its moles just like helium: the moles add, as the partial pressures do', () => {
+    const { volume } = gasInside(balloon, mixed);
+    const air = airAt(0);
+    expect(volume).toBeCloseTo(
+      (33000 * R * mixed.gasTemperature) / air.pressure,
+      6,
+    );
+  });
+
+  it('weighs far more than helium, so it lifts less than the same moles of helium would', () => {
+    const allHelium = flight(33000, 0);
+    expect(gasInside(balloon, mixed).volume).toBeCloseTo(
+      gasInside(balloon, allHelium).volume,
+      6,
+    );
+    expect(floatHeight(balloon, mixed)!).toBeLessThan(
+      floatHeight(balloon, allHelium)!,
+    );
+  });
+});

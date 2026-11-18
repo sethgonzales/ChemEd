@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import type { Leg } from '~/constants/balloon-world';
 import type { Rider } from '~/constants/riders';
+import type { Flight } from '~/utils/balloon';
 import { airAt } from '~/utils/atmosphere';
 import BalloonScene from './balloon-scene';
 
@@ -12,7 +13,10 @@ const leg: Leg = {
   valley: 150,
 };
 
-function renderScene(rider?: Rider, at = { distance: 0, flight }) {
+function renderScene(
+  rider?: Rider,
+  at: { distance: number; flight: Flight } = { distance: 0, flight },
+) {
   render(
     <BalloonScene
       balloon={balloon}
@@ -75,6 +79,19 @@ describe('BalloonScene', () => {
       'Helium counter: 20,000 mol',
     );
     expect(within(own).getAllByRole('button')).toHaveLength(4);
+  });
+
+  it('adds a gas analyser when air’s leaked in, reading the air’s partial pressure inside', () => {
+    // a quarter of the moles are air, so it has a quarter of the pressure
+    renderScene(undefined, {
+      distance: 0,
+      flight: { ...seaLevel, moles: 15000, airMoles: 5000 },
+    });
+    const own = screen.getByRole('group', { name: 'The balloon' });
+    expect(gauge(own, 'Gas analyser')).toHaveAccessibleName(
+      `Gas analyser: air ${(airAt(0).pressure / 4 / 1000).toFixed(1)} kPa`,
+    );
+    expect(within(own).getAllByRole('button')).toHaveLength(5);
   });
 
   it('keeps the air’s instruments apart from the balloon’s', () => {

@@ -267,6 +267,18 @@ export function balloonDevices(balloon: Balloon, flight: Flight): Device[] {
         'How many moles of helium are in the balloon, counted as they flow in from the cylinder or out through the vent.',
       picture: <Cylinder />,
     },
+    // only once air's leaked in: its share of the pressure inside
+    ...(flight.airMoles
+      ? [
+          {
+            name: 'Gas analyser',
+            reading: `air ${fmt(r.airPartial, 1)} kPa`,
+            measures:
+              'The partial pressure of the air mixed in with the helium: its share of the pressure inside.',
+            picture: <Dial value={r.airPartial} min={0} max={20} unit="kPa" />,
+          },
+        ]
+      : []),
   ];
 }
 

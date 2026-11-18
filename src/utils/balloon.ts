@@ -1,4 +1,4 @@
-import { STANDARD_GRAVITY } from '~/constants/atmosphere';
+import { AIR_MOLAR_MASS, STANDARD_GRAVITY } from '~/constants/atmosphere';
 import { ELEMENTS } from '~/constants/elements';
 import { airAt } from '~/utils/atmosphere';
 import { solveGas } from '~/utils/gas-laws';
@@ -24,6 +24,7 @@ export interface Balloon {
 
 export interface Flight {
   moles: number; // mol of helium
+  airMoles?: number; // mol of air leaked in, mixed with the helium
   gasTemperature: number; // K, held by the heater
   height: number; // m above sea level
   speed: number; // m/s, upwards
@@ -37,10 +38,11 @@ export interface GasInside {
   burst: boolean;
 }
 
-/** The helium's pressure and volume where the balloon is now */
+/** The gas's pressure and volume where the balloon is now */
 export function gasInside(balloon: Balloon, flight: Flight): GasInside {
   const air = airAt(flight.height);
-  const n = flight.moles;
+  // Dalton's law: each gas fills the space as if alone, so the moles add
+  const n = flight.moles + (flight.airMoles ?? 0);
   const t = flight.gasTemperature;
   const slack = solveGas({ p: air.pressure, n, t }).v;
   if (slack <= balloon.fullVolume)
@@ -55,7 +57,9 @@ export function gasInside(balloon: Balloon, flight: Flight): GasInside {
 }
 
 const mass = (balloon: Balloon, flight: Flight) =>
-  balloon.payload + flight.moles * HELIUM_MOLAR_MASS;
+  balloon.payload +
+  flight.moles * HELIUM_MOLAR_MASS +
+  (flight.airMoles ?? 0) * AIR_MOLAR_MASS;
 
 /** Upward force (N) at a height: buoyancy less weight */
 function netLift(balloon: Balloon, flight: Flight) {

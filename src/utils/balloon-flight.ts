@@ -57,7 +57,7 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 function controlled(g: GasLeg, answer: number): Flight {
   const start = startFlight(g);
   if (g.law === 'charles') return { ...start, gasTemperature: answer };
-  if (g.law === 'avogadro' || g.law === 'ideal')
+  if (g.law === 'avogadro' || g.law === 'ideal' || g.law === 'dalton')
     return { ...start, moles: answer };
   return start;
 }
@@ -294,6 +294,7 @@ export function flightState(
     },
     avogadro: { moles: lerp(start.moles, answered.moles, ramp) },
     ideal: { moles: lerp(start.moles, answered.moles, ramp) },
+    dalton: { moles: lerp(start.moles, answered.moles, ramp) },
     'gay-lussac': g.law === 'gay-lussac' ? sunlit(g, plan, t, at.height) : {},
   }[g.law];
   return {

@@ -30,6 +30,14 @@ function shown(g: GasLeg) {
     celsius, // helium thermometer
     kelvin: celsius + ZERO_CELSIUS,
     n1: g.moles, // helium counter
+    // gas analyser: the air's share of the pressure inside, kPa
+    pAir: Number(
+      (
+        (gas.pressure * (g.airMoles ?? 0)) /
+        (g.moles + (g.airMoles ?? 0)) /
+        1000
+      ).toFixed(1),
+    ),
   };
 }
 
@@ -56,6 +64,12 @@ const ASKS: Record<Law, Ask> = {
     units: ['m³', 'L'],
     action: 'Tie off and fly',
     flying: 'Tied off, and the heater’s turned down. Up we go…',
+  },
+  dalton: {
+    label: 'Helium to have',
+    units: ['mol'],
+    action: 'Fill or vent and fly',
+    flying: 'Helium’s set, air and all. Here we go…',
   },
   ideal: {
     label: 'Helium to fill',
@@ -101,6 +115,13 @@ export function briefing(g: GasLeg): string[] {
         `As we climb, the air thins and the balloon expands. I’ll tie the envelope off so it stops expanding just as we reach ${to}’s height: then we’ll float level with it and drift in.`,
         'Help me find the volume to tie it off at.',
       ];
+    case 'dalton':
+      return [
+        `Next stop: ${to}, across at the same height.`,
+        'It was a damp night: air seeped into the envelope and some helium seeped out, so we’re carrying a mix now. The gas analyser reads the air’s share of the pressure inside.',
+        `Air’s much heavier than helium, so we need to be bigger to float: ${fmt(g.said)} m³. The air’s staying in, so I’ll top up or vent the helium.`,
+        'Help me find how many moles of helium to have.',
+      ];
     case 'ideal':
       return [
         `Next stop: ${to}, across at the same height.`,
@@ -145,6 +166,8 @@ export function hint(g: GasLeg): string {
   switch (g.law) {
     case 'boyle':
       return `Boyle’s law: with the temperature and the helium fixed, P₁V₁ = P₂V₂. P₁ and V₁ are ours now, on the balloon gauge and the volume meter. P₂ is the air pressure at ${g.leg.to.name}: its weather station reads it.`;
+    case 'dalton':
+      return `Dalton’s law: each gas in the mix fills the balloon as if it were alone, so the partial pressures add up, P = p(He) + p(air), and each gas’s moles follow from its own: n = pV/RT. The air’s partial pressure is on the gas analyser, V₁ on the volume meter and T on the helium thermometer: that gives the air’s moles. At the volume I need, the total pressure on the balloon gauge gives all the moles; the helium is what’s left. R = ${R} J/(mol·K), with P in pascals.`;
     case 'ideal':
       return `The ideal gas law: PV = nRT, so n = PV ÷ RT, with P in pascals, V in cubic metres, T in kelvin and R = ${R} J/(mol·K). Filling, the balloon’s slack, so P is the air pressure: the balloon gauge or the barometer reads it. T is on the helium thermometer, and V is the volume I need.`;
     case 'combined':
@@ -166,6 +189,20 @@ export function worked(g: GasLeg): string[] {
     `T₂ = ${fmt(t, 1)} K (${fmt(t - ZERO_CELSIUS, 1)} °C)`;
   const p2 = Number((airAt(g.leg.to.height).pressure / 1000).toFixed(1));
   switch (g.law) {
+    case 'dalton': {
+      const pAir = r.pAir * 1000;
+      const p = r.p1 * 1000;
+      const nAir = (pAir * r.v1) / (Number(R) * r.kelvin);
+      const nAll = (p * g.said) / (Number(R) * r.kelvin);
+      return [
+        `T = ${fmt(r.celsius, 1)} °C + 273.15 = ${fmt(r.kelvin, 2)} K`,
+        'The air, from its partial pressure: n(air) = p(air)·V₁ ÷ RT',
+        `n(air) = ${fmt(pAir)} Pa × ${fmt(r.v1)} m³ ÷ (${R} J/(mol·K) × ${fmt(r.kelvin, 2)} K) = ${fmt(nAir)} mol`,
+        'All the gas, at the volume I need: n = PV₂ ÷ RT',
+        `n = ${fmt(p)} Pa × ${fmt(g.said)} m³ ÷ (${R} J/(mol·K) × ${fmt(r.kelvin, 2)} K) = ${fmt(nAll)} mol`,
+        `n(He) = n − n(air) = ${fmt(nAll)} − ${fmt(nAir)} = ${fmt(nAll - nAir)} mol`,
+      ];
+    }
     case 'ideal': {
       const pa = r.p1 * 1000;
       return [
@@ -232,6 +269,11 @@ const MISSES: Record<Law, Partial<Record<FlightPlan['outcome'], string>>> = {
     over: 'Too hot: we grew bigger than we needed, had lift to spare, and climbed right over {to}.',
     short:
       'Too cool: we didn’t grow big enough to lift us, so we never left {from}.',
+  },
+  dalton: {
+    over: 'Too much helium: we were bigger than we needed, had lift to spare, and climbed right over {to}.',
+    short:
+      'Too little helium: with the air’s weight on board, we weren’t big enough to lift us, so we never left {from}.',
   },
   ideal: {
     over: 'Too much helium: we filled out bigger than we needed, had lift to spare, and climbed right over {to}.',

@@ -79,3 +79,11 @@ export const IDEAL_ROUTE = level(1000, [
   ['Elk Field', 'field'],
   ['Far Ridge', 'ridge'],
 ]);
+
+// a damp night in the valley: air seeps into the envelope
+export const DALTON_ROUTE = level(600, [
+  ['Fog Field', 'field'],
+  ['Mill Mesa', 'mesa'],
+  ['Heron Lookout', 'lookout'],
+  ['Willow Ridge', 'ridge'],
+]);

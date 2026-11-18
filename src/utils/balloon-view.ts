@@ -13,6 +13,7 @@ export interface Readings {
   gasPressure: number; // kPa
   volume: number; // m³
   moles: number; // mol
+  airPartial: number; // kPa: air's partial pressure inside, if any leaked in
 }
 
 export function readings(balloon: Balloon, flight: Flight): Readings {
@@ -26,6 +27,10 @@ export function readings(balloon: Balloon, flight: Flight): Readings {
     gasPressure: gas.pressure / 1000,
     volume: gas.volume,
     moles: flight.moles,
+    // Dalton's law: the air's share of the pressure is its share of the moles
+    airPartial:
+      ((gas.pressure / 1000) * (flight.airMoles ?? 0)) /
+      (flight.moles + (flight.airMoles ?? 0) || 1),
   };
 }
 
