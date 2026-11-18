@@ -130,6 +130,35 @@ describe('BalloonScene', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('hangs free flight’s coins along the way, and drops each one as it’s collected', () => {
+    const { container } = render(
+      <BalloonScene
+        balloon={balloon}
+        flight={flight}
+        distance={0}
+        leg={leg}
+        coins={[
+          { distance: 1200, height: 500, taken: false },
+          { distance: 2500, height: 700, taken: true },
+          { distance: 3700, height: 800, taken: false },
+        ]}
+      />,
+    );
+    expect(
+      screen.getByRole('img', {
+        name: 'Coins on the way: 2 of 3 still to collect',
+      }),
+    ).toBeInTheDocument();
+    expect(container.querySelectorAll('[data-coin]')).toHaveLength(2);
+  });
+
+  it('has no coins outside free flight', () => {
+    renderScene();
+    expect(
+      screen.queryByRole('img', { name: /^Coins/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it('has a height ruler for what’s in view', () => {
     renderScene();
     const ruler = screen.getByRole('list', { name: 'Height' });

@@ -76,7 +76,7 @@ const legBetween = (from: Platform, to: Platform): Leg => ({
   ),
 });
 
-const seeded = (seed: number, index: number) =>
+export const seeded = (seed: number, index: number) =>
   createRng(Math.imul(seed, 0x9e3779b1) ^ index);
 
 const molesFor = (p: number, v: number, t: number) =>
@@ -99,10 +99,7 @@ function floatingVolume(height: number, load: number, t: number) {
  * ties the envelope off at a volume; the balloon stops expanding there, and
  * he holds it at that height to drift across.
  */
-export function boyleLeg(index: number, seed: number): GasLeg {
-  const rng = seeded(seed, index);
-  const from = ROUTE[index];
-  const to = ROUTE[index + 1];
+function boyleBetween(from: Platform, to: Platform, rng: () => number): GasLeg {
   const gasTemperature = Math.round(between(rng, HEATER) * 2) / 2;
   // pick the volume it'll have at the next stop, then the helium that gives it
   const target = between(rng, TIE_OFF);
@@ -123,10 +120,11 @@ export function boyleLeg(index: number, seed: number): GasLeg {
  * from resting, the balloon's too small to lift; heated, it expands at the
  * same pressure until it's big enough to float, V₁/T₁ = V₂/T₂.
  */
-export function charlesLeg(index: number, seed: number): GasLeg {
-  const rng = seeded(seed, index);
-  const from = CHARLES_ROUTE[index];
-  const to = CHARLES_ROUTE[index + 1];
+function charlesBetween(
+  from: Platform,
+  to: Platform,
+  rng: () => number,
+): GasLeg {
   const gasTemperature = Math.round(between(rng, COOLED) * 2) / 2;
   const warm = gasTemperature + between(rng, WARM_UP);
   const { pressure } = airAt(from.height);
@@ -152,10 +150,11 @@ export function charlesLeg(index: number, seed: number): GasLeg {
  * temperature. Cargo comes on or off, so the volume that floats changes, and
  * Mr. G tops up from the tank or vents: V₁/n₁ = V₂/n₂.
  */
-export function avogadroLeg(index: number, seed: number): GasLeg {
-  const rng = seeded(seed, index);
-  const from = AVOGADRO_ROUTE[index];
-  const to = AVOGADRO_ROUTE[index + 1];
+function avogadroBetween(
+  from: Platform,
+  to: Platform,
+  rng: () => number,
+): GasLeg {
   const gasTemperature = Math.round(between(rng, HEATER) * 2) / 2;
   const before = between(rng, LOAD);
   const { pressure } = airAt(from.height);
@@ -188,10 +187,11 @@ export function avogadroLeg(index: number, seed: number): GasLeg {
  * can't change. The sun heats the helium and its pressure climbs toward the
  * gauge's red line, P₁/T₁ = P₂/T₂.
  */
-export function gayLussacLeg(index: number, seed: number): GasLeg {
-  const rng = seeded(seed, index);
-  const from = GAY_LUSSAC_ROUTE[index];
-  const to = GAY_LUSSAC_ROUTE[index + 1];
+function gayLussacBetween(
+  from: Platform,
+  to: Platform,
+  rng: () => number,
+): GasLeg {
   const gasTemperature = Math.round(between(rng, COOLED) * 2) / 2;
   const air = airAt(from.height);
   const envelope = BALLOON.fullVolume;
@@ -221,10 +221,11 @@ export function gayLussacLeg(index: number, seed: number): GasLeg {
  * ties the envelope off at a volume, as on a Boyle's law leg, and holds it
  * at the height where it stops expanding.
  */
-export function combinedLeg(index: number, seed: number): GasLeg {
-  const rng = seeded(seed, index);
-  const from = COMBINED_ROUTE[index];
-  const to = COMBINED_ROUTE[index + 1];
+function combinedBetween(
+  from: Platform,
+  to: Platform,
+  rng: () => number,
+): GasLeg {
   const gasTemperature = Math.round(between(rng, CLIMB_HEATER) * 2) / 2;
   // the heater's new setting, in whole or half degrees Celsius as he says it
   const said =
@@ -249,10 +250,7 @@ export function combinedLeg(index: number, seed: number): GasLeg {
  * volume that floats here; the student finds the moles from the air pressure
  * and the helium's temperature: PV = nRT.
  */
-export function idealLeg(index: number, seed: number): GasLeg {
-  const rng = seeded(seed, index);
-  const from = IDEAL_ROUTE[index];
-  const to = IDEAL_ROUTE[index + 1];
+function idealBetween(from: Platform, to: Platform, rng: () => number): GasLeg {
   const gasTemperature = Math.round(between(rng, HEATER) * 2) / 2;
   const payload = toStep(between(rng, CAMP_LOAD), CARGO_STEP);
   return {
@@ -265,6 +263,30 @@ export function idealLeg(index: number, seed: number): GasLeg {
     said: Math.round(floatingVolume(from.height, payload, gasTemperature)),
   };
 }
+
+type Builder = (from: Platform, to: Platform, rng: () => number) => GasLeg;
+
+/** Each law's leg between any two platforms, for a route of mixed laws */
+export const BUILDERS: Record<Law, Builder> = {
+  boyle: boyleBetween,
+  charles: charlesBetween,
+  'gay-lussac': gayLussacBetween,
+  avogadro: avogadroBetween,
+  combined: combinedBetween,
+  ideal: idealBetween,
+};
+
+/** A level's legs along its own route, the numbers seeded per leg */
+const onRoute =
+  (route: Platform[], build: Builder) => (index: number, seed: number) =>
+    build(route[index], route[index + 1], seeded(seed, index));
+
+export const boyleLeg = onRoute(ROUTE, boyleBetween);
+export const charlesLeg = onRoute(CHARLES_ROUTE, charlesBetween);
+export const gayLussacLeg = onRoute(GAY_LUSSAC_ROUTE, gayLussacBetween);
+export const avogadroLeg = onRoute(AVOGADRO_ROUTE, avogadroBetween);
+export const combinedLeg = onRoute(COMBINED_ROUTE, combinedBetween);
+export const idealLeg = onRoute(IDEAL_ROUTE, idealBetween);
 
 /** Whether Mr. G ties the envelope off at the answer, as a volume */
 export const tiesOff = (g: GasLeg) => g.law === 'boyle' || g.law === 'combined';

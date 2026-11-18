@@ -2,6 +2,8 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SOURCES } from '~/constants/sources';
 import BalloonRiser, { FLIGHT_MS } from '~/pages/balloon-riser';
+import { ask } from '~/utils/balloon-briefings';
+import { gasLeg, startLevel as newGame } from '~/utils/balloon-game';
 import {
   avogadroLeg,
   boyleLeg,
@@ -47,10 +49,11 @@ describe('Balloon Riser page', () => {
   it('asks for the course, then offers the levels built so far', async () => {
     const u = user();
     render(<BalloonRiser />);
-    await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
+    await u.click(screen.getByRole('button', { name: 'AP Chemistry' }));
     expect(screen.getByRole('button', { name: /^Boyle’s law/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^Free flight/ })).toBeEnabled();
     expect(
-      screen.getByRole('button', { name: /^Free flight \(coming soon\)/ }),
+      screen.getByRole('button', { name: /^Dalton’s law \(coming soon\)/ }),
     ).toBeDisabled();
   });
 
@@ -319,5 +322,49 @@ describe('the ideal gas law level', () => {
     expect(
       screen.getByText(`We’re down on ${idealLeg(0, seed).leg.to.name}!`),
     ).toBeInTheDocument();
+  });
+});
+
+describe('free flight', () => {
+  const firstLeg = () => gasLeg(newGame('general', 'free', seed));
+
+  async function flyFirstLeg(u: ReturnType<typeof user>, by: number) {
+    render(<BalloonRiser />);
+    await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
+    await u.click(screen.getByRole('button', { name: /^Free flight/ }));
+    const g = firstLeg();
+    await u.type(
+      screen.getByRole('textbox', { name: ask(g).label }),
+      String(rightAnswer(g) * by),
+    );
+    await u.click(screen.getByRole('button', { name: ask(g).action }));
+  }
+
+  it('keeps score: the coins collected, and five for landing first time', async () => {
+    const u = user();
+    await flyFirstLeg(u, 1);
+    expect(
+      screen.getByRole('img', {
+        name: 'Coins on the way: 3 of 3 still to collect',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Score 0')).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(FLIGHT_MS + 500));
+    expect(
+      screen.getByRole('img', {
+        name: 'Coins on the way: 0 of 3 still to collect',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Score 8')).toBeInTheDocument();
+  });
+
+  it('loses the leg’s coins after a miss', async () => {
+    const u = user();
+    await flyFirstLeg(u, 1.3);
+    act(() => jest.advanceTimersByTime(FLIGHT_MS + 500));
+    await u.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(
+      screen.queryByRole('img', { name: /^Coins/ }),
+    ).not.toBeInTheDocument();
   });
 });

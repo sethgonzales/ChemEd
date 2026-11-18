@@ -108,6 +108,20 @@ const TREASURE_VOICES: Voice[] = [
     ),
 ];
 
+// a coin: the classic quick ding, a note and the fourth above it, bright and short
+const COIN_NOTE = 0.08; // s between the two notes
+const COIN_VOICES: Voice[] = [
+  (ctx, out, t) =>
+    [988, 1319].forEach((hz, i) =>
+      tone(ctx, out, t + i * COIN_NOTE, {
+        type: 'square',
+        from: hz,
+        volume: 0.04,
+        length: i === 1 ? 0.3 : COIN_NOTE,
+      }),
+    ),
+];
+
 // a chamber's door opens: bells rising through a G major chord, ringing on
 const CHIME_NOTE = 0.12; // s between bells
 const CHIME_VOICES: Voice[] = [
@@ -421,6 +435,9 @@ export const useMissSound = () => useSound(MISS_VOICES);
 
 /** The boss strikes you and a heart is lost */
 export const useDamageSound = () => useSound(DAMAGE_VOICES);
+
+/** A coin collected on the way */
+export const useCoinSound = () => useSound(COIN_VOICES);
 
 /** A door on the map opens: a chime before the chamber's music */
 export const useChimeSound = () => useSound(CHIME_VOICES);

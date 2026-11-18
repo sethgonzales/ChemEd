@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import BalloonRadio from '~/components/balloon-radio';
 import BalloonScene from '~/components/balloon-scene';
 import Button from '~/components/button';
@@ -17,11 +17,13 @@ import {
 import { flightState } from '~/utils/balloon-flight';
 import {
   arrive,
+  coinsLeft,
   fly,
   gasLeg,
   levelsFor,
   next,
   retry,
+  score,
   startLevel,
   type GameState,
 } from '~/utils/balloon-game';
@@ -32,9 +34,10 @@ import {
   starsFor,
   type Stars,
 } from '~/utils/balloon-progress';
+import { takenBy } from '~/utils/balloon-free';
 import { DEV_TOOLS } from '~/utils/dev-tools';
 import { COURSES, type Course } from '~/utils/quest';
-import { useMissSound, useTreasureSound } from '~/utils/sounds';
+import { useCoinSound, useMissSound, useTreasureSound } from '~/utils/sounds';
 import { useMedia } from '~/utils/use-media';
 
 export const FLIGHT_MS = 6000; // a leg's flight, from take-off to landing or miss
@@ -262,6 +265,13 @@ function Done({ game, onLevels }: { game: GameState; onLevels: () => void }) {
             : `${game.misses} missed landing${game.misses === 1 ? '' : 's'} on the way. Fly it again for all three stars.`}
         </Said>
       </p>
+      {game.level === 'free' && (
+        <p>
+          <Said>
+            {`Score ${score(game)}: ${game.coins} coin${game.coins === 1 ? '' : 's'}, and ${game.firstTry} of ${game.legs} legs landed first time.`}
+          </Said>
+        </p>
+      )}
       <div className="font-pixel">
         <Button pressed onClick={onLevels}>
           Levels
@@ -301,6 +311,24 @@ export default function BalloonRiser() {
     : AT_LAUNCH;
   const briefed = flying?.phase === 'brief' ? flying : null;
 
+  // free flight's coins: dropping as the balloon passes, each with a ding
+  const free = game?.level === 'free';
+  const coins = flying ? coinsLeft(flying) : [];
+  const taken =
+    flying?.plan && flying.phase !== 'brief'
+      ? takenBy(g, flying.plan, coins, flying.phase === 'flying' ? t : 1)
+      : coins.map(() => false);
+  const takenNow = taken.filter(Boolean).length;
+  const playCoin = useCoinSound();
+  const heard = useRef(0);
+  useEffect(() => {
+    if (takenNow > heard.current) playCoin();
+    heard.current = takenNow;
+  }, [takenNow, playCoin]);
+  // the flight's coins count as they're collected, not just on landing
+  const scoreNow =
+    game && score(game) + (game.phase === 'flying' ? takenNow : 0);
+
   return (
     <Container
       game
@@ -319,6 +347,12 @@ export default function BalloonRiser() {
               {' '}
               · {g.leg.from.name} → {g.leg.to.name}
             </span>
+            {free && (
+              <span className="text-secondary-500">
+                {' · '}
+                <span>{`Score ${scoreNow}`}</span>
+              </span>
+            )}
           </p>
         )}
         <BalloonScene
@@ -327,6 +361,7 @@ export default function BalloonRiser() {
           distance={shown.distance}
           leg={g.leg}
           instruments={!!flying}
+          coins={coins.map((c, i) => ({ ...c, taken: taken[i] }))}
           controls={
             briefed && (
               <CalcPad

@@ -552,6 +552,11 @@ function AreaProps({
   }
 }
 
+// free flight's coins: gold, with a glint, a few art px across
+const COIN_ROWS = ['.ooo.', 'oywyo', 'oyyyo', 'oyyyo', '.ooo.'];
+const COIN_PALETTE = { o: '#b45309', y: '#facc15', w: '#fef9c3' };
+const COIN_SIZE = COIN_ROWS.length; // art px
+
 // the balloon, small in its world
 const BASKET_W = 10;
 const BASKET_H = 4;
@@ -741,6 +746,7 @@ interface Props {
   instruments?: boolean; // the gauges, once there's a leg to fly
   children?: ReactNode; // Mr. G's words: in the sky when there's room
   controls?: ReactNode; // the answer: bottom right, under the gauges, when there's room
+  coins?: { distance: number; height: number; taken: boolean }[]; // free flight's, along the way
 }
 
 const RULER_WIDTH = 48; // CSS px: the height ruler down the left edge
@@ -764,6 +770,7 @@ export default function BalloonScene({
   instruments = true,
   children,
   controls,
+  coins = [],
 }: Props) {
   const { frame, view, scale, measured } = useViewSize();
   const inSky = useMedia('(min-width: 1024px)');
@@ -941,6 +948,32 @@ export default function BalloonScene({
           />
         ))}
       </svg>
+
+      {coins.length > 0 && (
+        <svg
+          viewBox={`${cam.x} ${cam.y} ${view.width} ${view.height}`}
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          role="img"
+          aria-label={`Coins on the way: ${coins.filter((c) => !c.taken).length} of ${coins.length} still to collect`}
+        >
+          {coins.map(
+            (c, i) =>
+              !c.taken && (
+                <g
+                  key={i}
+                  data-coin
+                  transform={`translate(${worldX(leg, c.distance) - COIN_SIZE / 2} ${worldY(leg, c.height) - COIN_SIZE / 2})`}
+                >
+                  <PixelArt
+                    rows={COIN_ROWS}
+                    palette={COIN_PALETTE}
+                    scale={1 / 4}
+                  />
+                </g>
+              ),
+          )}
+        </svg>
+      )}
 
       {/* the balloon: envelope and ropes, the rider, then the basket over their legs */}
       <svg

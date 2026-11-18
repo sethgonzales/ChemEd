@@ -1,6 +1,6 @@
 # Balloon Riser — plan
 
-Status: **approved** (18 Nov 2026), see Decisions. Phases 1–4 built (engine, the look, Boyle's, then Charles's, Gay-Lussac's and Avogadro's); phase 5 under way: levels 5 (combined) and 6 (ideal) built, free flight next.
+Status: **approved** (18 Nov 2026), see Decisions. Phases 1–4 built (engine, the look, Boyle's, then Charles's, Gay-Lussac's and Avogadro's); phase 5 built (combined, ideal, free flight); the AP levels (phase 6) next.
 
 A game where Mr. G flies a sealed gas balloon from platform to platform across a side-on sky. Each hop is a gas law problem worked out with real numbers: the student reads the instruments, types an answer, and the balloon flies on that number. The flight is the feedback: a right answer lands on the platform, a wrong one overshoots or sinks short. It covers Boyle's, Charles's, Gay-Lussac's and Avogadro's laws, and the combined and ideal gas laws. Dalton's law, Graham's law and real gases are AP extras.
 
@@ -113,6 +113,7 @@ Each goes in `src/constants/sources.ts` and the page's Sources footer before it'
 5. **Levels 5–7**: combined, ideal and free flight.
    - **Combined** (built): a long climb into the cold. Mr. G turns the heater down to a T₂ he states, and the student finds the volume to tie off at, V₂ = P₁V₁T₂/(P₂T₁), flown like Boyle's. It asks for V₂ rather than T₂ because, tied off, a hotter answer fills out lower and falls short, which reads backwards. The heater drops at least 9 K, so Boyle's law alone misses.
    - **Ideal** (built): the balloon was packed away overnight, so each leg starts empty, with nothing to scale from (no V₁ or n₁). Mr. G gives the volume that floats there; the student reads P and T and finds the moles to fill, n = PV/RT. Flown like Avogadro's: too much climbs over, too little never leaves.
+   - **Free flight** (built): five legs from the launch field out to Far Horizon, each on a law picked at random (never the same twice running), continuing from where the last landed. Climbing laws climb, the rest hold height; heights stay under 2,000 m, and Avogadro's cargo legs only on low ground, where all the numbers work. A retry keeps the leg's law and platforms with fresh numbers. Three coins hang along the path a right answer flies; a miss keeps those it passed, and the leg's coins are gone after it. Score: a point a coin, and 5 for each leg landed first time.
 6. **AP levels**: Dalton's law, Graham's law, real gases.
 7. **Dungeon Quest**: a gas laws question source and chamber.
 

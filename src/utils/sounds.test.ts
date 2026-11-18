@@ -8,6 +8,7 @@ import {
   useVolume,
   useBloop,
   useChimeSound,
+  useCoinSound,
   useDamageSound,
   useHitSound,
   useMissSound,
@@ -371,5 +372,18 @@ describe('useMuted', () => {
     act(() => result.current[1]());
     expect(result.current[0]).toBe(false);
     expect(isMuted()).toBe(false);
+  });
+});
+
+describe('useCoinSound (collecting a coin)', () => {
+  it('is a quick, bright two-note ding, rising, over in a blink', () => {
+    const { ctx } = mockAudioContext();
+    renderHook(() => useCoinSound()).result.current();
+    const hz = pitches(ctx);
+    expect(hz).toHaveLength(2);
+    expect(hz[1]).toBeGreaterThan(hz[0]);
+    expect(Math.min(...hz)).toBeGreaterThan(900);
+    const times = startTimes(ctx);
+    expect(times[1] - times[0]).toBeLessThan(0.15);
   });
 });

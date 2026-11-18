@@ -6,8 +6,11 @@ import {
   levelsFor,
   next,
   retry,
+  coinsLeft,
+  score,
   startLevel,
 } from './balloon-game';
+import { COINS_PER_LEG, FREE_LEGS } from './balloon-free';
 import { BOYLE_LEGS, rightAnswer, tieOffVolume } from './balloon-legs';
 
 const begin = () => startLevel('general', 'boyle', 11);
@@ -60,6 +63,7 @@ describe('a level of Balloon Riser', () => {
       'avogadro',
       'combined',
       'ideal',
+      'free',
     ]);
   });
 
@@ -76,4 +80,58 @@ describe('a level of Balloon Riser', () => {
       expect(s.phase).toBe('done');
     },
   );
+});
+
+describe('free flight', () => {
+  const begin = () => startLevel('general', 'free', 21);
+  const right = (s: ReturnType<typeof begin>) =>
+    arrive(fly(s, rightAnswer(gasLeg(s))));
+
+  it('flies five legs out to Far Horizon, each on its own law', () => {
+    let s = begin();
+    expect(s.legs).toBe(FREE_LEGS);
+    const laws = new Set<string>();
+    for (let i = 0; i < s.legs; i++) {
+      laws.add(gasLeg(s).law);
+      s = right(s);
+      expect(s.phase).toBe('landed');
+      if (i < s.legs - 1) s = next(s);
+    }
+    expect(gasLeg(s).leg.to.name).toBe('Far Horizon');
+    expect(laws.size).toBeGreaterThan(1);
+    expect(next(s).phase).toBe('done');
+  });
+
+  it('scores every coin and five for each leg landed first time', () => {
+    let s = begin();
+    expect(score(s)).toBe(0);
+    for (let i = 0; i < s.legs; i++) {
+      expect(coinsLeft(s)).toHaveLength(COINS_PER_LEG);
+      s = next(right(s));
+    }
+    expect(s.coins).toBe(FREE_LEGS * COINS_PER_LEG);
+    expect(s.firstTry).toBe(FREE_LEGS);
+    expect(score(s)).toBe(FREE_LEGS * COINS_PER_LEG + 5 * FREE_LEGS);
+  });
+
+  it('loses a leg’s points on a miss: its coins are gone, and the retry keeps the law and platforms', () => {
+    let s = begin();
+    const leg = gasLeg(s);
+    s = arrive(fly(s, rightAnswer(leg) * 1.3));
+    expect(s.phase).toBe('missed');
+    s = retry(s, 99);
+    expect(gasLeg(s).law).toBe(leg.law);
+    expect(gasLeg(s).leg).toEqual(leg.leg);
+    expect(coinsLeft(s)).toHaveLength(0);
+    s = right(s);
+    expect(s.firstTry).toBe(0);
+    expect(score(s)).toBe(s.coins);
+    expect(s.coins).toBeLessThan(COINS_PER_LEG);
+    s = next(s);
+    expect(coinsLeft(s)).toHaveLength(COINS_PER_LEG);
+  });
+
+  it('has no coins on the other levels', () => {
+    expect(coinsLeft(startLevel('general', 'boyle', 1))).toHaveLength(0);
+  });
 });
