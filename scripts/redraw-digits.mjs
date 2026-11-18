@@ -1,49 +1,103 @@
-// Redraws Pixelify Sans's "five" in a static TTF and writes it as WOFF.
-// Usage: node scripts/redraw-five.mjs <dir>/w600.ttf src/fonts/pixelify-sans-600.woff
-// with Google Fonts' static TTFs for 400–700 saved as w400.ttf … w700.ttf in
-// one folder (the 400 maps the new 5 onto the other weights' grids).
-// Only the glyf/loca entries for that glyph change; every other table and
-// glyph is copied as is.
+// Redraws Pixelify Sans's 5 and 7 and writes the font as WOFF.
+// Usage: node scripts/redraw-digits.mjs <dir>/w600.woff src/fonts/pixelify-sans-600.woff
+// The input is a static instance at 400, 500, 600 or 700, as TTF or WOFF
+// (Google Fonts' TTFs, or our own copies), named w400 … w700 in one folder:
+// the 400 maps the new digits onto the other weights' grids.
+// Only the glyf/loca/hmtx entries for those glyphs change; every other table
+// and glyph is copied as is.
 import fs from 'fs';
 import zlib from 'zlib';
 import opentype from 'opentype.js';
 
 const [, , input, output] = process.argv;
+
+// the new digits, on the 400 weight's grid (y up), clockwise outer contours
+const DIGITS_400 = {
+  // a flat top running the full width, a straight left stem and the S's
+  // lower bowl: Pixelify's own 5 is an S
+  5: [
+    [433, -12],
+    [151, -12],
+    [151, 78],
+    [60, 78],
+    [60, 179],
+    [161, 179],
+    [161, 88],
+    [423, 88],
+    [423, 260],
+    [60, 260],
+    [60, 631],
+    [525, 631],
+    [525, 530],
+    [161, 530],
+    [161, 359],
+    [433, 359],
+    [433, 270],
+    [525, 270],
+    [525, 78],
+    [433, 78],
+  ],
+  // a flat top running the full width, then stepping down and left to a stem
+  // in the middle: Pixelify's own 7 is a wide 1
+  7: [
+    [343, -12],
+    [241, -12],
+    [241, 270],
+    [343, 270],
+    [343, 440],
+    [423, 440],
+    [423, 530],
+    [60, 530],
+    [60, 631],
+    [525, 631],
+    [525, 359],
+    [433, 359],
+    [433, 179],
+    [343, 179],
+  ],
+};
+
+/** The font file's tables, from a TTF or a WOFF 1.0 */
+function readTables(buf) {
+  const tables = {};
+  if (buf.toString('latin1', 0, 4) === 'wOFF') {
+    const n = buf.readUInt16BE(12);
+    for (let i = 0; i < n; i++) {
+      const r = 44 + i * 20;
+      const offset = buf.readUInt32BE(r + 4);
+      const comp = buf.readUInt32BE(r + 8);
+      const orig = buf.readUInt32BE(r + 12);
+      const data = buf.subarray(offset, offset + comp);
+      tables[buf.toString('latin1', r, r + 4)] =
+        comp < orig ? zlib.inflateSync(data) : data;
+    }
+  } else {
+    const n = buf.readUInt16BE(4);
+    for (let i = 0; i < n; i++) {
+      const r = 12 + i * 16;
+      const offset = buf.readUInt32BE(r + 8);
+      tables[buf.toString('latin1', r, r + 4)] = buf.subarray(
+        offset,
+        offset + buf.readUInt32BE(r + 12),
+      );
+    }
+  }
+  return tables;
+}
+
+const load = (path) => {
+  const b = fs.readFileSync(path);
+  return opentype.parse(
+    b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength),
+  );
+};
 const buf = fs.readFileSync(input);
-const font = opentype.loadSync(input);
+const font = load(input);
 
-// the new 5, on the 400 weight's grid (y up), clockwise outer contour
-const FIVE_400 = [
-  [433, -12],
-  [151, -12],
-  [151, 78],
-  [60, 78],
-  [60, 179],
-  [161, 179],
-  [161, 88],
-  [423, 88],
-  [423, 260],
-  [60, 260],
-  [60, 631],
-  [525, 631],
-  [525, 530],
-  [161, 530],
-  [161, 359],
-  [433, 359],
-  [433, 270],
-  [525, 270],
-  [525, 78],
-  [433, 78],
-];
-
-// map the 400 grid onto this weight's, through the S (same points in every
-// weight, since they're instances of one variable font)
-const sAt = (f) =>
-  f.charToGlyph('S').path.commands.filter((c) => c.type !== 'Z');
-const base = opentype.loadSync(input.replace(/w\d+\.ttf$/, 'w400.ttf'));
-const from = sAt(base);
-const to = sAt(font);
-if (from.length !== to.length) throw new Error('S differs in structure');
+// map the 400 grid onto this weight's, through glyphs that keep the same
+// points in every weight (instances of one variable font): the S for the
+// edges, the 1 for the middle stem
+const base = load(input.replace(/w\d+\.(ttf|woff)$/, 'w400.$1'));
 const xs = new Map(),
   ys = new Map();
 const add = (m, a, b) => {
@@ -51,28 +105,32 @@ const add = (m, a, b) => {
     throw new Error(`grid clash ${a}: ${m.get(a)} / ${b}`);
   m.set(a, b);
 };
-from.forEach((c, i) => {
-  add(xs, c.x, to[i].x);
-  add(ys, c.y, to[i].y);
-});
-const five = FIVE_400.map(([x, y]) => {
-  if (!xs.has(x) || !ys.has(y)) throw new Error(`no grid line for ${x},${y}`);
-  return [xs.get(x), ys.get(y)];
-});
+for (const char of 'S1') {
+  const pts = (f) =>
+    f.charToGlyph(char).path.commands.filter((c) => c.type !== 'Z');
+  const from = pts(base);
+  const to = pts(font);
+  if (from.length !== to.length)
+    throw new Error(`${char} differs in structure`);
+  from.forEach((c, i) => {
+    add(xs, c.x, to[i].x);
+    add(ys, c.y, to[i].y);
+  });
+}
+const redrawn = new Map(
+  Object.entries(DIGITS_400).map(([char, points]) => [
+    font.charToGlyphIndex(char),
+    points.map(([x, y]) => {
+      if (!xs.has(x) || !ys.has(y))
+        throw new Error(`no grid line for ${char}: ${x},${y}`);
+      return [xs.get(x), ys.get(y)];
+    }),
+  ]),
+);
 
 // ---- tables
-const numTables = buf.readUInt16BE(4);
-const tables = {};
-for (let i = 0; i < numTables; i++) {
-  const r = 12 + i * 16;
-  const tag = buf.toString('latin1', r, r + 4);
-  tables[tag] = {
-    offset: buf.readUInt32BE(r + 8),
-    length: buf.readUInt32BE(r + 12),
-  };
-}
-const table = (tag) =>
-  buf.subarray(tables[tag].offset, tables[tag].offset + tables[tag].length);
+const tables = readTables(buf);
+const table = (tag) => tables[tag];
 const head = Buffer.from(table('head'));
 const longLoca = head.readInt16BE(50) === 1;
 const numGlyphs = table('maxp').readUInt16BE(4);
@@ -84,7 +142,6 @@ for (let i = 0; i <= numGlyphs; i++) {
     longLoca ? loca.readUInt32BE(i * 4) : loca.readUInt16BE(i * 2) * 2,
   );
 }
-const target = font.charToGlyphIndex('5');
 
 // a simple glyph: one contour, no instructions, every point on the curve
 function simpleGlyph(points) {
@@ -129,7 +186,7 @@ const pieces = [];
 const newOffsets = [0];
 for (let i = 0; i < numGlyphs; i++) {
   let g = glyf.subarray(offsets[i], offsets[i + 1]);
-  if (i === target) g = simpleGlyph(five);
+  if (redrawn.has(i)) g = simpleGlyph(redrawn.get(i));
   g = pad4(g);
   pieces.push(g);
   newOffsets.push(newOffsets[i] + g.length);
@@ -142,12 +199,14 @@ newOffsets.forEach((v, i) =>
     : newLoca.writeUInt16BE(v / 2, i * 2),
 );
 
-// lsb of the five in hmtx must match its new xMin
+// each redrawn glyph's lsb in hmtx must match its new xMin
 const hmtx = Buffer.from(table('hmtx'));
 const numH = table('hhea').readUInt16BE(34);
-const xMin = Math.min(...five.map((p) => p[0]));
-if (target < numH) hmtx.writeInt16BE(xMin, target * 4 + 2);
-else hmtx.writeInt16BE(xMin, numH * 4 + (target - numH) * 2);
+for (const [target, points] of redrawn) {
+  const xMin = Math.min(...points.map((p) => p[0]));
+  if (target < numH) hmtx.writeInt16BE(xMin, target * 4 + 2);
+  else hmtx.writeInt16BE(xMin, numH * 4 + (target - numH) * 2);
+}
 
 const out = {};
 for (const tag of Object.keys(tables)) out[tag] = Buffer.from(table(tag));
@@ -162,7 +221,7 @@ delete out.LTSH;
 
 // ---- check nothing else moved
 for (let i = 0; i < numGlyphs; i++) {
-  if (i === target) continue;
+  if (redrawn.has(i)) continue;
   const a = glyf.subarray(offsets[i], offsets[i + 1]);
   const b = newGlyf.subarray(newOffsets[i], newOffsets[i] + a.length);
   if (!a.equals(b)) throw new Error(`glyph ${i} changed`);
@@ -240,7 +299,6 @@ fs.writeFileSync(output, Buffer.concat([header, woffDir, ...bodies]));
 console.log(
   output,
   offset,
-  'bytes; five =',
-  JSON.stringify(five.slice(0, 3)),
-  '...',
+  'bytes; redrew',
+  Object.keys(DIGITS_400).join(', '),
 );

@@ -11,7 +11,8 @@ import Loading from '~/components/loading';
 import type { AppProps } from 'next/app';
 
 // the 8-bit font for headings and buttons: our copy of Pixelify Sans, with a
-// 5 that isn't drawn like an S (see src/fonts/README.md)
+// 5 that isn't drawn like an S and a 7 that isn't a wide 1 (see
+// src/fonts/README.md)
 const pixel = localFont({
   // written out: next/font only reads literal values
   src: [
