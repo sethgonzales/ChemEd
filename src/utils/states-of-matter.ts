@@ -417,6 +417,13 @@ export function temperatureRange(s: Substance) {
 export const toModelTemp = (s: Substance, tempC: number) =>
   MELT_POINT_C + ((tempC - s.meltC) / span(s)) * LIQUID_RANGE;
 
+/** How each state's particles look and move, as the simulation draws them */
+export const PARTICLE_MOTION: Record<Phase, string> = {
+  Solid: 'packed tightly, vibrating in place',
+  Liquid: 'close together, sliding past each other',
+  Gas: 'spread out, flying around fast',
+};
+
 export function phaseOf(s: Substance, tempC: number): Phase {
   if (tempC < s.meltC) return 'Solid';
   if (tempC < s.boilC) return 'Liquid';

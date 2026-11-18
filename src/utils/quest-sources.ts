@@ -38,7 +38,12 @@ export const QUESTION_SOURCES: Record<string, QuestionSource> = {
   '/states-of-matter': {
     levels: STATES_LEVELS,
     question: statesQuestion,
-    sources: SUBSTANCES.flatMap((s) => s.sources),
+    // the rooms ask how the states differ, and why a curve's flats are flat
+    sources: [
+      ...SUBSTANCES.flatMap((s) => s.sources),
+      'stateOfMatter',
+      'latentHeat',
+    ],
   },
   '/lewis-structures': {
     levels: LEWIS_LEVELS,

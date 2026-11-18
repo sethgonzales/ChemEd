@@ -87,6 +87,24 @@ const ALL = {
     url: 'https://en.wikipedia.org/wiki/Metalloid',
     accessed: '2026-11-13',
   },
+  stateOfMatter: {
+    topic:
+      'How solids, liquids and gases differ: shape, volume, compressibility, and how their particles are spaced and move',
+    ...WIKIPEDIA,
+    year: 2026,
+    title: 'State of matter',
+    url: 'https://en.wikipedia.org/wiki/State_of_matter',
+    accessed: '2026-11-17',
+  },
+  latentHeat: {
+    topic:
+      'Latent heat: a change of state absorbs or releases heat at a constant temperature (the page cites Perrot, A to Z of Thermodynamics, 1998)',
+    ...WIKIPEDIA,
+    year: 2026,
+    title: 'Latent heat',
+    url: 'https://en.wikipedia.org/wiki/Latent_heat',
+    accessed: '2026-11-17',
+  },
   waterData: {
     topic:
       'Water: melting and boiling points, enthalpies of fusion and vaporisation, heat capacities',

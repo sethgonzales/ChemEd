@@ -113,20 +113,25 @@ export const CHAMBERS: QuestChamber[] = [
     villain: WYRM,
     story: [
       'The air turns bitter cold. Frost creeps over the stones: you’ve woken the Frost Wyrm.',
-      'It has frozen its doors shut. Only the right temperature will free them, so read each heating curve with care.',
-      'Thaw your way through two doors, then answer the Wyrm’s questions to melt its hold on the dungeon. Ready?',
+      'It has frozen its doors shut, and each asks about the states of matter: what the particles show, what the heating curve says, and how solids, liquids and gases differ.',
+      'Get past three doors, then answer the Wyrm’s questions to melt its hold on the dungeon. Ready?',
     ],
-    rooms: 2,
+    rooms: 3,
     doors: [
       {
         name: 'The frozen door',
         story:
-          'A thermometer is set into the ice. Turn it to the temperature the door asks for, using the heating curve as your guide.',
+          'Particles drift and jostle inside the ice. Watch how they move and name their state.',
+      },
+      {
+        name: 'The frost-scratched door',
+        story:
+          'A heating curve is scratched into the frost, its segments lettered. Read it to answer the door.',
       },
       {
         name: 'The Wyrm’s lair',
         story:
-          'The last door is locked by another substance. Set its temperature just right and the ice gives way.',
+          'The last door asks what sets solids, liquids and gases apart. Answer, and the ice gives way.',
       },
     ],
     bossHp: 5,

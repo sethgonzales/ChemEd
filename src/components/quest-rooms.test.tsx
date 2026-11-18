@@ -1,4 +1,6 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, render as renderBare, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { ThemeProvider } from '~/styles/theme-provider';
 import userEvent from '@testing-library/user-event';
 import { ELEMENTS } from '~/constants/elements';
 import { createRng } from '~/utils/quest';
@@ -7,7 +9,8 @@ import { configurationRooms } from '~/utils/quest-electrons';
 import { elementRiddle } from '~/utils/quest-periodic';
 import { formatFormula } from '~/utils/lewis';
 import { lewisRooms } from '~/utils/quest-lewis';
-import { goalMet, statesRooms } from '~/utils/quest-states';
+import { statesRooms } from '~/utils/quest-states';
+import { PARTICLE_MOTION, phaseOf } from '~/utils/states-of-matter';
 import { PREDICT_POOL, predict } from '~/utils/predict';
 import { reactionRooms } from '~/utils/quest-reactions';
 import { titrationPool } from '~/utils/quest-titrations';
@@ -28,6 +31,9 @@ jest.mock('~/utils/lewis-arrows', () => {
     },
   };
 });
+
+// the States room's particles take their colour from the theme, as in the app
+const render = (ui: ReactElement) => renderBare(ui, { wrapper: ThemeProvider });
 
 const sounds = { miss: jest.fn() };
 jest.mock('~/utils/sounds', () => ({
@@ -291,54 +297,73 @@ describe('the Lewis Structures rooms', () => {
 
 describe('the States of Matter rooms', () => {
   const StatesRoom = ROOMS.states;
-  const room = statesRooms(createRng(SEED), 'ap')[1]; // a transition point
-  const setup = () => {
+  const setup = (room: number, course: 'general' | 'ap' = 'general') => {
     const onSolve = jest.fn();
+    const onMiss = jest.fn();
     render(
       <StatesRoom
         seed={SEED}
-        course="ap"
-        room={1}
-        rooms={2}
+        course={course}
+        room={room}
+        rooms={3}
         onSolve={onSolve}
+        onMiss={onMiss}
       />,
     );
-    return onSolve;
+    return {
+      onSolve,
+      onMiss,
+      room: statesRooms(createRng(SEED), course)[room],
+    };
   };
   const answer = () =>
     userEvent.click(screen.getByRole('button', { name: 'That’s my answer' }));
-  const setTo = (t: number) =>
-    fireEvent.change(screen.getByRole('slider'), {
-      target: { value: String(t) },
-    });
+  const choose = (text: string) =>
+    userEvent.click(screen.getByRole('radio', { name: text }));
 
-  it('sets the goal over the heating curve, without naming the phase', () => {
-    setup();
-    expect(
-      screen.getByText(
-        new RegExp(`^Set ${room.substance.name.toLowerCase()} to its`, 'i'),
+  it('shows unlabelled particles, describing only how they move', () => {
+    const { room } = setup(0);
+    if (room.kind !== 'particles') throw new Error('particles');
+    const picture = screen.getByRole('img', { name: /particles/i });
+    expect(picture).toHaveAccessibleName(
+      expect.stringContaining(
+        PARTICLE_MOTION[phaseOf(room.substance, room.tempC)],
       ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('img', { name: /heating curve/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(`${room.start} °C`)).toBeInTheDocument();
+    );
+    expect(picture).not.toHaveAccessibleName(/solid|liquid|gas|°C/i);
+    expect(screen.getByText(room.question.prompt)).toBeInTheDocument();
   });
 
-  it('stays shut until the thermometer reaches the goal', async () => {
-    const onSolve = setup();
+  it('opens for the right state, and explains a wrong one', async () => {
+    const { onSolve, onMiss, room } = setup(0);
+    const { question } = room;
+    const wrong = question.choices.find((_, i) => i !== question.answer)!;
+    await choose(wrong);
     await answer();
     expect(onSolve).not.toHaveBeenCalled();
+    expect(onMiss).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('status')).toHaveTextContent(/Not quite!/);
-    expect(sounds.miss).toHaveBeenCalledTimes(1);
-    const point =
-      room.goal.kind === 'point' && room.goal.point === 'melting'
-        ? room.substance.meltC
-        : room.substance.boilC;
-    setTo(Math.round(point));
-    expect(goalMet(room, Math.round(point))).toBe(true);
+    expect(screen.getByRole('status')).toHaveTextContent(question.explain);
+    await choose(question.choices[question.answer]);
     await answer();
     expect(onSolve).toHaveBeenCalled();
+  });
+
+  it('asks its curve question over a lettered heating curve', () => {
+    const { room } = setup(1);
+    expect(
+      screen.getByRole('img', { name: /segments A to E/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(room.question.prompt)).toBeInTheDocument();
+    expect(screen.getAllByRole('radio')).toHaveLength(
+      room.question.choices.length,
+    );
+  });
+
+  it('asks how the states differ, with no picture to read', () => {
+    const { room } = setup(2, 'ap');
+    expect(screen.queryByRole('img')).toBeNull();
+    expect(screen.getByText(room.question.prompt)).toBeInTheDocument();
   });
 });
 
@@ -531,7 +556,9 @@ describe('every room with a check tells its door of a miss', () => {
     [
       'states',
       async () => {
-        // its starting temperature never meets the goal
+        const { question } = statesRooms(createRng(SEED), 'general')[0];
+        const wrong = question.choices.find((_, i) => i !== question.answer)!;
+        await userEvent.click(screen.getByRole('radio', { name: wrong }));
         await userEvent.click(
           screen.getByRole('button', { name: 'That’s my answer' }),
         );

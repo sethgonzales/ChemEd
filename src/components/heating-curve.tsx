@@ -1,3 +1,4 @@
+import { cn } from '~/utils/cn';
 import type { Substance } from '~/constants/substances';
 import { heatingCurve, pointOn } from '~/utils/states-of-matter';
 
@@ -79,24 +80,55 @@ export function chart(s: Substance, tempC: number) {
   };
 }
 
-/** Temperature against heat added, with a dot where the substance is now */
+// the shape in words, without naming what each segment means
+const letteredLabel = (s: Substance) =>
+  `Heating curve for ${s.name}, its segments A to E: A rises, B is flat at ` +
+  `${Math.round(s.meltC)} °C, C rises, D is flat at ${Math.round(s.boilC)} °C, ` +
+  `then E rises.`;
+
+const CHIP = { width: 12, height: 14 }; // SVG units, a letter's backing
+
+/**
+ * Temperature against heat added, with a dot where the substance is now; or,
+ * lettered, its segments A to E to read off, with nothing giving them away
+ */
 export default function HeatingCurve({
   substance,
   temperature,
+  lettered = false,
+  className,
 }: {
   substance: Substance;
-  temperature: number;
+  temperature?: number;
+  lettered?: boolean;
+  className?: string; // its width, if not the simulation's
 }) {
   const { width, height, pad, dotRadius } = CHART;
-  const { y, line, dot, labels } = chart(substance, temperature);
+  const { y, line, dot, labels } = chart(
+    substance,
+    temperature ?? substance.meltC,
+  );
+  // each letter on its segment's middle, on a chip that cuts the line, so
+  // it can't stray onto a neighbour or an axis label
+  const letters = lettered
+    ? line.slice(0, -1).map((a, i) => ({
+        text: 'ABCDE'[i],
+        x: (a.x + line[i + 1].x) / 2,
+        y: (a.y + line[i + 1].y) / 2,
+      }))
+    : [];
 
   return (
     <svg
       role="img"
-      aria-label={label(substance, temperature)}
+      aria-label={
+        lettered
+          ? letteredLabel(substance)
+          : label(substance, temperature ?? substance.meltC)
+      }
       viewBox={`0 0 ${width} ${height}`}
       // the page frames it, so it can sit beside the particles
-      className="w-full max-w-md h-auto text-white"
+      className={cn('w-full max-w-md h-auto text-white', className)}
     >
       {/* axes */}
       <path
@@ -134,17 +166,18 @@ export default function HeatingCurve({
           {Math.round(t)}
         </text>
       ))}
-      {labels.map((l) => (
-        <text
-          key={l.text}
-          x={l.x}
-          y={l.y}
-          textAnchor="middle"
-          className="fill-white/80 text-[11px]"
-        >
-          {l.text}
-        </text>
-      ))}
+      {!lettered &&
+        labels.map((l) => (
+          <text
+            key={l.text}
+            x={l.x}
+            y={l.y}
+            textAnchor="middle"
+            className="fill-white/80 text-[11px]"
+          >
+            {l.text}
+          </text>
+        ))}
 
       <polyline
         points={line.map((p) => `${p.x},${p.y}`).join(' ')}
@@ -153,13 +186,36 @@ export default function HeatingCurve({
         strokeLinejoin="round"
         className="stroke-white"
       />
-      <circle
-        cx={dot.x}
-        cy={dot.y}
-        r={dotRadius}
-        className="fill-secondary-500 stroke-primary-800"
-        strokeWidth={2}
-      />
+      {!lettered && (
+        <circle
+          cx={dot.x}
+          cy={dot.y}
+          r={dotRadius}
+          className="fill-secondary-500 stroke-primary-800"
+          strokeWidth={2}
+        />
+      )}
+      {/* drawn over the line */}
+      {letters.map((l) => (
+        <g key={l.text}>
+          <rect
+            x={l.x - CHIP.width / 2}
+            y={l.y - CHIP.height / 2}
+            width={CHIP.width}
+            height={CHIP.height}
+            rx={2}
+            className="fill-primary-800 stroke-secondary-500"
+          />
+          <text
+            x={l.x}
+            y={l.y + 4}
+            textAnchor="middle"
+            className="fill-secondary-500 text-[11px] font-bold"
+          >
+            {l.text}
+          </text>
+        </g>
+      ))}
     </svg>
   );
 }

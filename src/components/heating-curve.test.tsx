@@ -38,6 +38,23 @@ const inside = (
   p.y > b.top - pad &&
   p.y < b.bottom + pad;
 
+describe('HeatingCurve, lettered for reading', () => {
+  it('letters its five segments A to E, with no dot or change labels to give answers away', () => {
+    const { container } = render(<HeatingCurve substance={water} lettered />);
+    for (const letter of ['A', 'B', 'C', 'D', 'E']) {
+      expect(screen.getByText(letter)).toBeInTheDocument();
+    }
+    expect(screen.queryByText('s→l')).toBeNull();
+    expect(screen.queryByText('l→g')).toBeNull();
+    expect(container.querySelector('circle')).toBeNull();
+    // the temperatures stay, to read off
+    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /segments A to E/ }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe('HeatingCurve', () => {
   it('labels the plateaus s→l and l→g', () => {
     render(<HeatingCurve substance={water} temperature={20} />);

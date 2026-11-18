@@ -19,6 +19,7 @@
 
 ## Improvements
 
+- [ ] **A header that gives the page back**: the site header is sticky and takes a lot of room. Either let it scroll away with the page, or shrink it on scroll to the height of its buttons (theme picker, font and sound).
 - [ ] **Volume control in the header**: make the volume of the app's sounds and music adjustable from the header's sound button, rather than only on or off.
 - [x] Periodic Table: more colour modes (metal/nonmetal, electronegativity, atomic radius) and search
 - [x] States of Matter: heating curve, choice of substance (water, benzene, mercury)

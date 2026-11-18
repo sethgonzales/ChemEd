@@ -8,6 +8,7 @@ import ConfigurationBuilder from '~/components/configuration-builder';
 import type { Settings } from '~/components/lewis-builder';
 import LewisCanvas from '~/components/lewis-canvas';
 import LewisChallenge from '~/components/lewis-challenge';
+import ParticleBox from '~/components/particle-box';
 import PeriodicGrid from '~/components/periodic-grid';
 import PotentialTable from '~/components/potential-table';
 import { ScenePanel } from '~/components/quest-scene';
@@ -18,8 +19,6 @@ import GalvanicPrediction, {
 import HeatingCurve from '~/components/heating-curve';
 import ReactionBalancer from '~/components/reaction-balancer';
 import ReactionPredict from '~/components/reaction-predict';
-import Slider from '~/components/slider';
-import Stage from '~/components/stage';
 import PhCurve from '~/components/ph-curve';
 import {
   ANALYTE_VOLUME,
@@ -41,7 +40,13 @@ import {
   type Side,
 } from '~/utils/electrochemistry';
 import { PREDICT_POOL } from '~/utils/predict';
-import { createRng, pick, type Course, type Rng } from '~/utils/quest';
+import {
+  createRng,
+  pick,
+  type Course,
+  type QuickQuestion,
+  type Rng,
+} from '~/utils/quest';
 import { balancingRooms } from '~/utils/quest-balancing';
 import {
   formatFormula,
@@ -54,12 +59,12 @@ import { lewisRooms, type StructureChoice } from '~/utils/quest-lewis';
 import { elementRiddle } from '~/utils/quest-periodic';
 import { reactionRooms } from '~/utils/quest-reactions';
 import { titrationPool } from '~/utils/quest-titrations';
+import { statesRooms } from '~/utils/quest-states';
 import {
-  goalMet,
-  statesRooms,
-  type StatesRoom as StatesRoomData,
-} from '~/utils/quest-states';
-import { phaseOf, temperatureRange } from '~/utils/states-of-matter';
+  PARTICLE_MOTION,
+  phaseOf,
+  toModelTemp,
+} from '~/utils/states-of-matter';
 import { parseEquation } from '~/utils/reactions';
 
 export interface RoomProps {
@@ -71,7 +76,6 @@ export interface RoomProps {
   onMiss?: () => void; // a wrong answer, so the door can shake
 }
 
-const RANGE_STEPS = 7; // labels along the thermometer, as on the simulation
 const GRID_MIN_WIDTH = 480; // px; narrower screens scroll the table, not the page
 // (the room's table is capped at max-w-2xl, 672 px, to keep its answer in view)
 
@@ -333,72 +337,109 @@ function StructureChoiceRoom({
   );
 }
 
-/** What the Wyrm asks for, in words */
-function goalText({ substance, goal }: StatesRoomData) {
-  const name = substance.name.toLowerCase();
-  return goal.kind === 'phase'
-    ? `Bring ${name} to a ${goal.phase.toLowerCase()}.`
-    : `Set ${name} to its ${goal.point} point.`;
-}
-
-/** The Wyrm's rooms: read the heating curve and set the thermometer */
-function StatesRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
-  const target = useMemo(
-    () => statesRooms(createRng(seed), course)[room],
-    [seed, course, room],
-  );
-  const [temperature, setTemperature] = useState(target.start);
+/** A multiple-choice question, its check on the door, explained after a miss */
+function ChoiceQuestion({
+  question,
+  onSolve,
+  onMiss,
+}: {
+  question: QuickQuestion;
+  onSolve: () => void;
+  onMiss?: () => void;
+}) {
+  const [chosen, setChosen] = useState<number | null>(null);
   const [verdict, setVerdict] = useState<RoomAnswer | null>(null);
-  const { min, max } = temperatureRange(target.substance);
-
+  const solved = verdict?.right ?? false;
   const check = () => {
-    const right = goalMet(target, temperature);
+    if (chosen === null) return;
+    const right = chosen === question.answer;
     setVerdict((v) => ({
       right,
-      text: right
-        ? 'The ice gives way.'
-        : `At ${temperature} °C it’s a ${phaseOf(target.substance, temperature).toLowerCase()}. Read the curve again.`,
+      text: question.explain,
       attempt: (v?.attempt ?? 0) + 1,
     }));
     if (right) onSolve();
     else onMiss?.();
   };
-  const slotted = useCheckSlot({ label: 'That’s my answer', run: check });
-
+  const slotted = useCheckSlot({
+    label: 'That’s my answer',
+    disabled: chosen === null || solved,
+    run: check,
+  });
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-lg font-semibold">{goalText(target)}</p>
-      <Stage
-        label="Thermometer"
-        header={<span className="text-3xl font-bold">{temperature} °C</span>}
-        footer={
-          <Slider
-            label="Temperature"
-            value={temperature}
-            onChange={setTemperature}
-            min={min}
-            max={max}
-            rangeSteps={RANGE_STEPS}
-            sliderThumb="bg-linear-to-r from-sky-400 via-amber-300 to-rose-500"
-          />
-        }
-      >
-        <div className="flex justify-center pixel-control bg-primary-800">
-          <HeatingCurve
-            substance={target.substance}
-            temperature={temperature}
-          />
-        </div>
-      </Stage>
+    <>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-lg font-semibold">
+          {question.prompt}
+        </legend>
+        {question.choices.map((choice, i) => (
+          <label
+            key={choice}
+            className={cn(
+              'pixel-control flex cursor-pointer items-center gap-3 bg-primary-700 px-3 py-2',
+              chosen === i &&
+                'shadow-[inset_0_0_0_3px_var(--color-secondary-500)]',
+            )}
+          >
+            <input
+              type="radio"
+              name="choice"
+              checked={chosen === i}
+              disabled={solved}
+              onChange={() => setChosen(i)}
+            />
+            {choice}
+          </label>
+        ))}
+      </fieldset>
       {!slotted && (
         <div>
-          <Button pressed onClick={check}>
+          <Button pressed disabled={chosen === null || solved} onClick={check}>
             That’s my answer
           </Button>
         </div>
       )}
       <RoomVerdict verdict={verdict} />
-    </div>
+    </>
+  );
+}
+
+/**
+ * The Wyrm's rooms: name the state the particles show, read the heating
+ * curve, then say how the states differ
+ */
+function StatesRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
+  const here = useMemo(
+    () => statesRooms(createRng(seed), course)[room],
+    [seed, course, room],
+  );
+  return (
+    <ScenePanel className="flex flex-col gap-4">
+      {here.kind === 'particles' && (
+        <ParticleBox
+          modelTemp={toModelTemp(here.substance, here.tempC)}
+          // how they move, which is what the picture shows, not the answer
+          label={`Particles ${PARTICLE_MOTION[phaseOf(here.substance, here.tempC)]}`}
+          className="h-56 w-full sm:h-64"
+        />
+      )}
+      {here.kind === 'curve' && (
+        <div className="flex justify-center pixel-control bg-primary-800 p-2">
+          <HeatingCurve
+            substance={here.substance}
+            lettered
+            // larger than the simulation's, to read off
+            className="max-w-xl"
+          />
+        </div>
+      )}
+      <ChoiceQuestion
+        key={here.question.prompt}
+        question={here.question}
+        onSolve={onSolve}
+        onMiss={onMiss}
+      />
+    </ScenePanel>
   );
 }
 
