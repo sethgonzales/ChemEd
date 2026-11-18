@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { IconX } from '@tabler/icons-react';
 import MrG from '~/components/mr-g';
-import { QUEST_PAGE, WET_LABS } from '~/constants/guide-tips';
+import { IN_GAME_PAGES, QUEST_PAGE, WET_LABS } from '~/constants/guide-tips';
 import { PALETTE, type Frame } from '~/constants/mr-g-sprite';
 import {
   UNPROMPTED_GAP_MS,
@@ -370,19 +370,25 @@ export function GuideProvider({
     [playTreasure, playThunk],
   );
   const close = useCallback(() => setMessage(null), []);
+  // in a game he plays a part in, he's on stage there instead
+  const inGame = IN_GAME_PAGES.includes(page ?? '');
 
   return (
-    <GuideContext.Provider value={{ say, visible: desktop && !hidden }}>
+    <GuideContext.Provider
+      value={{ say, visible: desktop && !hidden && !inGame }}
+    >
       {children}
-      <Corner
-        page={page}
-        message={message}
-        say={say}
-        close={close}
-        desktop={desktop}
-        hidden={hidden}
-        hide={hide}
-      />
+      {!inGame && (
+        <Corner
+          page={page}
+          message={message}
+          say={say}
+          close={close}
+          desktop={desktop}
+          hidden={hidden}
+          hide={hide}
+        />
+      )}
     </GuideContext.Provider>
   );
 }

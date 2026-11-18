@@ -85,3 +85,6 @@ export const WET_LABS = ['/titrations', '/electrochemistry'];
 
 // the Dungeon Quest, where he wears his hooded cloak and carries a lantern
 export const QUEST_PAGE = '/dungeon-quest';
+
+// games he plays a part in himself, so he leaves the corner empty there
+export const IN_GAME_PAGES = ['/balloon-riser'];

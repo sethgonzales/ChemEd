@@ -2,7 +2,7 @@ import { ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
 import { gasInside, type Balloon, type Flight } from '~/utils/balloon';
 
-export const ENVELOPE_RADIUS = 22; // art px, stretched full
+export const ENVELOPE_RADIUS = 8; // art px, stretched full: small in a big world
 
 /** What the balloon's instruments read, in the units each reads in */
 export interface Readings {

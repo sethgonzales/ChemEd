@@ -1,43 +1,542 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import PixelArt from '~/components/pixel-art';
-import {
-  BALLOON_PALETTE,
-  RIDER_ROWS,
-  balloonOutfit,
-} from '~/constants/balloon-outfit';
-import type { Platform, PlatformKind } from '~/constants/balloon-world';
+import { BALLOON_PALETTE, balloonOutfit } from '~/constants/balloon-outfit';
+import type { AreaKind, Leg, Platform } from '~/constants/balloon-world';
 import { MR_G, type Rider } from '~/constants/riders';
-import { airAt } from '~/utils/atmosphere';
 import { gasInside, type Balloon, type Flight } from '~/utils/balloon';
+import {
+  STRUCTURE,
+  camera,
+  distanceAt,
+  groundAt,
+  rulerMarks,
+  worldSize,
+  worldX,
+  worldY,
+} from '~/utils/balloon-camera';
 import { ENVELOPE_RADIUS, envelopeRadius } from '~/utils/balloon-view';
-import { ZERO_CELSIUS } from '~/constants/physical';
+import { halfSize } from '~/utils/mini-sprite';
 import { Painter } from '~/utils/pixel-painter';
 
-// The sky, side on, in art pixels: one viewBox unit is one art pixel.
-// Wide and short, so the balloon fills it; on a phone it pans inside its frame.
-const WIDTH = 400;
-const HEIGHT = 150;
-const GROUND_Y = 142; // sea level
-const TOP_HEIGHT = 2000; // m, the top of the ruler
-const PX_PER_M = 85 / TOP_HEIGHT; // so a balloon at 2,000 m still fits in
-const MIN_WIDTH = 600; // px; narrower screens pan the sky, keeping it readable
-const ROUTE_START = 40; // art px, clear of the ruler
-const ROUTE_LENGTH = 4200; // m across the scene
-const RULER_STEP = 500; // m between marks
+// The view is a window on the leg's world, in art pixels. It's sized from the
+// screen so pixels stay about the same size everywhere; on a phone you see
+// less of the world, not a smaller one.
+const CSS_PER_ART = 3.4; // screen px per art px, roughly
+const MIN_VIEW = 220; // art px wide
+const MAX_VIEW = 520;
+const ASPECT = 0.36; // height over width: room for the land and a balloon above it
+const MIN_VIEW_HEIGHT = 150;
+const COLUMN = 2; // art px per column of ground
+const PARALLAX = 0.5; // the far hills move half as fast as the camera
+const SIGN_OFFSET = 260; // m from a landing spot to its signpost, clear of the balloon
+const SIGN_POST = 6; // art px tall
 
-// half the width of each kind of platform's top, art px
-const TOP_HALF: Record<PlatformKind, number> = {
-  pad: 16,
-  mesa: 14,
-  ridge: 14,
-  tower: 12,
+const fmt = (n: number) => n.toLocaleString('en-US');
+
+// a steady pseudo-random number from a seed, so the scenery doesn't shift
+const hash = (n: number) => {
+  const v = Math.sin(n * 12.9898 + 78.233) * 43758.5453;
+  return v - Math.floor(v);
 };
 
-const y = (height: number) => GROUND_Y - height * PX_PER_M;
-const x = (distance: number) =>
-  ROUTE_START + (distance * (WIDTH - ROUTE_START - 10)) / ROUTE_LENGTH;
+const SKY = ['#5aa9da', '#6cb4df', '#7fc0e5', '#93cbea', '#a8d6ef', '#bde1f3'];
 
-const SKY = ['#bfe3f5', '#a5d6f0', '#8bc8ea', '#72b9e3', '#5aa9da']; // low to high
+// the ground's colours near each kind of place: top, body, and a darker band
+const LAND: Record<AreaKind | 'valley', [string, string, string]> = {
+  valley: ['#7cb342', '#6d8b3a', '#5e7a32'],
+  field: ['#8bc34a', '#6d8b3a', '#5e7a32'],
+  mesa: ['#e08a4f', '#c2683a', '#a2522d'],
+  lookout: ['#4f8f3a', '#466b34', '#3c5c2d'],
+  ridge: ['#9aa5b1', '#7c8794', '#66717d'],
+};
+
+/** Which place's colours the ground takes at a distance */
+function landAt(leg: Leg, distance: number): AreaKind | 'valley' {
+  const near = (p: Platform) => Math.abs(distance - p.distance) < 700;
+  if (near(leg.from)) return leg.from.kind;
+  if (near(leg.to)) return leg.to.kind;
+  return 'valley';
+}
+
+/** The ground: columns from the surface down, banded like rock strata */
+function Terrain({
+  leg,
+  width,
+  height,
+}: {
+  leg: Leg;
+  width: number;
+  height: number;
+}) {
+  const columns = useMemo(() => {
+    const out: ReactNode[] = [];
+    for (let x = 0; x < width; x += COLUMN) {
+      const d = distanceAt(leg, x + COLUMN / 2);
+      const h = groundAt(leg, d);
+      const top = Math.round(worldY(leg, h));
+      const kind = landAt(leg, d);
+      const [surface, body, band] = LAND[kind];
+      out.push(
+        <g key={x}>
+          <rect
+            x={x}
+            y={top}
+            width={COLUMN}
+            height={height - top}
+            fill={body}
+          />
+          {/* strata: darker bands every few pixels, steady in height */}
+          {kind === 'mesa' &&
+            Array.from({ length: Math.ceil((height - top) / 7) }, (_, i) => {
+              const by = Math.ceil(top / 7) * 7 + i * 7;
+              return (
+                <rect
+                  key={i}
+                  x={x}
+                  y={by}
+                  width={COLUMN}
+                  height={2}
+                  fill={band}
+                />
+              );
+            })}
+          {/* snow on the ridge's upper slopes */}
+          <rect
+            x={x}
+            y={top}
+            width={COLUMN}
+            height={2}
+            fill={
+              kind === 'ridge' &&
+              h > leg.to.height - 120 &&
+              leg.to.kind === 'ridge'
+                ? '#f8fafc'
+                : surface
+            }
+          />
+        </g>,
+      );
+    }
+    return out;
+  }, [leg, width, height]);
+  return <g>{columns}</g>;
+}
+
+/** Far hills, two layers of silhouette, drawn wider than the world for parallax */
+function FarHills({ leg, width }: { leg: Leg; width: number }) {
+  const base = worldY(leg, leg.valley) + 6;
+  const layers = [
+    { color: '#a7c3d9', amp: 70, seed: 1, step: 6 },
+    { color: '#8fb3a0', amp: 38, seed: 7, step: 4 },
+  ];
+  return (
+    <g>
+      {layers.map(({ color, amp, seed, step }) => (
+        <g key={seed} fill={color}>
+          {Array.from({ length: Math.ceil(width / step) }, (_, i) => {
+            const x = i * step;
+            const h =
+              amp *
+              (0.55 +
+                0.3 * Math.sin(x / 47 + seed) +
+                0.15 * Math.sin(x / 13 + seed * 3));
+            return (
+              <rect key={i} x={x} y={base - h} width={step} height={h + 40} />
+            );
+          })}
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function Cloud({ x, y, w }: { x: number; y: number; w: number }) {
+  return (
+    <g fill="#ffffff" opacity={0.9}>
+      <rect x={x} y={y} width={w} height={3} />
+      <rect x={x + 2} y={y - 2} width={w - 5} height={2} />
+      <rect x={x + w / 3} y={y - 4} width={w / 3} height={2} />
+      <rect x={x + 1} y={y + 3} width={w - 2} height={1} fill="#dbe7ef" />
+    </g>
+  );
+}
+
+function Pine({ x, y, tall = 9 }: { x: number; y: number; tall?: number }) {
+  return (
+    <g>
+      <rect x={x} y={y - 2} width={1} height={2} fill="#5b4636" />
+      {Array.from({ length: Math.floor(tall / 3) }, (_, i) => {
+        const w = 2 + (Math.floor(tall / 3) - i) * 2;
+        return (
+          <rect
+            key={i}
+            x={x - w / 2 + 0.5}
+            y={y - 2 - (i + 1) * 3}
+            width={w}
+            height={3}
+            fill={i % 2 ? '#2f6b3a' : '#367a42'}
+          />
+        );
+      })}
+    </g>
+  );
+}
+
+function RoundTree({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      <rect x={x} y={y - 3} width={1} height={3} fill="#5b4636" />
+      <rect x={x - 2} y={y - 7} width={5} height={4} fill="#4e8c3a" />
+      <rect x={x - 1} y={y - 8} width={3} height={1} fill="#5fa046" />
+    </g>
+  );
+}
+
+/** Trees, a river and birds scattered between the places */
+/** A farm in the valley: a house, a red barn, a silo and a few rows of crops */
+function Farm({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      {Array.from({ length: 9 }, (_, i) => (
+        <rect
+          key={i}
+          x={x - 40 + i * 3}
+          y={y}
+          width={2}
+          height={1}
+          fill={i % 2 ? '#c5a02f' : '#9bbf3a'}
+        />
+      ))}
+      <rect x={x - 10} y={y - 7} width={10} height={7} fill="#f5f0e1" />
+      {[0, 1, 2].map((r) => (
+        <rect
+          key={r}
+          x={x - 11 + r * 2}
+          y={y - 8 - r}
+          width={12 - r * 4}
+          height={1}
+          fill="#475569"
+        />
+      ))}
+      <rect x={x - 8} y={y - 5} width={2} height={2} fill="#fde047" />
+      <rect x={x - 4} y={y - 4} width={2} height={4} fill="#7c2d12" />
+      <rect x={x + 4} y={y - 10} width={12} height={10} fill="#b91c1c" />
+      {[0, 1, 2].map((r) => (
+        <rect
+          key={r}
+          x={x + 3 + r * 2}
+          y={y - 11 - r}
+          width={14 - r * 4}
+          height={1}
+          fill="#7f1d1d"
+        />
+      ))}
+      <rect x={x + 8} y={y - 6} width={4} height={6} fill="#f8fafc" />
+      <rect x={x + 9} y={y - 5} width={2} height={5} fill="#7f1d1d" />
+      <rect x={x + 18} y={y - 14} width={4} height={14} fill="#cbd5e1" />
+      <rect x={x + 18} y={y - 16} width={4} height={2} fill="#94a3b8" />
+    </g>
+  );
+}
+
+/** Trees, a farm, a road with a bridge, a river and birds between the places */
+function Countryside({ leg, width }: { leg: Leg; width: number }) {
+  const items: ReactNode[] = [];
+  const mid = (leg.from.distance + leg.to.distance) / 2;
+  const farm = leg.from.distance + (leg.to.distance - leg.from.distance) * 0.3;
+  const surface = (d: number) => Math.round(worldY(leg, groundAt(leg, d)));
+
+  // the dirt road along the valley floor, from one place towards the other
+  for (let x = 0; x < width; x += COLUMN) {
+    const d = distanceAt(leg, x);
+    if (landAt(leg, d) !== 'valley' || Math.abs(d - mid) < 90) continue;
+    items.push(
+      <rect
+        key={`road${x}`}
+        x={x}
+        y={surface(d)}
+        width={COLUMN}
+        height={1}
+        fill="#c8a978"
+      />,
+    );
+  }
+  for (let i = 0; i < width / 5; i++) {
+    const x = Math.round(hash(i) * width);
+    const d = distanceAt(leg, x);
+    const kind = landAt(leg, d);
+    if (kind === 'mesa' || kind === 'field') continue; // open ground there
+    if (Math.abs(d - mid) < 140 || Math.abs(d - farm) < 220) continue;
+    items.push(
+      kind === 'valley' && hash(i + 99) > 0.4 ? (
+        <RoundTree key={i} x={x} y={surface(d)} />
+      ) : (
+        <Pine
+          key={i}
+          x={x}
+          y={surface(d)}
+          tall={6 + Math.round(hash(i + 7) * 6)}
+        />
+      ),
+    );
+  }
+  items.push(
+    <Farm key="farm" x={Math.round(worldX(leg, farm))} y={surface(farm)} />,
+  );
+
+  // the river through the valley floor, with the road's bridge over it
+  const rx = Math.round(worldX(leg, mid));
+  const ry = surface(mid);
+  items.push(
+    <g key="river">
+      <rect x={rx - 18} y={ry} width={36} height={4} fill="#3b82c4" />
+      <rect x={rx - 13} y={ry + 1} width={8} height={1} fill="#93c5fd" />
+      <rect x={rx + 5} y={ry + 2} width={7} height={1} fill="#93c5fd" />
+      <rect x={rx - 20} y={ry - 3} width={40} height={1} fill="#8b5a2b" />
+      {[-16, -6, 4, 14].map((dx) => (
+        <rect
+          key={dx}
+          x={rx + dx}
+          y={ry - 2}
+          width={1}
+          height={5}
+          fill="#5c3a1c"
+        />
+      ))}
+    </g>,
+  );
+  return <g>{items}</g>;
+}
+
+function Birds({ leg, width }: { leg: Leg; width: number }) {
+  return (
+    <g fill="#334155">
+      {Array.from({ length: Math.ceil(width / 160) }, (_, i) => {
+        const x = Math.round(hash(i + 40) * width);
+        const y = Math.round(
+          worldY(leg, leg.valley + 250 + hash(i + 41) * 500),
+        );
+        return (
+          <g key={i}>
+            <rect x={x} y={y} width={1} height={1} />
+            <rect x={x + 1} y={y + 1} width={1} height={1} />
+            <rect x={x + 2} y={y} width={1} height={1} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+/** A weather station: a louvred Stevenson screen on legs, and an anemometer */
+function WeatherStation({ x, y }: { x: number; y: number }) {
+  return (
+    <g>
+      <rect x={x} y={y - 4} width={1} height={4} fill="#475569" />
+      <rect x={x + 5} y={y - 4} width={1} height={4} fill="#475569" />
+      <rect x={x - 1} y={y - 10} width={8} height={6} fill="#f8fafc" />
+      <rect x={x - 2} y={y - 11} width={10} height={1} fill="#cbd5e1" />
+      {[0, 2, 4].map((dy) => (
+        <rect
+          key={dy}
+          x={x}
+          y={y - 9 + dy}
+          width={6}
+          height={1}
+          fill="#cbd5e1"
+        />
+      ))}
+      <rect x={x + 11} y={y - 16} width={1} height={16} fill="#475569" />
+      <rect x={x + 9} y={y - 17} width={5} height={1} fill="#475569" />
+      <rect x={x + 8} y={y - 18} width={1} height={1} fill="#475569" />
+      <rect x={x + 14} y={y - 18} width={1} height={1} fill="#475569" />
+      <rect x={x + 11} y={y - 19} width={4} height={1} fill="#ef4444" />
+    </g>
+  );
+}
+
+/** What stands at each kind of place: its buildings and bits of life */
+function AreaProps({
+  kind,
+  x,
+  y,
+  deck,
+}: {
+  kind: AreaKind;
+  x: number;
+  y: number;
+  deck: number;
+}) {
+  switch (kind) {
+    case 'field':
+      return (
+        <g>
+          {/* the landing circle */}
+          <rect x={x - 9} y={y} width={18} height={1} fill="#f1f5f9" />
+          {/* the hangar, with a striped arched roof */}
+          <rect x={x - 52} y={y - 11} width={26} height={11} fill="#a8b0ba" />
+          <rect x={x - 46} y={y - 7} width={10} height={7} fill="#4b5563" />
+          {[0, 1, 2].map((r) => (
+            <rect
+              key={r}
+              x={x - 52 + r * 2}
+              y={y - 13 - r}
+              width={26 - r * 4}
+              height={1}
+              fill={r % 2 ? '#f8fafc' : '#dc2626'}
+            />
+          ))}
+          {/* fence */}
+          {Array.from({ length: 7 }, (_, i) => (
+            <rect
+              key={i}
+              x={x - 80 + i * 4}
+              y={y - 3}
+              width={1}
+              height={3}
+              fill="#8b5a2b"
+            />
+          ))}
+          <rect x={x - 80} y={y - 2} width={25} height={1} fill="#8b5a2b" />
+          {/* flags */}
+          {['#2563eb', '#f59e0b', '#16a34a'].map((c, i) => (
+            <g key={c}>
+              <rect
+                x={x - 20 + i * 4}
+                y={y - 9}
+                width={1}
+                height={9}
+                fill="#475569"
+              />
+              <rect
+                x={x - 19 + i * 4}
+                y={y - 9}
+                width={3}
+                height={2}
+                fill={c}
+              />
+            </g>
+          ))}
+          {/* helium cylinders on a trailer */}
+          <rect x={x + 24} y={y - 2} width={14} height={2} fill="#374151" />
+          {[0, 1, 2, 3].map((i) => (
+            <rect
+              key={i}
+              x={x + 25 + i * 3}
+              y={y - 8}
+              width={2}
+              height={6}
+              fill={i % 2 ? '#8d6e63' : '#a1887f'}
+            />
+          ))}
+          {/* windsock */}
+          <rect x={x + 46} y={y - 14} width={1} height={14} fill="#475569" />
+          <rect x={x + 47} y={y - 14} width={2} height={2} fill="#f97316" />
+          <rect x={x + 49} y={y - 14} width={2} height={2} fill="#f8fafc" />
+          <rect x={x + 51} y={y - 13} width={2} height={1} fill="#f97316" />
+          <WeatherStation x={x + 12} y={y} />
+        </g>
+      );
+    case 'mesa':
+      return (
+        <g>
+          <rect x={x - 9} y={y} width={18} height={1} fill="#fde7c7" />
+          {/* ranger cabin */}
+          <rect x={x - 36} y={y - 8} width={13} height={8} fill="#8b5a2b" />
+          {[0, 1, 2, 3].map((r) => (
+            <rect
+              key={r}
+              x={x - 38 + r * 2}
+              y={y - 9 - r}
+              width={17 - r * 4}
+              height={1}
+              fill="#5c3a1c"
+            />
+          ))}
+          <rect x={x - 33} y={y - 6} width={3} height={2} fill="#fde047" />
+          <rect x={x - 27} y={y - 5} width={2} height={5} fill="#3f2a17" />
+          {/* cacti */}
+          {[-50, 26, 40].map((dx) => (
+            <g key={dx} fill="#3f8f4a">
+              <rect x={x + dx} y={y - 7} width={2} height={7} />
+              <rect x={x + dx - 2} y={y - 5} width={1} height={3} />
+              <rect x={x + dx - 2} y={y - 3} width={2} height={1} />
+              <rect x={x + dx + 3} y={y - 6} width={1} height={3} />
+              <rect x={x + dx + 2} y={y - 4} width={2} height={1} />
+            </g>
+          ))}
+          <rect x={x + 48} y={y - 2} width={4} height={2} fill="#9a5530" />
+          <WeatherStation x={x + 12} y={y} />
+        </g>
+      );
+    case 'lookout':
+      return (
+        <g>
+          {/* the fire lookout's legs, from the hill up to its deck */}
+          {[-7, 6].map((dx) => (
+            <rect
+              key={dx}
+              x={x + dx}
+              y={deck}
+              width={1}
+              height={y - deck}
+              fill="#57534e"
+            />
+          ))}
+          {Array.from({ length: Math.floor((y - deck) / 5) }, (_, i) => (
+            <rect
+              key={i}
+              x={x - 7}
+              y={deck + 3 + i * 5}
+              width={14}
+              height={1}
+              fill="#78716c"
+            />
+          ))}
+          <rect x={x - 10} y={deck} width={20} height={1} fill="#57534e" />
+          <rect x={x + 2} y={deck - 7} width={8} height={7} fill="#a16207" />
+          <rect x={x + 3} y={deck - 5} width={6} height={2} fill="#bae6fd" />
+          <rect x={x + 1} y={deck - 8} width={10} height={1} fill="#7c2d12" />
+          <WeatherStation x={x - 22} y={y} />
+        </g>
+      );
+    case 'ridge':
+      return (
+        <g>
+          <rect x={x - 9} y={y} width={18} height={1} fill="#e2e8f0" />
+          {/* stone hut */}
+          <rect x={x - 34} y={y - 7} width={12} height={7} fill="#78716c" />
+          <rect x={x - 34} y={y - 5} width={12} height={1} fill="#57534e" />
+          <rect x={x - 36} y={y - 8} width={16} height={1} fill="#44403c" />
+          <rect x={x - 30} y={y - 4} width={2} height={4} fill="#292524" />
+          {/* a line of flags between two poles */}
+          <rect x={x + 26} y={y - 9} width={1} height={9} fill="#57534e" />
+          <rect x={x + 44} y={y - 9} width={1} height={9} fill="#57534e" />
+          {['#ef4444', '#facc15', '#22c55e', '#3b82f6', '#f8fafc'].map(
+            (c, i) => (
+              <rect
+                key={c}
+                x={x + 28 + i * 3}
+                y={y - 8 + (i % 2)}
+                width={2}
+                height={2}
+                fill={c}
+              />
+            ),
+          )}
+          <WeatherStation x={x + 12} y={y} />
+        </g>
+      );
+  }
+}
+
+// the balloon, small in its world
+const BASKET_W = 10;
+const BASKET_H = 4;
+const RIDER_SHOWN = 8; // rows of the half-size rider above the rim
+const ROPE = 3;
+const CRAFT_W = 2 * ENVELOPE_RADIUS + 4;
+const CRAFT_H = BASKET_H + RIDER_SHOWN + ROPE + 2 * ENVELOPE_RADIUS + 2;
 const CRAFT_PALETTE = {
   K: '#1f2937',
   N: '#e4572e', // envelope gores
@@ -48,25 +547,6 @@ const CRAFT_PALETTE = {
   O: '#c08a4a', // wicker
   o: '#8a5a2b',
 };
-const ROCK = {
-  mesa: ['#c2703d', '#9a5530'],
-  ridge: ['#7c8a99', '#5d6875'],
-  pad: ['#7b8b5a', '#5f6e43'],
-  tower: ['#64748b', '#475569'],
-};
-
-const BASKET_W = 22;
-const BASKET_H = 7;
-const RIDER_SHOWN = 18; // rows of the rider above the rim; the rest hide behind it
-const ROPE = 6; // art px from the rider's head to the envelope
-const CRAFT_W = 2 * ENVELOPE_RADIUS + 4;
-const CRAFT_H = BASKET_H + RIDER_SHOWN + ROPE + 2 * ENVELOPE_RADIUS + 2;
-
-const fmt = (n: number, digits = 0) =>
-  n.toLocaleString('en-US', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
 
 /** The envelope and ropes: curved gores, shining when taut, creased when slack */
 function envelopeRows(radius: number, taut: boolean) {
@@ -74,7 +554,7 @@ function envelopeRows(radius: number, taut: boolean) {
   const cx = CRAFT_W / 2;
   const ropeTop = CRAFT_H - BASKET_H - RIDER_SHOWN - ROPE;
   const ry = taut ? radius : radius * 1.08; // slack, it sags a little
-  const cy = ropeTop - ry + 2;
+  const cy = ropeTop - ry + 1;
   for (let py = Math.floor(cy - ry); py <= cy + ry; py++)
     for (let px = Math.floor(cx - radius); px <= cx + radius; px++) {
       const dx = (px + 0.5 - cx) / radius;
@@ -87,26 +567,16 @@ function envelopeRows(radius: number, taut: boolean) {
       );
       p.set(px, py, gore % 2 ? 'n' : 'N');
     }
-  if (taut)
-    p.ellipse(
-      cx - radius * 0.4,
-      cy - ry * 0.45,
-      radius * 0.18,
-      ry * 0.12,
-      'W',
+  if (taut) p.set(cx - radius * 0.45, cy - ry * 0.45, 'W', false);
+  else
+    p.line(
+      cx - radius * 0.3,
+      cy + ry * 0.2,
+      cx - radius * 0.25,
+      cy + ry * 0.8,
+      'f',
       false,
     );
-  else
-    for (const fx of [-0.35, 0.3])
-      p.line(
-        cx + fx * radius,
-        cy + ry * 0.2,
-        cx + fx * radius * 0.8,
-        cy + ry * 0.85,
-        'f',
-        false,
-      );
-  // ropes down to the basket's corners
   const rimY = CRAFT_H - BASKET_H;
   const bx = (CRAFT_W - BASKET_W) / 2;
   p.line(cx - radius * 0.5, cy + ry * 0.85, bx, rimY - 1, 'T', false);
@@ -124,126 +594,53 @@ function envelopeRows(radius: number, taut: boolean) {
 function basketRows() {
   const p = new Painter(BASKET_W + 2, BASKET_H + 1);
   p.rect(1, 0, BASKET_W, BASKET_H, 'O');
-  for (let i = 0; i < BASKET_W; i += 3)
+  for (let i = 1; i < BASKET_W; i += 3)
     p.rect(1 + i, 1, 1, BASKET_H - 1, 'o', false);
-  p.rect(1, 0, BASKET_W, 1, 'o', false); // the rim
   return p.rows();
 }
 
-/** A platform's rock, tower or pad, from its top down to the ground */
-function PlatformShape({ platform }: { platform: Platform }) {
-  const top = Math.round(y(platform.height));
-  const cx = Math.round(x(platform.distance));
-  const [light, dark] = ROCK[platform.kind as PlatformKind];
-  const depth = GROUND_Y - top;
-  if (platform.kind === 'tower')
-    return (
-      <g>
-        <rect
-          x={cx - TOP_HALF.tower}
-          y={top}
-          width={TOP_HALF.tower * 2}
-          height={3}
-          fill={dark}
-        />
-        {[-9, 7].map((dx) => (
-          <rect
-            key={dx}
-            x={cx + dx}
-            y={top + 3}
-            width={2}
-            height={depth - 3}
-            fill={dark}
-          />
-        ))}
-        {Array.from({ length: Math.floor(depth / 8) }, (_, i) => (
-          <rect
-            key={i}
-            x={cx - 9}
-            y={top + 6 + i * 8}
-            width={18}
-            height={1}
-            fill={light}
-          />
-        ))}
-      </g>
+/** The view's size in art px, from the space it has on screen */
+function useViewSize() {
+  const frame = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(400);
+  useEffect(() => {
+    const el = frame.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) =>
+      setWidth(
+        Math.round(
+          Math.min(
+            MAX_VIEW,
+            Math.max(MIN_VIEW, entry.contentRect.width / CSS_PER_ART),
+          ),
+        ),
+      ),
     );
-  // stepped sides: wider further down, like eroded rock
-  const steps = platform.kind === 'ridge' ? 6 : 3;
-  const halfTop = TOP_HALF[platform.kind];
-  return (
-    <g>
-      {Array.from({ length: steps }, (_, i) => {
-        const sy = top + (depth * i) / steps;
-        const half = halfTop + i * (platform.kind === 'ridge' ? 6 : 3);
-        return (
-          <g key={i}>
-            <rect
-              x={cx - half}
-              y={Math.round(sy)}
-              width={half * 2}
-              height={Math.ceil(depth / steps) + 1}
-              fill={light}
-            />
-            <rect
-              x={cx + half - 3}
-              y={Math.round(sy)}
-              width={3}
-              height={Math.ceil(depth / steps) + 1}
-              fill={dark}
-            />
-          </g>
-        );
-      })}
-      <rect
-        x={cx - halfTop}
-        y={top}
-        width={halfTop * 2}
-        height={1}
-        fill="#e7e5e4"
-      />
-      {/* the weather station: a mast with a little vane */}
-      <rect
-        x={cx + halfTop - 6}
-        y={top - 7}
-        width={1}
-        height={7}
-        fill="#334155"
-      />
-      <rect
-        x={cx + halfTop - 8}
-        y={top - 8}
-        width={5}
-        height={1}
-        fill="#334155"
-      />
-    </g>
-  );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  const height = Math.round(Math.max(MIN_VIEW_HEIGHT, width * ASPECT));
+  return { frame, view: { width, height } };
 }
-
-const CLOUDS = [
-  [90, 30, 18],
-  [230, 16, 24],
-  [335, 52, 16],
-  [160, 72, 14],
-];
 
 interface Props {
   balloon: Balloon;
   flight: Flight;
   distance: number; // m along the route
-  platforms: Platform[];
+  leg: Leg;
   rider?: Rider; // Mr. G, until a student's avatar takes his place
 }
 
-/** The sky side on: platforms, the height ruler, and the balloon with its rider */
+/** One leg of the journey, side on, with the camera following the balloon */
 export default function BalloonScene({
   balloon,
   flight,
   distance,
-  platforms,
+  leg,
   rider = MR_G,
 }: Props) {
+  const { frame, view } = useViewSize();
+  const world = worldSize(leg);
   const gas = gasInside(balloon, flight);
   const radius = Math.round(envelopeRadius(gas.volume, balloon.fullVolume));
   const envelope = useMemo(
@@ -251,124 +648,144 @@ export default function BalloonScene({
     [radius, gas.taut],
   );
   const basket = useMemo(basketRows, []);
-  const riderRows = balloonOutfit(rider.rows('idle')).slice(0, RIDER_ROWS);
+  const riderRows = halfSize(balloonOutfit(rider.rows('idle')));
 
-  const craftX = Math.round(x(distance) - CRAFT_W / 2);
-  const craftY = Math.round(y(flight.height) - CRAFT_H);
+  const at = { x: worldX(leg, distance), y: worldY(leg, flight.height) };
+  const cam = camera(leg, view, at);
+  const craftX = Math.round(at.x - CRAFT_W / 2);
+  const craftY = Math.round(at.y - CRAFT_H);
   const rimY = craftY + CRAFT_H - BASKET_H;
-  const percent = (v: number, of: number) => `${(v / of) * 100}%`;
+  const inView = (wx: number, wy: number) => ({
+    left: `${((wx - cam.x) / view.width) * 100}%`,
+    top: `${((wy - cam.y) / view.height) * 100}%`,
+  });
 
-  // on a narrow screen, pan to keep the balloon in view
-  const frame = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = frame.current;
-    if (!el || el.scrollWidth <= el.clientWidth) return;
-    el.scrollLeft = (x(distance) / WIDTH) * el.scrollWidth - el.clientWidth / 3;
-  }, [distance]);
+  const clouds = useMemo(
+    () =>
+      Array.from({ length: Math.ceil(world.width / 70) }, (_, i) => ({
+        x: Math.round(hash(i + 3) * world.width),
+        // up in the sky, above the places, not drifting through them
+        y: Math.round(
+          8 +
+            hash(i + 5) *
+              (worldY(leg, Math.max(leg.from.height, leg.to.height) + 120) - 8),
+        ),
+        w: 12 + Math.round(hash(i + 9) * 16),
+      })),
+    [leg, world.width],
+  );
+  // where each place's signpost stands: on its ground, off to one side
+  const sign = (p: Platform) => ({
+    x: Math.round(worldX(leg, p.distance + SIGN_OFFSET)),
+    y: Math.round(worldY(leg, p.height - STRUCTURE[p.kind])),
+  });
+
+  const places = [leg.from, leg.to];
 
   return (
-    <div className="relative w-full pixel-control">
-      <div ref={frame} className="overflow-x-auto">
-        <div className="relative" style={{ minWidth: MIN_WIDTH }}>
-          <svg
-            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-            shapeRendering="crispEdges"
-            className="block h-auto w-full"
-            aria-hidden="true"
-          >
-            {SKY.map((c, i) => (
-              <rect
-                key={c}
-                x={0}
-                y={(HEIGHT * (SKY.length - 1 - i)) / SKY.length}
-                width={WIDTH}
-                height={HEIGHT / SKY.length + 1}
-                fill={c}
-              />
-            ))}
-            {CLOUDS.map(([cx, cy, w]) => (
-              <g key={cx} fill="#ffffff" opacity={0.85}>
-                <rect x={cx} y={cy} width={w} height={4} />
-                <rect x={cx + 3} y={cy - 3} width={w - 8} height={3} />
-              </g>
-            ))}
-            <rect
-              x={0}
-              y={GROUND_Y}
-              width={WIDTH}
-              height={HEIGHT - GROUND_Y}
-              fill="#6a9a4a"
+    <div ref={frame} className="relative w-full overflow-hidden pixel-control">
+      <svg
+        viewBox={`${cam.x} ${cam.y} ${view.width} ${view.height}`}
+        shapeRendering="crispEdges"
+        className="block h-auto w-full"
+        aria-hidden="true"
+      >
+        {SKY.map((c, i) => (
+          <rect
+            key={c}
+            x={0}
+            y={(world.height * i) / SKY.length}
+            width={world.width}
+            height={world.height / SKY.length + 1}
+            fill={c}
+          />
+        ))}
+        <g
+          transform={`translate(${cam.x * PARALLAX} ${cam.y * PARALLAX * 0.5})`}
+        >
+          <FarHills leg={leg} width={world.width} />
+        </g>
+        {clouds.map((c, i) => (
+          <Cloud key={i} {...c} />
+        ))}
+        <Birds leg={leg} width={world.width} />
+        <Terrain leg={leg} width={world.width} height={world.height} />
+        <Countryside leg={leg} width={world.width} />
+        {places.map((p) => {
+          const ground = Math.round(worldY(leg, p.height - STRUCTURE[p.kind]));
+          return (
+            <AreaProps
+              key={p.name}
+              kind={p.kind}
+              x={Math.round(worldX(leg, p.distance))}
+              y={ground}
+              deck={Math.round(worldY(leg, p.height))}
             />
-            <rect x={0} y={GROUND_Y} width={WIDTH} height={1} fill="#8cc068" />
-            {platforms.map((p) => (
-              <PlatformShape key={p.name} platform={p} />
-            ))}
-          </svg>
+          );
+        })}
+        {places.map((p) => (
+          <rect
+            key={p.name}
+            x={sign(p).x}
+            y={sign(p).y - SIGN_POST}
+            width={1}
+            height={SIGN_POST}
+            fill="#5c3a1c"
+          />
+        ))}
+      </svg>
 
-          {/* the balloon: envelope and ropes, the rider, then the basket over their legs */}
-          <svg
-            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-            className="pointer-events-none absolute inset-0 h-full w-full"
-            role="img"
-            aria-label={`${rider.name} in the balloon’s basket, at ${fmt(flight.height)} m`}
-          >
-            <g transform={`translate(${craftX} ${craftY})`}>
-              <PixelArt rows={envelope} palette={CRAFT_PALETTE} scale={1 / 4} />
-            </g>
-            <g
-              transform={`translate(${craftX + (CRAFT_W - 20) / 2} ${rimY - RIDER_SHOWN})`}
-            >
-              <PixelArt
-                rows={riderRows}
-                palette={{ ...rider.palette, ...BALLOON_PALETTE }}
-                scale={1 / 4}
-              />
-            </g>
-            <g
-              transform={`translate(${craftX + (CRAFT_W - BASKET_W) / 2 - 1} ${rimY})`}
-            >
-              <PixelArt rows={basket} palette={CRAFT_PALETTE} scale={1 / 4} />
-            </g>
-          </svg>
+      {/* the balloon: envelope and ropes, the rider, then the basket over their legs */}
+      <svg
+        viewBox={`${cam.x} ${cam.y} ${view.width} ${view.height}`}
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        role="img"
+        aria-label={`${rider.name} in the balloon’s basket, at ${fmt(Math.round(flight.height))} m`}
+      >
+        <g transform={`translate(${craftX} ${craftY})`}>
+          <PixelArt rows={envelope} palette={CRAFT_PALETTE} scale={1 / 4} />
+        </g>
+        <g
+          transform={`translate(${craftX + (CRAFT_W - riderRows[0].length) / 2} ${rimY - RIDER_SHOWN})`}
+        >
+          <PixelArt
+            rows={riderRows}
+            palette={{ ...rider.palette, ...BALLOON_PALETTE }}
+            scale={1 / 4}
+          />
+        </g>
+        <g
+          transform={`translate(${craftX + (CRAFT_W - BASKET_W) / 2 - 1} ${rimY})`}
+        >
+          <PixelArt rows={basket} palette={CRAFT_PALETTE} scale={1 / 4} />
+        </g>
+      </svg>
 
-          {platforms.map((p) => {
-            const air = airAt(p.height);
-            return (
-              <div
-                key={p.name}
-                role="group"
-                aria-label={p.name}
-                // just right of the platform's top, clear of the balloon
-                className="absolute flex flex-col whitespace-nowrap rounded-sm bg-slate-900/75 px-1 py-0.5 font-sans text-[10px] leading-none text-white sm:px-1.5 sm:text-[11px] sm:leading-tight"
-                style={{
-                  left: percent(x(p.distance) + TOP_HALF[p.kind] + 2, WIDTH),
-                  bottom: percent(HEIGHT - y(p.height), HEIGHT),
-                }}
-              >
-                <span className="font-semibold">{fmt(p.height)} m</span>
-                <span>{fmt(air.pressure / 1000, 1)} kPa</span>
-                <span>{fmt(air.temperature - ZERO_CELSIUS, 1)} °C</span>
-              </div>
-            );
-          })}
+      {/* each place's signboard, on its post: its name and height */}
+      {places.map((p) => (
+        <div
+          key={p.name}
+          role="group"
+          aria-label={p.name}
+          className="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-sm border border-amber-900 bg-amber-100 px-1.5 py-0.5 font-sans text-[10px] leading-tight text-amber-950 shadow sm:text-xs"
+          style={inView(sign(p).x, sign(p).y - SIGN_POST)}
+        >
+          <span className="font-semibold">{p.name}</span>{' '}
+          <span>{fmt(p.height)} m</span>
         </div>
-      </div>
+      ))}
 
-      {/* pinned at the left, so it stays put while the sky pans */}
       <ul
         aria-label="Height"
         className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-sky-100/70 to-transparent font-sans text-[10px] text-slate-800 sm:text-[11px]"
       >
-        {Array.from(
-          { length: TOP_HEIGHT / RULER_STEP + 1 },
-          (_, i) => i * RULER_STEP,
-        ).map((h) => (
+        {rulerMarks(leg, { y: cam.y, height: view.height }).map((m) => (
           <li
-            key={h}
+            key={m.height}
             className="absolute left-1.5 -translate-y-1/2 whitespace-nowrap border-b border-slate-700/60 leading-none"
-            style={{ top: percent(y(h), HEIGHT) }}
+            style={{ top: `${((m.y - cam.y) / view.height) * 100}%` }}
           >
-            {fmt(h)} m
+            {fmt(m.height)} m
           </li>
         ))}
       </ul>

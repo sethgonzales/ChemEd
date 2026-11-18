@@ -5,7 +5,7 @@ import {
   bubbleDuration,
   WELCOME_DELAY_MS,
 } from '~/utils/guide';
-import { WET_LABS } from '~/constants/guide-tips';
+import { IN_GAME_PAGES, WET_LABS } from '~/constants/guide-tips';
 import { GuideProvider, useGuide } from './guide';
 
 const playTreasure = jest.fn();
@@ -335,6 +335,14 @@ describe('Mr. G’s safety goggles', () => {
   it('pushes them up on pages without chemicals', () => {
     renderGuide('/lewis-structures');
     expect(pictured()).toHaveAccessibleName('Mr. G');
+  });
+});
+
+describe('pages where Mr. G is already in the game', () => {
+  it.each(IN_GAME_PAGES)('stays out of the corner on %s', (page) => {
+    renderGuide(page);
+    expect(mrG()).toBeNull();
+    expect(screen.getByTestId('visible')).toHaveTextContent('not showing');
   });
 });
 

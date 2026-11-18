@@ -1,31 +1,27 @@
 import { render, screen, within } from '@testing-library/react';
-import type { Platform } from '~/constants/balloon-world';
+import type { Leg } from '~/constants/balloon-world';
 import type { Rider } from '~/constants/riders';
-import { airAt } from '~/utils/atmosphere';
 import BalloonScene from './balloon-scene';
 
 const balloon = { fullVolume: 1000, burstOverpressure: 15000, payload: 600 };
-const flight = { moles: 20000, gasTemperature: 288.15, height: 300, speed: 0 };
-const platforms: Platform[] = [
-  { name: 'Launch pad', kind: 'pad', distance: 200, height: 300 },
-  { name: 'The ridge', kind: 'ridge', distance: 2400, height: 1500 },
-];
+const flight = { moles: 21000, gasTemperature: 285, height: 200, speed: 0 };
+const leg: Leg = {
+  from: { name: 'Launch field', kind: 'field', distance: 0, height: 200 },
+  to: { name: 'Red Mesa', kind: 'mesa', distance: 5000, height: 800 },
+  valley: 150,
+};
 
 function renderScene(rider?: Rider) {
   render(
     <BalloonScene
       balloon={balloon}
       flight={flight}
-      distance={200}
-      platforms={platforms}
+      distance={0}
+      leg={leg}
       rider={rider}
     />,
   );
 }
-
-const kPa = (h: number) => `${(airAt(h).pressure / 1000).toFixed(1)} kPa`;
-const celsius = (h: number) =>
-  `${(airAt(h).temperature - 273.15).toFixed(1)} °C`;
 
 describe('BalloonScene', () => {
   it('has Mr. G riding in the basket', () => {
@@ -49,22 +45,17 @@ describe('BalloonScene', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('marks each platform with its height and a weather station’s readings', () => {
+  it('shows the leg: where you are and where you’re headed, with their heights', () => {
     renderScene();
-    const ridge = screen.getByRole('group', { name: 'The ridge' });
-    expect(within(ridge).getByText('1,500 m')).toBeInTheDocument();
-    expect(within(ridge).getByText(kPa(1500))).toBeInTheDocument();
-    expect(within(ridge).getByText(celsius(1500))).toBeInTheDocument();
-
-    const pad = screen.getByRole('group', { name: 'Launch pad' });
-    expect(within(pad).getByText('300 m')).toBeInTheDocument();
+    const from = screen.getByRole('group', { name: 'Launch field' });
+    expect(within(from).getByText('200 m')).toBeInTheDocument();
+    const to = screen.getByRole('group', { name: 'Red Mesa' });
+    expect(within(to).getByText('800 m')).toBeInTheDocument();
   });
 
-  it('has a height ruler up the side', () => {
+  it('has a height ruler for what’s in view', () => {
     renderScene();
     const ruler = screen.getByRole('list', { name: 'Height' });
-    for (const mark of ['0 m', '500 m', '1,000 m', '1,500 m']) {
-      expect(within(ruler).getByText(mark)).toBeInTheDocument();
-    }
+    expect(within(ruler).getByText('200 m')).toBeInTheDocument();
   });
 });
