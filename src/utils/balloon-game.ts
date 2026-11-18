@@ -4,6 +4,7 @@ import {
   avogadroLeg,
   boyleLeg,
   charlesLeg,
+  combinedLeg,
   gayLussacLeg,
   type GasLeg,
 } from '~/utils/balloon-legs';
@@ -24,7 +25,7 @@ export const LEVELS: Level[] = [
   { id: 'charles', title: 'Charles’s law', ready: true },
   { id: 'gay-lussac', title: 'Gay-Lussac’s law', ready: true },
   { id: 'avogadro', title: 'Avogadro’s law', ready: true },
-  { id: 'combined', title: 'Combined gas law' },
+  { id: 'combined', title: 'Combined gas law', ready: true },
   { id: 'ideal', title: 'Ideal gas law' },
   { id: 'free', title: 'Free flight' },
   { id: 'dalton', title: 'Dalton’s law', ap: true },
@@ -65,6 +66,7 @@ const LEGS: Record<string, (index: number, seed: number) => GasLeg> = {
   charles: charlesLeg,
   'gay-lussac': gayLussacLeg,
   avogadro: avogadroLeg,
+  combined: combinedLeg,
 };
 
 /** The leg being flown, with its numbers */

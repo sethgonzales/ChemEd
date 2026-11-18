@@ -5,6 +5,7 @@ import type { FlightPlan } from '~/utils/balloon-flight';
 import {
   balloonFor,
   startFlight,
+  tiesOff,
   type GasLeg,
   type Law,
 } from '~/utils/balloon-legs';
@@ -48,6 +49,12 @@ const ASKS: Record<Law, Ask> = {
     action: 'Tie off and fly',
     flying: 'Tied off. Here we go…',
   },
+  combined: {
+    label: 'Volume to tie off at',
+    units: ['m³', 'L'],
+    action: 'Tie off and fly',
+    flying: 'Tied off, and the heater’s turned down. Up we go…',
+  },
   charles: {
     label: 'Heater temperature',
     units: ['K', '°C'],
@@ -86,6 +93,13 @@ export function briefing(g: GasLeg): string[] {
         `As we climb, the air thins and the balloon expands. I’ll tie the envelope off so it stops expanding just as we reach ${to}’s height: then we’ll float level with it and drift in.`,
         'Help me find the volume to tie it off at.',
       ];
+    case 'combined':
+      return [
+        `Next stop: ${to}, high up ahead.`,
+        'The tank’s shut, so the amount of helium isn’t changing. Everything else is: as we climb, the air thins and the balloon expands.',
+        `It’s colder up there, so I’ll turn the heater down to ${fmt(g.said - ZERO_CELSIUS, 1)} °C on the way, and the helium will cool and shrink a little as we go.`,
+        `I’ll tie the envelope off so it stops expanding just as we reach ${to}’s height. Help me find the volume to tie it off at.`,
+      ];
     case 'charles':
       return [
         `Next stop: ${to}, across at the same height.`,
@@ -116,6 +130,8 @@ export function hint(g: GasLeg): string {
   switch (g.law) {
     case 'boyle':
       return `Boyle’s law: with the temperature and the helium fixed, P₁V₁ = P₂V₂. P₁ and V₁ are ours now, on the balloon gauge and the volume meter. P₂ is the air pressure at ${g.leg.to.name}: its weather station reads it.`;
+    case 'combined':
+      return `The combined gas law: with the helium fixed, P₁V₁/T₁ = P₂V₂/T₂, with T in kelvin. P₁, V₁ and T₁ are ours now, on the balloon gauge, the volume meter and the helium thermometer. P₂ is the air pressure at ${g.leg.to.name}: its weather station reads it. T₂ is the heater’s new setting.`;
     case 'charles':
       return 'Charles’s law: with the pressure and the helium fixed, V₁/T₁ = V₂/T₂, with T in kelvin. V₁ is on the volume meter and T₁ on the helium thermometer. V₂ is the volume I need.';
     case 'gay-lussac':
@@ -131,9 +147,19 @@ export function worked(g: GasLeg): string[] {
   const inKelvin = `T₁ = ${fmt(r.celsius, 1)} °C + 273.15 = ${fmt(r.kelvin, 2)} K`;
   const temperature = (t: number) =>
     `T₂ = ${fmt(t, 1)} K (${fmt(t - ZERO_CELSIUS, 1)} °C)`;
+  const p2 = Number((airAt(g.leg.to.height).pressure / 1000).toFixed(1));
   switch (g.law) {
+    case 'combined': {
+      const t2 = g.said; // K: he says a whole or half °C, so this is exact
+      return [
+        'P₁V₁/T₁ = P₂V₂/T₂, so V₂ = P₁V₁T₂ ÷ (P₂T₁)',
+        inKelvin,
+        `T₂ = ${fmt(g.said - ZERO_CELSIUS, 1)} °C + 273.15 = ${fmt(t2, 2)} K`,
+        `V₂ = ${fmt(r.p1, 1)} kPa × ${fmt(r.v1)} m³ × ${fmt(t2, 2)} K ÷ (${fmt(p2, 1)} kPa × ${fmt(r.kelvin, 2)} K)`,
+        `V₂ = ${fmt((r.p1 * r.v1 * t2) / (p2 * r.kelvin))} m³`,
+      ];
+    }
     case 'boyle': {
-      const p2 = Number((airAt(g.leg.to.height).pressure / 1000).toFixed(1));
       return [
         'P₁V₁ = P₂V₂, so V₂ = P₁V₁ ÷ P₂',
         `V₂ = ${fmt(r.p1, 1)} kPa × ${fmt(r.v1)} m³ ÷ ${fmt(p2, 1)} kPa`,
@@ -170,6 +196,11 @@ const MISSES: Record<Law, Partial<Record<FlightPlan['outcome'], string>>> = {
     short:
       'Tied off too small: we stopped expanding too low and couldn’t clear the climb to {to}.',
   },
+  combined: {
+    over: 'Tied off too big: we kept expanding, climbed too high and sailed right over {to}.',
+    short:
+      'Tied off too small: we stopped expanding too low and couldn’t clear the climb to {to}.',
+  },
   charles: {
     over: 'Too hot: we grew bigger than we needed, had lift to spare, and climbed right over {to}.',
     short:
@@ -191,11 +222,7 @@ const MISSES: Record<Law, Partial<Record<FlightPlan['outcome'], string>>> = {
 export function verdict(plan: FlightPlan, g: GasLeg): string {
   const { from, to } = g.leg;
   if (plan.outcome === 'landed') return `We’re down on ${to.name}!`;
-  if (
-    g.law === 'boyle' &&
-    plan.outcome === 'short' &&
-    plan.stopAt === from.distance
-  )
+  if (tiesOff(g) && plan.outcome === 'short' && plan.stopAt === from.distance)
     return `We’re already bigger than that, so tied off there we couldn’t expand, and without expanding we couldn’t climb. We never left ${from.name}.`;
   return (MISSES[g.law][plan.outcome] ?? '')
     .replace('{to}', to.name)

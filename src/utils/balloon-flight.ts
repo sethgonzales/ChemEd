@@ -9,8 +9,10 @@ import { SKY_ROOM, groundAt } from '~/utils/balloon-camera';
 import { solveGas } from '~/utils/gas-laws';
 import {
   balloonFor,
+  arrivalTemperature,
   rightAnswer,
   startFlight,
+  tiesOff,
   type GasLeg,
 } from '~/utils/balloon-legs';
 
@@ -61,9 +63,14 @@ function controlled(g: GasLeg, answer: number): Flight {
 
 /** Where the balloon stops expanding: the height whose air pressure is nRT/V */
 function tiedHeight(g: GasLeg, tiedAt: number) {
-  const now = gasInside(balloonFor(g), startFlight(g)).volume;
+  // at the helium's temperature as it arrives, if Mr. G turns the heater
+  const t = arrivalTemperature(g);
+  const now = gasInside(balloonFor(g), {
+    ...startFlight(g),
+    gasTemperature: t,
+  }).volume;
   if (tiedAt <= now) return g.leg.from.height; // already that big: no lift to climb
-  const p = solveGas({ v: tiedAt, n: g.moles, t: g.gasTemperature }).p;
+  const p = solveGas({ v: tiedAt, n: g.moles, t }).p;
   return Math.max(g.leg.from.height, heightAt(p));
 }
 
@@ -85,7 +92,7 @@ const tooHigh = (g: GasLeg, height: number) =>
 export function planFlight(g: GasLeg, answer: number): FlightPlan {
   const { from, to } = g.leg;
   const span = to.distance - from.distance;
-  const tiedAt = g.law === 'boyle' ? Math.min(answer, g.envelope) : undefined;
+  const tiedAt = tiesOff(g) ? Math.min(answer, g.envelope) : undefined;
   const error = (tiedAt ?? answer) / rightAnswer(g) - 1;
   const plan = { answer, tiedAt };
   if (Math.abs(error) <= TOLERANCE)
@@ -117,7 +124,7 @@ export function planFlight(g: GasLeg, answer: number): FlightPlan {
     };
   }
 
-  if (g.law !== 'boyle') {
+  if (!tiesOff(g)) {
     // too small to float, it never leaves the platform
     if (error < 0)
       return {
@@ -273,6 +280,14 @@ export function flightState(
   const answered = controlled(g, plan.answer);
   const gas: Partial<Flight> = {
     boyle: {},
+    // turned down, the heater lets the helium cool all the way up
+    combined: {
+      gasTemperature: lerp(
+        start.gasTemperature,
+        arrivalTemperature(g),
+        smooth(t),
+      ),
+    },
     charles: {
       gasTemperature: lerp(start.gasTemperature, answered.gasTemperature, ramp),
     },

@@ -6,6 +6,7 @@ import {
   avogadroLeg,
   boyleLeg,
   charlesLeg,
+  combinedLeg,
   gayLussacLeg,
   rightAnswer,
   tieOffVolume,
@@ -48,7 +49,7 @@ describe('Balloon Riser page', () => {
     await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
     expect(screen.getByRole('button', { name: /^Boyle’s law/ })).toBeEnabled();
     expect(
-      screen.getByRole('button', { name: /^Combined gas law \(coming soon\)/ }),
+      screen.getByRole('button', { name: /^Ideal gas law \(coming soon\)/ }),
     ).toBeDisabled();
   });
 
@@ -286,5 +287,18 @@ describe('the answer', () => {
     expect(answer).toContainElement(
       screen.getByRole('button', { name: 'Hint' }),
     );
+  });
+});
+
+describe('the combined gas law level', () => {
+  it('flies a right answer onto the next platform', async () => {
+    const u = user();
+    render(<BalloonRiser />);
+    await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
+    await u.click(screen.getByRole('button', { name: /^Combined gas law/ }));
+    await answer(u, rightAnswer(combinedLeg(0, seed)));
+    expect(
+      screen.getByText(`We’re down on ${combinedLeg(0, seed).leg.to.name}!`),
+    ).toBeInTheDocument();
   });
 });

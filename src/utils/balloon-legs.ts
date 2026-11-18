@@ -2,11 +2,13 @@ import {
   AVOGADRO_ROUTE,
   BALLOON,
   CHARLES_ROUTE,
+  COMBINED_ROUTE,
   GAY_LUSSAC_ROUTE,
   ROUTE,
   type Leg,
   type Platform,
 } from '~/constants/balloon-world';
+import { ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
 import { HELIUM_MOLAR_MASS, type Balloon, type Flight } from '~/utils/balloon';
 import { solveGas } from '~/utils/gas-laws';
@@ -15,7 +17,7 @@ import { createRng } from '~/utils/quest';
 // Each leg of a level: the platforms, and the balloon's helium as it sets off.
 // The numbers are seeded, so a retry gets fresh ones and a test can replay them.
 
-export type Law = 'boyle' | 'charles' | 'gay-lussac' | 'avogadro';
+export type Law = 'boyle' | 'charles' | 'gay-lussac' | 'avogadro' | 'combined';
 
 export const LEGS_PER_LEVEL = ROUTE.length - 1;
 export const BOYLE_LEGS = LEGS_PER_LEVEL;
@@ -33,6 +35,12 @@ const LOAD = [760, 840];
 const CARGO = [80, 160]; // kg picked up or dropped off (game values)
 const CARGO_STEP = 10; // kg
 const MOLE_STEP = 100; // the helium counter reads in hundreds
+// K: where the heater holds the helium before a climb into the cold, warm
+// enough that turning it down still leaves it above freezing
+const CLIMB_HEATER = [290, 300];
+// K the heater drops for the climb: at least 9 after rounding to half a
+// degree, so Boyle's law alone misses by more than the tolerance
+const COOL_DOWN = [9.5, 14];
 
 export interface GasLeg {
   law: Law;
@@ -196,6 +204,42 @@ export function gayLussacLeg(index: number, seed: number): GasLeg {
   };
 }
 
+/**
+ * A combined gas law leg: a long climb into colder air, the tank shut. The
+ * air thins, so the balloon expands, but Mr. G turns the heater down for the
+ * cold, so the helium cools and shrinks a little too: P₁V₁/T₁ = P₂V₂/T₂. He
+ * ties the envelope off at a volume, as on a Boyle's law leg, and holds it
+ * at the height where it stops expanding.
+ */
+export function combinedLeg(index: number, seed: number): GasLeg {
+  const rng = seeded(seed, index);
+  const from = COMBINED_ROUTE[index];
+  const to = COMBINED_ROUTE[index + 1];
+  const gasTemperature = Math.round(between(rng, CLIMB_HEATER) * 2) / 2;
+  // the heater's new setting, in whole or half degrees Celsius as he says it
+  const said =
+    ZERO_CELSIUS +
+    Math.round((gasTemperature - between(rng, COOL_DOWN) - ZERO_CELSIUS) * 2) /
+      2;
+  const target = between(rng, TIE_OFF);
+  return {
+    law: 'combined',
+    leg: legBetween(from, to),
+    moles: molesFor(airAt(to.height).pressure, target, said),
+    gasTemperature,
+    envelope: BALLOON.fullVolume,
+    payload: BALLOON.payload,
+    said,
+  };
+}
+
+/** Whether Mr. G ties the envelope off at the answer, as a volume */
+export const tiesOff = (g: GasLeg) => g.law === 'boyle' || g.law === 'combined';
+
+/** The helium's temperature (K) as it arrives: the heater's new setting, if he turns it */
+export const arrivalTemperature = (g: GasLeg) =>
+  g.law === 'combined' ? g.said : g.gasTemperature;
+
 /** Resting on its platform, ready to go */
 export const startFlight = (g: GasLeg): Flight => ({
   moles: g.moles,
@@ -216,10 +260,10 @@ export const tieOffVolume = (g: GasLeg) =>
   solveGas({
     p: airAt(g.leg.to.height).pressure,
     n: g.moles,
-    t: g.gasTemperature,
+    t: arrivalTemperature(g),
   }).v;
 
-/** The answer to a leg, in SI: m³ for Boyle's, K for the heater, mol for the tank */
+/** The answer to a leg, in SI: m³ to tie off at, K for the heater, mol for the tank */
 export function rightAnswer(g: GasLeg): number {
   const now = solveGas({
     p: airAt(g.leg.from.height).pressure,
@@ -228,6 +272,7 @@ export function rightAnswer(g: GasLeg): number {
   });
   switch (g.law) {
     case 'boyle':
+    case 'combined':
       return tieOffVolume(g);
     case 'charles':
       return (g.gasTemperature * g.said) / now.v;

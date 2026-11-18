@@ -12,6 +12,7 @@ import {
   balloonFor,
   boyleLeg,
   charlesLeg,
+  combinedLeg,
   gayLussacLeg,
   rightAnswer,
   startFlight,
@@ -252,5 +253,33 @@ describe('the shape of a flight', () => {
     // and it's down well before the flight's over, lying on the ground
     const end = flightAt(leg, plan, 1);
     expect(flightAt(leg, plan, 0.9).height).toBeCloseTo(end.height, 0);
+  });
+});
+
+describe('flying a combined gas law leg', () => {
+  const c = combinedLeg(0, 7);
+  const right = rightAnswer(c);
+
+  it('lands on the next platform with the right answer, or one rounded from the readings', () => {
+    for (const by of [1, 1.015, 0.985])
+      expect(planFlight(c, right * by).outcome).toBe('landed');
+    expect(flightAt(c, planFlight(c, right), 1)).toEqual({
+      distance: c.leg.to.distance,
+      height: c.leg.to.height,
+    });
+  });
+
+  it('sails over when tied off too big, and comes up short when too small', () => {
+    expect(planFlight(c, right * 1.1).outcome).toBe('over');
+    expect(planFlight(c, right * 0.96).outcome).toBe('short');
+  });
+
+  it('cools to the heater’s setting as it climbs, and arrives tied off at the answer', () => {
+    const plan = planFlight(c, right);
+    const start = flightState(c, plan, 0).flight;
+    const there = flightState(c, plan, 1);
+    expect(start.gasTemperature).toBeCloseTo(c.gasTemperature, 6);
+    expect(there.flight.gasTemperature).toBeCloseTo(c.said, 6);
+    expect(gasInside(there.balloon, there.flight).volume).toBeCloseTo(right, 0);
   });
 });

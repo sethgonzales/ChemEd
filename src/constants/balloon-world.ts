@@ -63,3 +63,11 @@ export const AVOGADRO_ROUTE = level(400, [
   ['Pine Lookout', 'lookout'],
   ['Long Field', 'field'],
 ]);
+
+// everything at once: a long climb into the cold, high country
+export const COMBINED_ROUTE: Platform[] = [
+  { name: 'Foothill Field', kind: 'field', distance: 0, height: 600 },
+  { name: 'Cedar Mesa', kind: 'mesa', distance: HOP, height: 1300 },
+  { name: 'Windy Lookout', kind: 'lookout', distance: 2 * HOP, height: 2000 },
+  { name: 'Snowcap Ridge', kind: 'ridge', distance: 3 * HOP, height: 2700 },
+];

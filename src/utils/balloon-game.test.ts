@@ -58,10 +58,11 @@ describe('a level of Balloon Riser', () => {
       'charles',
       'gay-lussac',
       'avogadro',
+      'combined',
     ]);
   });
 
-  it.each(['boyle', 'charles', 'gay-lussac', 'avogadro'])(
+  it.each(['boyle', 'charles', 'gay-lussac', 'avogadro', 'combined'])(
     'flies the %s level on its own law, all the way through',
     (level) => {
       let s = startLevel('general', level, 5);

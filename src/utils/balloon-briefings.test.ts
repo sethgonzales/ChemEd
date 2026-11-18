@@ -7,6 +7,7 @@ import {
   balloonFor,
   boyleLeg,
   charlesLeg,
+  combinedLeg,
   gayLussacLeg,
   rightAnswer,
   startFlight,
@@ -123,5 +124,44 @@ describe('what Mr. G says when it goes wrong', () => {
     const leg = LEGS['gay-lussac'];
     expect(after(leg, 1.1)).toMatch(/burst/);
     expect(after(leg, 0.9)).toMatch(/vented/);
+  });
+});
+
+describe('Mr. G on a combined gas law leg', () => {
+  const c = combinedLeg(0, 3);
+
+  it('names the next stop, and gives only the heater’s new setting', () => {
+    const text = briefing(c).join(' ');
+    expect(text).toMatch(new RegExp(c.leg.to.name));
+    const numbers = text.match(/[\d,.]*\d/g) ?? [];
+    expect(numbers).toHaveLength(1);
+    expect(Number(numbers[0])).toBeCloseTo(c.said - 273.15, 1);
+  });
+
+  it('hints at the combined gas law', () => {
+    expect(hint(c)).toContain('P₁V₁/T₁ = P₂V₂/T₂');
+  });
+
+  it('works the answer from the readings', () => {
+    const lines = worked(c);
+    expect(lines[0]).toContain('P₁V₁/T₁ = P₂V₂/T₂');
+    const last = Number(
+      lines
+        .at(-1)!
+        .match(/= ([\d,.]+) m³/)![1]
+        .replace(/,/g, ''),
+    );
+    expect(last / rightAnswer(c)).toBeCloseTo(1, 2);
+  });
+
+  it('asks for a volume to tie off at', () => {
+    expect(ask(c).units).toContain('m³');
+  });
+
+  it('says what went wrong, and that it lands', () => {
+    const right = rightAnswer(c);
+    expect(verdict(planFlight(c, right), c)).toMatch(/down on/);
+    expect(verdict(planFlight(c, right * 1.1), c)).toMatch(/over/);
+    expect(verdict(planFlight(c, right * 0.96), c)).toMatch(/small/);
   });
 });

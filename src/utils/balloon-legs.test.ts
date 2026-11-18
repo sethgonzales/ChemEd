@@ -7,6 +7,7 @@ import {
   balloonFor,
   boyleLeg,
   charlesLeg,
+  combinedLeg,
   gayLussacLeg,
   rightAnswer,
   startFlight,
@@ -217,5 +218,69 @@ describe('Gay-Lussac’s law legs', () => {
         liftOff({ ...full, payload: full.payload * 1.02 }, startFlight(g)),
       ).toBe(false);
     }
+  });
+});
+
+describe('combined gas law legs', () => {
+  const these = Array.from({ length: LEGS_PER_LEVEL }, (_, i) =>
+    combinedLeg(i, 42),
+  );
+  const many = Array.from({ length: 200 }, (_, s) =>
+    Array.from({ length: LEGS_PER_LEVEL }, (_, i) => combinedLeg(i, s)),
+  ).flat();
+  const readings = (g: GasLeg) => ({
+    p1: airAt(g.leg.from.height).pressure, // balloon gauge
+    v1: gasInside(balloonFor(g), startFlight(g)).volume, // volume meter
+    t1: g.gasTemperature, // helium thermometer
+    p2: airAt(g.leg.to.height).pressure, // the next stop's station
+  });
+
+  it('climbs platform to platform, each leg starting where the last one landed', () => {
+    for (let i = 1; i < these.length; i++)
+      expect(these[i].leg.from).toEqual(these[i - 1].leg.to);
+    for (const { leg } of these)
+      expect(leg.to.height).toBeGreaterThan(leg.from.height);
+  });
+
+  it('turns the heater down for the climb: the one number Mr. G gives', () => {
+    for (const g of many) {
+      expect(g.said).toBeLessThan(g.gasTemperature);
+      expect(g.gasTemperature - g.said).toBeGreaterThanOrEqual(9);
+    }
+  });
+
+  it('ties off at the volume the combined gas law gives from the readings and the heater', () => {
+    for (const g of these) {
+      const { p1, v1, t1, p2 } = readings(g);
+      expect(rightAnswer(g) / ((p1 * v1 * g.said) / (p2 * t1))).toBeCloseTo(
+        1,
+        9,
+      );
+    }
+  });
+
+  it('needs the temperature: Boyle’s law alone misses', () => {
+    for (const g of many) {
+      const { p1, v1, p2 } = readings(g);
+      expect(Math.abs((p1 * v1) / p2 / rightAnswer(g) - 1)).toBeGreaterThan(
+        0.025,
+      );
+    }
+  });
+
+  it('asks for a volume bigger than now that still fits in the envelope', () => {
+    for (const g of many) {
+      expect(rightAnswer(g)).toBeGreaterThan(readings(g).v1 * 1.02);
+      expect(rightAnswer(g)).toBeLessThan(g.envelope);
+    }
+  });
+
+  it('gives fresh numbers on a retry, and the same ones for the same seed', () => {
+    expect(combinedLeg(0, 42)).toEqual(combinedLeg(0, 42));
+    expect(combinedLeg(0, 43)).not.toEqual(combinedLeg(0, 42));
+  });
+
+  it('reads helium in whole hundreds of moles, like the counter shows', () => {
+    for (const g of these) expect(g.moles % 100).toBe(0);
   });
 });
