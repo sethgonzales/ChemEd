@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import type { Leg } from '~/constants/balloon-world';
 import type { Rider } from '~/constants/riders';
+import { airAt } from '~/utils/atmosphere';
 import BalloonScene from './balloon-scene';
 
 const balloon = { fullVolume: 1000, burstOverpressure: 15000, payload: 600 };
@@ -11,17 +12,22 @@ const leg: Leg = {
   valley: 150,
 };
 
-function renderScene(rider?: Rider) {
+function renderScene(rider?: Rider, at = { distance: 0, flight }) {
   render(
     <BalloonScene
       balloon={balloon}
-      flight={flight}
-      distance={0}
+      flight={at.flight}
+      distance={at.distance}
       leg={leg}
       rider={rider}
     />,
   );
 }
+
+// on the ground at sea level, helium at the air's 15 °C
+const seaLevel = { moles: 20000, gasTemperature: 288.15, height: 0, speed: 0 };
+const gauge = (group: HTMLElement, name: string) =>
+  within(group).getByRole('button', { name: new RegExp(`^${name}`) });
 
 describe('BalloonScene', () => {
   it('has Mr. G riding in the basket', () => {
@@ -51,6 +57,61 @@ describe('BalloonScene', () => {
     expect(within(from).getByText('200 m')).toBeInTheDocument();
     const to = screen.getByRole('group', { name: 'Red Mesa' });
     expect(within(to).getByText('800 m')).toBeInTheDocument();
+  });
+
+  it('rings the balloon with its own gauges, reading live', () => {
+    renderScene(undefined, { distance: 0, flight: seaLevel });
+    const own = screen.getByRole('group', { name: 'The balloon' });
+    expect(gauge(own, 'Helium thermometer')).toHaveAccessibleName(
+      'Helium thermometer: 15.0 °C',
+    );
+    expect(gauge(own, 'Balloon gauge')).toHaveAccessibleName(
+      'Balloon gauge: 101.3 kPa',
+    );
+    expect(gauge(own, 'Volume meter')).toHaveAccessibleName(
+      'Volume meter: 473 m³',
+    );
+    expect(gauge(own, 'Helium counter')).toHaveAccessibleName(
+      'Helium counter: 20,000 mol',
+    );
+    expect(within(own).getAllByRole('button')).toHaveLength(4);
+  });
+
+  it('keeps the air’s instruments apart from the balloon’s', () => {
+    renderScene(undefined, { distance: 0, flight: seaLevel });
+    const air = screen.getByRole('group', { name: 'The air here' });
+    expect(gauge(air, 'Altimeter')).toHaveAccessibleName('Altimeter: 0 m');
+    expect(gauge(air, 'Outside thermometer')).toHaveAccessibleName(
+      'Outside thermometer: 15.0 °C',
+    );
+    expect(gauge(air, 'Barometer')).toHaveAccessibleName(
+      'Barometer: 101.3 kPa',
+    );
+    expect(within(air).getAllByRole('button')).toHaveLength(3);
+  });
+
+  it('reads the next stop’s weather station on the station, once it’s in view', () => {
+    renderScene();
+    expect(
+      screen.queryByRole('group', { name: 'Red Mesa weather station' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the station’s readings as you arrive', () => {
+    renderScene(undefined, {
+      distance: 4900,
+      flight: { ...flight, height: 900 },
+    });
+    const station = screen.getByRole('group', {
+      name: 'Red Mesa weather station',
+    });
+    const air = airAt(800);
+    expect(gauge(station, 'Barometer')).toHaveAccessibleName(
+      `Barometer: ${(air.pressure / 1000).toFixed(1)} kPa`,
+    );
+    expect(gauge(station, 'Thermometer')).toHaveAccessibleName(
+      `Thermometer: ${(air.temperature - 273.15).toFixed(1)} °C`,
+    );
   });
 
   it('has a height ruler for what’s in view', () => {

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import BalloonInstruments from '~/components/balloon-instruments';
 import BalloonScene from '~/components/balloon-scene';
 import Container from '~/components/container';
 import { ATMOSPHERE_SOURCE } from '~/constants/atmosphere';
@@ -33,19 +32,12 @@ export default function BalloonRiser() {
       backHref="/"
       sources={[ATMOSPHERE_SOURCE, 'codata', 'siBrochure', 'ciaawWeights']}
     >
-      <div className="flex flex-col gap-4">
-        <BalloonScene
-          balloon={BALLOON}
-          flight={flight}
-          distance={spot.distance}
-          leg={leg}
-        />
-        <BalloonInstruments
-          balloon={BALLOON}
-          flight={flight}
-          station={leg.to}
-        />
-      </div>
+      <BalloonScene
+        balloon={BALLOON}
+        flight={flight}
+        distance={spot.distance}
+        leg={leg}
+      />
     </Container>
   );
 }

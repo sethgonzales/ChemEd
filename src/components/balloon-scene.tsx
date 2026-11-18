@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  airDevices,
+  balloonDevices,
+  stationDevices,
+} from '~/components/balloon-devices';
+import Gauge, { CARD_WIDTH } from '~/components/balloon-gauges';
 import PixelArt from '~/components/pixel-art';
 import { BALLOON_PALETTE, balloonOutfit } from '~/constants/balloon-outfit';
 import type { AreaKind, Leg, Platform } from '~/constants/balloon-world';
@@ -22,13 +28,13 @@ import { Painter } from '~/utils/pixel-painter';
 // screen so pixels stay about the same size everywhere; on a phone you see
 // less of the world, not a smaller one.
 const CSS_PER_ART = 3.4; // screen px per art px, roughly
-const MIN_VIEW = 220; // art px wide
+const MIN_VIEW = 170; // art px wide; a phone sees less, so its gauges have room
 const MAX_VIEW = 520;
 const ASPECT = 0.36; // height over width: room for the land and a balloon above it
-const MIN_VIEW_HEIGHT = 150;
+const MIN_VIEW_HEIGHT = 160; // a taller-than-wide-ratio view on phones
 const COLUMN = 2; // art px per column of ground
 const PARALLAX = 0.5; // the far hills move half as fast as the camera
-const SIGN_OFFSET = 260; // m from a landing spot to its signpost, clear of the balloon
+const SIGN_OFFSET = 330; // m from a landing spot to its signpost, clear of the balloon's gauges
 const SIGN_POST = 6; // art px tall
 
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -135,11 +141,14 @@ function FarHills({ leg, width }: { leg: Leg; width: number }) {
         <g key={seed} fill={color}>
           {Array.from({ length: Math.ceil(width / step) }, (_, i) => {
             const x = i * step;
-            const h =
+            // whole pixels: the server's Math.sin and the browser's can differ
+            // in the last digit, which would break hydration
+            const h = Math.round(
               amp *
-              (0.55 +
-                0.3 * Math.sin(x / 47 + seed) +
-                0.15 * Math.sin(x / 13 + seed * 3));
+                (0.55 +
+                  0.3 * Math.sin(x / 47 + seed) +
+                  0.15 * Math.sin(x / 13 + seed * 3)),
+            );
             return (
               <rect key={i} x={x} y={base - h} width={step} height={h + 40} />
             );
@@ -328,6 +337,14 @@ function Birds({ leg, width }: { leg: Leg; width: number }) {
   );
 }
 
+// where each place's weather station stands, art px from its landing spot
+const STATION_AT: Record<AreaKind, number> = {
+  field: 12,
+  mesa: 12,
+  lookout: -22,
+  ridge: 12,
+};
+
 /** A weather station: a louvred Stevenson screen on legs, and an anemometer */
 function WeatherStation({ x, y }: { x: number; y: number }) {
   return (
@@ -434,7 +451,7 @@ function AreaProps({
           <rect x={x + 47} y={y - 14} width={2} height={2} fill="#f97316" />
           <rect x={x + 49} y={y - 14} width={2} height={2} fill="#f8fafc" />
           <rect x={x + 51} y={y - 13} width={2} height={1} fill="#f97316" />
-          <WeatherStation x={x + 12} y={y} />
+          <WeatherStation x={x + STATION_AT[kind]} y={y} />
         </g>
       );
     case 'mesa':
@@ -466,7 +483,7 @@ function AreaProps({
             </g>
           ))}
           <rect x={x + 48} y={y - 2} width={4} height={2} fill="#9a5530" />
-          <WeatherStation x={x + 12} y={y} />
+          <WeatherStation x={x + STATION_AT[kind]} y={y} />
         </g>
       );
     case 'lookout':
@@ -497,7 +514,7 @@ function AreaProps({
           <rect x={x + 2} y={deck - 7} width={8} height={7} fill="#a16207" />
           <rect x={x + 3} y={deck - 5} width={6} height={2} fill="#bae6fd" />
           <rect x={x + 1} y={deck - 8} width={10} height={1} fill="#7c2d12" />
-          <WeatherStation x={x - 22} y={y} />
+          <WeatherStation x={x + STATION_AT[kind]} y={y} />
         </g>
       );
     case 'ridge':
@@ -524,7 +541,7 @@ function AreaProps({
               />
             ),
           )}
-          <WeatherStation x={x + 12} y={y} />
+          <WeatherStation x={x + STATION_AT[kind]} y={y} />
         </g>
       );
   }
@@ -602,26 +619,51 @@ function basketRows() {
 /** The view's size in art px, from the space it has on screen */
 function useViewSize() {
   const frame = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(400);
+  const [screenWidth, setScreenWidth] = useState(400 * CSS_PER_ART); // CSS px
+  // until it's measured, the gauges' places are only the server's guess
+  const [measured, setMeasured] = useState(false);
   useEffect(() => {
     const el = frame.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(([entry]) =>
-      setWidth(
-        Math.round(
-          Math.min(
-            MAX_VIEW,
-            Math.max(MIN_VIEW, entry.contentRect.width / CSS_PER_ART),
-          ),
-        ),
-      ),
-    );
+    if (!el || typeof ResizeObserver === 'undefined') {
+      setMeasured(true);
+      return;
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setScreenWidth(entry.contentRect.width);
+      setMeasured(true);
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+  const width = Math.round(
+    Math.min(MAX_VIEW, Math.max(MIN_VIEW, screenWidth / CSS_PER_ART)),
+  );
   const height = Math.round(Math.max(MIN_VIEW_HEIGHT, width * ASPECT));
-  return { frame, view: { width, height } };
+  // CSS px per art px, for placing the gauges over the art
+  return {
+    frame,
+    view: { width, height },
+    scale: screenWidth / width,
+    measured,
+  };
 }
+
+// The balloon's gauges sit round it, CSS px from the middle of the craft:
+// helium temperature and pressure above, its volume and amount below
+const ORBIT = { x: 74, y: 36 };
+const GAUGE = { width: 64, height: 56 }; // CSS px, about, with its readout
+const ORBIT_AT = [
+  [-1, -1],
+  [1, -1],
+  [-1, 1],
+  [1, 1],
+] as const;
+
+const STATION_BOARD = { width: 132, height: 56 }; // CSS px: two gauges side by side
+const SKY_COLUMN = 84; // CSS px kept clear at the right for the air's gauges
+
+const clamp = (v: number, lo: number, hi: number) =>
+  Math.min(Math.max(v, lo), hi);
 
 interface Props {
   balloon: Balloon;
@@ -639,7 +681,7 @@ export default function BalloonScene({
   leg,
   rider = MR_G,
 }: Props) {
-  const { frame, view } = useViewSize();
+  const { frame, view, scale, measured } = useViewSize();
   const world = worldSize(leg);
   const gas = gasInside(balloon, flight);
   const radius = Math.round(envelopeRadius(gas.volume, balloon.fullVolume));
@@ -677,10 +719,73 @@ export default function BalloonScene({
   // where each place's signpost stands: on its ground, off to one side
   const sign = (p: Platform) => ({
     x: Math.round(worldX(leg, p.distance + SIGN_OFFSET)),
-    y: Math.round(worldY(leg, p.height - STRUCTURE[p.kind])),
+    y: Math.round(worldY(leg, groundAt(leg, p.distance + SIGN_OFFSET))),
   });
 
   const places = [leg.from, leg.to];
+
+  // the scene in CSS px, for the gauges laid over it
+  const screen = { width: view.width * scale, height: view.height * scale };
+  const toScreen = (wx: number, wy: number) => ({
+    x: (wx - cam.x) * scale,
+    y: (wy - cam.y) * scale,
+  });
+  const craft = toScreen(at.x, craftY + CRAFT_H / 2);
+  const own = balloonDevices(balloon, flight).map((device, i) => {
+    const [sx, sy] = ORBIT_AT[i];
+    const x = clamp(
+      craft.x + sx * ORBIT.x,
+      GAUGE.width / 2 + 4,
+      screen.width - GAUGE.width / 2 - 4,
+    );
+    const y = clamp(
+      craft.y + sy * ORBIT.y,
+      GAUGE.height / 2 + 4,
+      screen.height - GAUGE.height / 2 - 4,
+    );
+    return { device, x, y };
+  });
+  // a card opening up or down is nudged back inside the scene's edges
+  const cardShift = (x: number) =>
+    clamp(0, CARD_WIDTH / 2 + 4 - x, screen.width - 4 - CARD_WIDTH / 2 - x);
+
+  // the next stop's weather station, read on the station once it's in view
+  const next = leg.to;
+  const station = toScreen(
+    worldX(leg, next.distance) + STATION_AT[next.kind] + 3,
+    worldY(leg, next.height - STRUCTURE[next.kind]) - 12,
+  );
+  const stationInView = station.x > 40 && station.x < screen.width - 40;
+  // its readouts hang above it, or step aside on a tether when the balloon's
+  // gauges are in the way, as you arrive
+  const ring = {
+    left: craft.x - ORBIT.x - GAUGE.width / 2,
+    right: craft.x + ORBIT.x + GAUGE.width / 2,
+    top: craft.y - ORBIT.y - GAUGE.height / 2,
+    bottom: craft.y + ORBIT.y + GAUGE.height / 2,
+  };
+  const half = STATION_BOARD.width / 2;
+  const blocked =
+    station.x + half > ring.left &&
+    station.x - half < ring.right &&
+    station.y > ring.top &&
+    station.y - STATION_BOARD.height < ring.bottom;
+  // beside the ring if there's room, else below it, on the cliff face
+  const besideRight = ring.right + 8 + half;
+  const besideLeft = ring.left - 8 - half;
+  const board = !blocked
+    ? station
+    : besideRight + half < screen.width - SKY_COLUMN
+      ? { x: besideRight, y: station.y }
+      : besideLeft - half > 4
+        ? { x: besideLeft, y: station.y }
+        : {
+            x: clamp(station.x, half + 4, screen.width - SKY_COLUMN - half),
+            y: Math.min(
+              ring.bottom + 8 + STATION_BOARD.height,
+              screen.height - 4,
+            ),
+          };
 
   return (
     <div ref={frame} className="relative w-full overflow-hidden pixel-control">
@@ -694,9 +799,10 @@ export default function BalloonScene({
           <rect
             key={c}
             x={0}
-            y={(world.height * i) / SKY.length}
+            // whole pixels, so server and browser round them alike
+            y={Math.round((world.height * i) / SKY.length)}
             width={world.width}
-            height={world.height / SKY.length + 1}
+            height={Math.ceil(world.height / SKY.length) + 1}
             fill={c}
           />
         ))}
@@ -775,6 +881,7 @@ export default function BalloonScene({
         </div>
       ))}
 
+      {/* under the gauges, so they're never hidden behind it */}
       <ul
         aria-label="Height"
         className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-sky-100/70 to-transparent font-sans text-[10px] text-slate-800 sm:text-[11px]"
@@ -789,6 +896,83 @@ export default function BalloonScene({
           </li>
         ))}
       </ul>
+
+      {/* the balloon's own gauges, tethered to it */}
+      <div className={measured ? undefined : 'invisible'}>
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden="true"
+        >
+          {own.map(({ device, x, y }) => (
+            <line
+              key={device.name}
+              x1={craft.x}
+              y1={craft.y}
+              x2={x}
+              y2={y}
+              stroke="#fff7d6"
+              strokeOpacity={0.7}
+              strokeWidth={1}
+              strokeDasharray="3 3"
+            />
+          ))}
+          {stationInView && blocked && (
+            <line
+              x1={station.x}
+              y1={station.y + 10}
+              x2={board.x}
+              y2={board.y - STATION_BOARD.height / 2}
+              stroke="#f8fafc"
+              strokeOpacity={0.7}
+              strokeDasharray="3 3"
+            />
+          )}
+        </svg>
+        <div role="group" aria-label="The balloon">
+          {own.map(({ device, x, y }) => (
+            <div
+              key={device.name}
+              className="absolute -translate-x-1/2 -translate-y-1/2 has-[[aria-expanded=true]]:z-30"
+              style={{ left: x, top: y }}
+            >
+              <Gauge
+                device={device}
+                opens={y < screen.height / 2 ? 'down' : 'up'}
+                shift={cardShift(x)}
+              />
+            </div>
+          ))}
+        </div>
+
+        {stationInView && (
+          <div
+            role="group"
+            aria-label={`${next.name} weather station`}
+            className="absolute flex -translate-x-1/2 -translate-y-full gap-1 has-[[aria-expanded=true]]:z-30"
+            style={{ left: board.x, top: board.y }}
+          >
+            {stationDevices(next).map((device) => (
+              <Gauge
+                key={device.name}
+                device={device}
+                opens="up"
+                shift={cardShift(board.x)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* the sky's instruments, apart from the balloon's */}
+      <div
+        role="group"
+        aria-label="The air here"
+        className="absolute right-1.5 top-1.5 flex flex-col items-center gap-1 rounded-sm bg-primary-800/40 p-1 has-[[aria-expanded=true]]:z-30 sm:right-2 sm:top-2 sm:gap-2 sm:p-1.5"
+      >
+        {airDevices(balloon, flight).map((device) => (
+          <Gauge key={device.name} device={device} opens="left" />
+        ))}
+      </div>
     </div>
   );
 }
