@@ -43,7 +43,8 @@ export default function Gauge({ device, opens = 'down', shift = 0 }: Props) {
         onClick={() => setOpen(true)}
         className="flex cursor-pointer flex-col items-center gap-0.5"
       >
-        <span className="block size-8 rounded-full bg-primary-800/85 p-0.5 shadow ring-1 ring-white/40 sm:size-11">
+        {/* the device itself, no badge behind it; a shadow lifts it off the sky */}
+        <span className="block size-8 drop-shadow-[0_1px_1px_rgba(15,23,42,0.6)] sm:size-11">
           {device.picture}
         </span>
         <span className="whitespace-nowrap rounded-sm bg-[#10261a]/90 px-1 font-mono text-[10px] font-semibold leading-tight tabular-nums text-[#86efac] shadow sm:text-xs">
