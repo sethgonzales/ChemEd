@@ -279,6 +279,18 @@ export function balloonDevices(balloon: Balloon, flight: Flight): Device[] {
           },
         ]
       : []),
+    // only when it's filled from the depot's cylinders
+    ...(balloon.bank
+      ? [
+          {
+            name: 'Cylinder bank',
+            reading: `${fmt(balloon.bank * 1000)} L`,
+            measures:
+              'The inside volume of the bank of 50 L cylinders Mr. G fills at the depot and pumps into the balloon. Its helium is at the helium thermometer’s temperature.',
+            picture: <Cylinder />,
+          },
+        ]
+      : []),
     // only on a leaky hop: air's rate through a test patch of the fabric
     ...(balloon.leakTest
       ? [

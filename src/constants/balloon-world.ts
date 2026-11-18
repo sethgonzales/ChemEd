@@ -95,3 +95,11 @@ export const GRAHAM_ROUTE = level(1500, [
   ['Flats Field', 'field'],
   ['Last Ridge', 'ridge'],
 ]);
+
+// out past the helium depot, where the cylinder banks are filled
+export const REAL_ROUTE = level(900, [
+  ['Depot Field', 'field'],
+  ['Valve Mesa', 'mesa'],
+  ['Gauge Lookout', 'lookout'],
+  ['Summit Ridge', 'ridge'],
+]);

@@ -1,4 +1,11 @@
-import { fromSI, solveGas, toSI } from './gas-laws';
+import { HELIUM_VAN_DER_WAALS } from '~/constants/van-der-waals';
+import {
+  fromSI,
+  solveGas,
+  toSI,
+  vanDerWaalsMoles,
+  vanDerWaalsPressure,
+} from './gas-laws';
 
 // SI throughout: Pa, m³, mol, K
 const before = { p: 100000, v: 2, n: 80, t: 300 };
@@ -53,5 +60,29 @@ describe('units', () => {
     expect(fromSI(373.15, '°C')).toBeCloseTo(100, 9);
     expect(fromSI(101325, 'atm')).toBe(1);
     expect(fromSI(2, 'L')).toBe(2000);
+  });
+});
+
+describe('van der Waals helium', () => {
+  const he = HELIUM_VAN_DER_WAALS;
+  const ideal = (n: number, v: number, t: number) => (n * 8.314462618 * t) / v;
+
+  it('is near ideal when thin, as in a balloon', () => {
+    const p = vanDerWaalsPressure(he, 40000, 1000, 288);
+    expect(p / ideal(40000, 1000, 288)).toBeCloseTo(1, 2);
+  });
+
+  it('pushes harder than ideal packed into a cylinder: its atoms’ own size outweighs their pull', () => {
+    const p = vanDerWaalsPressure(he, 25000, 3, 288);
+    expect(p / ideal(25000, 3, 288)).toBeGreaterThan(1.1);
+  });
+
+  it('gives back the moles from the pressure', () => {
+    const p = vanDerWaalsPressure(he, 25000, 3, 288);
+    expect(vanDerWaalsMoles(he, p, 3, 288)).toBeCloseTo(25000, 3);
+  });
+
+  it('answers in bar too: 1 bar is 100 kPa', () => {
+    expect(toSI(200, 'bar')).toBe(20000000);
   });
 });

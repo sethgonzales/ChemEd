@@ -6,7 +6,8 @@ import {
   type Flight,
 } from '~/utils/balloon';
 import { SKY_ROOM, groundAt } from '~/utils/balloon-camera';
-import { solveGas } from '~/utils/gas-laws';
+import { HELIUM_VAN_DER_WAALS } from '~/constants/van-der-waals';
+import { solveGas, vanDerWaalsMoles } from '~/utils/gas-laws';
 import {
   balloonFor,
   arrivalTemperature,
@@ -58,6 +59,17 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 function controlled(g: GasLeg, answer: number): Flight {
   const start = startFlight(g);
   if (g.law === 'charles') return { ...start, gasTemperature: answer };
+  // the whole bank, filled to the answer, pumped in
+  if (g.law === 'real')
+    return {
+      ...start,
+      moles: vanDerWaalsMoles(
+        HELIUM_VAN_DER_WAALS,
+        answer,
+        g.bank!,
+        g.gasTemperature,
+      ),
+    };
   if (g.law === 'avogadro' || g.law === 'ideal' || g.law === 'dalton')
     return { ...start, moles: answer };
   return start;
@@ -322,6 +334,7 @@ export function flightState(
     avogadro: { moles: lerp(start.moles, answered.moles, ramp) },
     ideal: { moles: lerp(start.moles, answered.moles, ramp) },
     dalton: { moles: lerp(start.moles, answered.moles, ramp) },
+    real: { moles: lerp(start.moles, answered.moles, ramp) },
     // set off with the answer, it leaks steadily through the fabric
     graham: { moles: plan.answer - heliumLeak(g) * t },
     'gay-lussac': g.law === 'gay-lussac' ? sunlit(g, plan, t, at.height) : {},

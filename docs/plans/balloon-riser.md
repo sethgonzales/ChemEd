@@ -1,6 +1,6 @@
 # Balloon Riser — plan
 
-Status: **approved** (18 Nov 2026), see Decisions. Phases 1–4 built (engine, the look, Boyle's, then Charles's, Gay-Lussac's and Avogadro's); phase 5 built (combined, ideal, free flight); phase 6 under way: Dalton's and Graham's built, real gases next.
+Status: **approved** (18 Nov 2026), see Decisions. Phases 1–4 built (engine, the look, Boyle's, then Charles's, Gay-Lussac's and Avogadro's); phase 5 built (combined, ideal, free flight); phase 6 built (Dalton's, Graham's, real gases): every level is open.
 
 A game where Mr. G flies a sealed gas balloon from platform to platform across a side-on sky. Each hop is a gas law problem worked out with real numbers: the student reads the instruments, types an answer, and the balloon flies on that number. The flight is the feedback: a right answer lands on the platform, a wrong one overshoots or sinks short. It covers Boyle's, Charles's, Gay-Lussac's and Avogadro's laws, and the combined and ideal gas laws. Dalton's law, Graham's law and real gases are AP extras.
 
@@ -117,6 +117,7 @@ Each goes in `src/constants/sources.ts` and the page's Sources footer before it'
 6. **AP levels**: Dalton's law, Graham's law, real gases.
    - **Dalton's** (built): overnight, air seeped into the envelope and some helium out. A gas analyser reads the air's partial pressure inside; Mr. G gives the bigger volume that floats the heavier mix; the student finds the helium to have: n(He) = PV₂/RT − p(air)·V₁/RT. Leaving the air out, or keeping the helium there is, both miss. Flown like Avogadro's.
    - **Graham's** (built): long level hops across the salt flats, the fabric leaking helium through pinholes the whole way. Mr. G tested a patch with air; a leak tester reads air's rate (mol/min), and he gives the hop's minutes. Helium escapes √(M(air)/M(He)) ≈ 2.69 times faster, so the student finds the helium to set off with: n = n₁ + rate(air) × 2.69 × minutes. Too much climbs over; too little sets off and sinks partway once the leak takes it below floating. Graham's law cited from Wikipedia (crediting Petrucci et al., General Chemistry, 8th ed.).
+   - **Real gases** (built): the balloon starts empty; Mr. G fills a bank of 50 L cylinders at the depot to about 160–210 bar, then pumps it all in. He gives the volume to float; the bank's volume is on a Cylinder bank instrument. The student finds the moles with PV = nRT (thin in the balloon, ideal is fine), then the bank pressure with van der Waals, P = nRT/(V − nb) − an²/V², with helium's a = 0.0346 L²·bar/mol² and b = 0.0238 L/mol (CRC 53rd ed., via Wikipedia). The ideal answer under-fills by well over the 2% tolerance, so the balloon never leaves. The game takes van der Waals as the gas's true behaviour; real helium at 200 bar deviates from ideal by roughly half what van der Waals predicts, which is fine for teaching the equation but worth knowing.
 7. **Dungeon Quest**: a gas laws question source and chamber.
 
 ## Decisions (18 Nov 2026)

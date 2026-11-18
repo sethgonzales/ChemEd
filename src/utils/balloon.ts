@@ -21,6 +21,7 @@ export interface Balloon {
   burstOverpressure: number; // Pa above the outside air it can hold
   payload: number; // kg: the rider, basket, fabric and ballast
   leakTest?: number; // mol/min of air through a test patch of the fabric
+  bank?: number; // m³: the cylinder bank its helium is pumped in from
 }
 
 export interface Flight {

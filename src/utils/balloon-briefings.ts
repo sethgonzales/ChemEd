@@ -1,4 +1,5 @@
 import { AIR_MOLAR_MASS } from '~/constants/atmosphere';
+import { HELIUM_VAN_DER_WAALS } from '~/constants/van-der-waals';
 import { GAS_CONSTANT, ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
 import { HELIUM_MOLAR_MASS, gasInside } from '~/utils/balloon';
@@ -42,6 +43,12 @@ function shown(g: GasLeg) {
   };
 }
 
+// helium's van der Waals constants and R, in the litre-and-bar units they're
+// tabled in
+const VDW_A = (HELIUM_VAN_DER_WAALS.a * 10).toFixed(4); // L²·bar/mol²
+const VDW_B = (HELIUM_VAN_DER_WAALS.b * 1000).toFixed(4); // L/mol
+const R_BAR = (GAS_CONSTANT / 100).toFixed(5); // L·bar/(mol·K)
+
 // as the hint and working give them, g/mol
 const M_HE = (HELIUM_MOLAR_MASS * 1000).toFixed(3);
 const M_AIR = (AIR_MOLAR_MASS * 1000).toFixed(2);
@@ -69,6 +76,12 @@ const ASKS: Record<Law, Ask> = {
     units: ['m³', 'L'],
     action: 'Tie off and fly',
     flying: 'Tied off, and the heater’s turned down. Up we go…',
+  },
+  real: {
+    label: 'Fill the bank to',
+    units: ['bar', 'kPa', 'atm'],
+    action: 'Fill, pump in and fly',
+    flying: 'Bank’s full and pumping in. Here we go…',
   },
   graham: {
     label: 'Helium to set off with',
@@ -126,6 +139,13 @@ export function briefing(g: GasLeg): string[] {
         'The heater’s holding the helium at the same temperature, and the tank’s shut, so the temperature and the amount of helium aren’t changing.',
         `As we climb, the air thins and the balloon expands. I’ll tie the envelope off so it stops expanding just as we reach ${to}’s height: then we’ll float level with it and drift in.`,
         'Help me find the volume to tie it off at.',
+      ];
+    case 'real':
+      return [
+        `Next stop: ${to}, across at the same height.`,
+        'We’re empty, so I’ll fill our cylinder bank at the depot, then pump every bit of it into the balloon. The bank’s size is on its label.',
+        `To float across we need to be ${fmt(g.said)} m³. Packed into cylinders, helium doesn’t quite follow the ideal gas law.`,
+        'Help me find the pressure to fill the bank to.',
       ];
     case 'graham':
       return [
@@ -185,6 +205,8 @@ export function hint(g: GasLeg): string {
   switch (g.law) {
     case 'boyle':
       return `Boyle’s law: with the temperature and the helium fixed, P₁V₁ = P₂V₂. P₁ and V₁ are ours now, on the balloon gauge and the volume meter. P₂ is the air pressure at ${g.leg.to.name}: its weather station reads it.`;
+    case 'real':
+      return `Two steps. In the balloon the helium’s thin, so the ideal gas law works: n = PV ÷ RT, with P the air pressure on the balloon gauge, T on the helium thermometer and V the volume I need. Packed into the bank it isn’t, so use van der Waals: (P + an²/V²)(V − nb) = nRT, so P = nRT ÷ (V − nb) − an²/V². For helium a = ${VDW_A} L²·bar/mol² and b = ${VDW_B} L/mol; with V in litres, use R = ${R_BAR} L·bar/(mol·K) and P comes out in bar.`;
     case 'graham':
       return `Graham’s law: a gas escapes through tiny holes at a rate inversely proportional to the square root of its molar mass, so helium leaks √(M(air)/M(He)) times as fast as air, with M(He) = ${M_HE} g/mol and M(air) = ${M_AIR} g/mol. The leak tester reads air’s rate; over the hop’s minutes, helium’s rate gives what we’ll lose. Set off with what we have now, on the helium counter, plus that.`;
     case 'dalton':
@@ -210,6 +232,21 @@ export function worked(g: GasLeg): string[] {
     `T₂ = ${fmt(t, 1)} K (${fmt(t - ZERO_CELSIUS, 1)} °C)`;
   const p2 = Number((airAt(g.leg.to.height).pressure / 1000).toFixed(1));
   switch (g.law) {
+    case 'real': {
+      const n = (r.p1 * 1000 * g.said) / (Number(R) * r.kelvin);
+      const v = g.bank! * 1000; // L
+      const room = v - n * Number(VDW_B);
+      const push = (n * Number(R_BAR) * r.kelvin) / room;
+      const pull = (Number(VDW_A) * n * n) / (v * v);
+      return [
+        `T = ${fmt(r.celsius, 1)} °C + 273.15 = ${fmt(r.kelvin, 2)} K`,
+        `In the balloon: n = ${fmt(r.p1 * 1000)} Pa × ${fmt(g.said)} m³ ÷ (${R} J/(mol·K) × ${fmt(r.kelvin, 2)} K) = ${fmt(n)} mol`,
+        `In the bank: V − nb = ${fmt(v)} L − ${fmt(n)} mol × ${VDW_B} L/mol = ${fmt(room, 1)} L`,
+        `nRT ÷ (V − nb) = ${fmt(n)} × ${R_BAR} × ${fmt(r.kelvin, 2)} ÷ ${fmt(room, 1)} = ${fmt(push, 1)} bar`,
+        `an²/V² = ${VDW_A} × ${fmt(n)}² ÷ ${fmt(v)}² = ${fmt(pull, 2)} bar`,
+        `P = ${fmt(push, 1)} − ${fmt(pull, 2)} = ${fmt(push - pull, 1)} bar`,
+      ];
+    }
     case 'graham': {
       const factor = Math.sqrt(Number(M_AIR) / Number(M_HE));
       const rate = g.leakTest! * Number(factor.toFixed(3));
@@ -302,6 +339,11 @@ const MISSES: Record<Law, Partial<Record<FlightPlan['outcome'], string>>> = {
     over: 'Too hot: we grew bigger than we needed, had lift to spare, and climbed right over {to}.',
     short:
       'Too cool: we didn’t grow big enough to lift us, so we never left {from}.',
+  },
+  real: {
+    over: 'Filled too full: the bank held more helium than we needed, so we had lift to spare and climbed right over {to}.',
+    short:
+      'Not filled full enough: packed that tight, helium pushes harder than the ideal gas law says, so the bank held less than we needed and we never left {from}.',
   },
   graham: {
     over: 'Too much helium: even with the leak we had lift to spare, and climbed right over {to}.',

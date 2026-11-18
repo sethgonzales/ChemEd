@@ -15,6 +15,7 @@ import {
   combinedLeg,
   daltonLeg,
   grahamLeg,
+  realLeg,
   idealLeg,
   gayLussacLeg,
   rightAnswer,
@@ -341,5 +342,26 @@ describe('flying a Graham’s law leg', () => {
     expect(short.outcome).toBe('short');
     expect(short.stopAt).toBeGreaterThan(gr.leg.from.distance);
     expect(short.stopAt).toBeLessThan(gr.leg.to.distance);
+  });
+});
+
+describe('flying a real gas leg', () => {
+  const r = realLeg(0, 7);
+  const right = rightAnswer(r);
+
+  it('lands with the bank filled right; too full climbs over, and too empty never leaves', () => {
+    expect(planFlight(r, right).outcome).toBe('landed');
+    expect(planFlight(r, right * 1.1).outcome).toBe('over');
+    expect(planFlight(r, right * 0.9).outcome).toBe('short');
+  });
+
+  it('pumps the whole bank into the balloon', () => {
+    const plan = planFlight(r, right);
+    const end = flightState(r, plan, 1).flight;
+    expect(flightState(r, plan, 0).flight.moles).toBe(0);
+    const R = 8.314462618;
+    const needed =
+      (airAt(r.leg.from.height).pressure * r.said) / (R * r.gasTemperature);
+    expect(end.moles / needed).toBeCloseTo(1, 4);
   });
 });

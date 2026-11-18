@@ -6,6 +6,7 @@ import CalcPad, { Working } from '~/components/calc-pad';
 import Container from '~/components/container';
 import { Said, TypedBriefing } from '~/components/typed-text';
 import { ATMOSPHERE_SOURCE } from '~/constants/atmosphere';
+import { VAN_DER_WAALS_SOURCE } from '~/constants/van-der-waals';
 import {
   POPPED,
   ask,
@@ -77,6 +78,7 @@ const SCIENTISTS: Record<string, string> = {
   avogadro: 'Avogadro',
   dalton: 'Dalton',
   graham: 'Graham',
+  real: 'van der Waals',
 };
 
 const starText = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
@@ -345,6 +347,7 @@ export default function BalloonRiser() {
         'siBrochure',
         'ciaawWeights',
         'grahamsLaw',
+        VAN_DER_WAALS_SOURCE,
       ]}
     >
       <div className="flex flex-col gap-4">

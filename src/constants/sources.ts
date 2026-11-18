@@ -33,6 +33,15 @@ const ALL = {
     url: 'https://en.wikipedia.org/wiki/Graham%27s_law',
     accessed: '2026-11-18',
   },
+  vanDerWaals: {
+    topic:
+      'Helium’s van der Waals constants, a = 0.0346 L²·bar/mol² and b = 0.0238 L/mol; the page credits Weast, CRC Handbook of Chemistry and Physics (53rd ed., 1972)',
+    ...WIKIPEDIA,
+    year: 2026,
+    title: 'Van der Waals constants (data page)',
+    url: 'https://en.wikipedia.org/wiki/Van_der_Waals_constants_(data_page)',
+    accessed: '2026-11-18',
+  },
   codata: {
     topic: 'The Faraday constant F and the gas constant R',
     author: 'Tiesinga, E., Mohr, P. J., Newell, D. B. and Taylor, B. N.',

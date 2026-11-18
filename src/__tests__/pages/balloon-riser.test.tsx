@@ -46,15 +46,13 @@ async function answer(u: ReturnType<typeof user>, value: number) {
 }
 
 describe('Balloon Riser page', () => {
-  it('asks for the course, then offers the levels built so far', async () => {
+  it('asks for the course, then offers every level, the AP ones too', async () => {
     const u = user();
     render(<BalloonRiser />);
     await u.click(screen.getByRole('button', { name: 'AP Chemistry' }));
     expect(screen.getByRole('button', { name: /^Boyle’s law/ })).toBeEnabled();
     expect(screen.getByRole('button', { name: /^Free flight/ })).toBeEnabled();
-    expect(
-      screen.getByRole('button', { name: /^Real gases \(coming soon\)/ }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Real gases/ })).toBeEnabled();
   });
 
   it('has Mr. G brief the first leg, in the basket and on the radio', async () => {

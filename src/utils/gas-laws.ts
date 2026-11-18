@@ -1,4 +1,5 @@
 import { ATMOSPHERE, GAS_CONSTANT, ZERO_CELSIUS } from '~/constants/physical';
+import type { VanDerWaals } from '~/constants/van-der-waals';
 
 // One solver for every gas law: PV = nRT. Boyle's, Charles's, Gay-Lussac's,
 // Avogadro's and the combined law are all it with some quantities held fixed.
@@ -41,6 +42,7 @@ export function solveGas(before: Partial<Gas>, after?: Partial<Gas>): Gas {
 const UNITS = {
   Pa: [1, 0],
   kPa: [1000, 0],
+  bar: [100000, 0], // defined as 100 kPa
   atm: [ATMOSPHERE, 0],
   mmHg: [ATMOSPHERE / 760, 0], // 760 mmHg (torr) to the atmosphere
   'm³': [1, 0],
@@ -58,3 +60,33 @@ export const toSI = (value: number, unit: GasUnit) =>
 
 export const fromSI = (value: number, unit: GasUnit) =>
   (value - UNITS[unit][1]) / UNITS[unit][0];
+
+/**
+ * A real gas's pressure (Pa), by van der Waals: (P + an²/V²)(V − nb) = nRT.
+ * The molecules' own size (b) leaves less room, pushing it up; their pull on
+ * each other (a) eases it down.
+ */
+export const vanDerWaalsPressure = (
+  { a, b }: VanDerWaals,
+  n: number, // mol
+  v: number, // m³
+  t: number, // K
+) => (n * GAS_CONSTANT * t) / (v - n * b) - (a * n * n) / (v * v);
+
+/** The moles a real gas holds at a pressure: van der Waals solved for n */
+export function vanDerWaalsMoles(
+  gas: VanDerWaals,
+  p: number, // Pa
+  v: number, // m³
+  t: number, // K
+) {
+  // halving: below the packed-full limit V/b, the pressure only rises with n
+  let low = 0;
+  let high = v / gas.b;
+  for (let i = 0; i < 100; i++) {
+    const mid = (low + high) / 2;
+    if (vanDerWaalsPressure(gas, mid, v, t) < p) low = mid;
+    else high = mid;
+  }
+  return (low + high) / 2;
+}

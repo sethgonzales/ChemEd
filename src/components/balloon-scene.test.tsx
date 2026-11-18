@@ -109,6 +109,21 @@ describe('BalloonScene', () => {
     );
   });
 
+  it('adds the cylinder bank when there is one, reading its volume', () => {
+    render(
+      <BalloonScene
+        balloon={{ ...balloon, bank: 3.25 }}
+        flight={flight}
+        distance={0}
+        leg={leg}
+      />,
+    );
+    const own = screen.getByRole('group', { name: 'The balloon' });
+    expect(gauge(own, 'Cylinder bank')).toHaveAccessibleName(
+      'Cylinder bank: 3,250 L',
+    );
+  });
+
   it('keeps the air’s instruments apart from the balloon’s', () => {
     renderScene(undefined, { distance: 0, flight: seaLevel });
     const air = screen.getByRole('group', { name: 'The air here' });

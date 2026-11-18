@@ -5,6 +5,7 @@ import {
   COMBINED_ROUTE,
   DALTON_ROUTE,
   GRAHAM_ROUTE,
+  REAL_ROUTE,
   IDEAL_ROUTE,
   GAY_LUSSAC_ROUTE,
   ROUTE,
@@ -12,10 +13,11 @@ import {
   type Platform,
 } from '~/constants/balloon-world';
 import { AIR_MOLAR_MASS } from '~/constants/atmosphere';
-import { ZERO_CELSIUS } from '~/constants/physical';
+import { GAS_CONSTANT, ZERO_CELSIUS } from '~/constants/physical';
+import { HELIUM_VAN_DER_WAALS } from '~/constants/van-der-waals';
 import { airAt } from '~/utils/atmosphere';
 import { HELIUM_MOLAR_MASS, type Balloon, type Flight } from '~/utils/balloon';
-import { solveGas } from '~/utils/gas-laws';
+import { solveGas, vanDerWaalsPressure } from '~/utils/gas-laws';
 import { createRng } from '~/utils/quest';
 
 // Each leg of a level: the platforms, and the balloon's helium as it sets off.
@@ -29,7 +31,8 @@ export type Law =
   | 'combined'
   | 'ideal'
   | 'dalton'
-  | 'graham';
+  | 'graham'
+  | 'real';
 
 export const LEGS_PER_LEVEL = ROUTE.length - 1;
 export const BOYLE_LEGS = LEGS_PER_LEVEL;
@@ -57,6 +60,9 @@ const HELIUM_LOSS = [0.06, 0.12]; // of the helium
 const HOP_MINUTES = [30, 60];
 const MINUTE_STEP = 5;
 const LEAK_SHARE = [0.06, 0.12];
+// the depot's cylinders, and the pressures a bank is filled to (game values)
+const CYLINDER = 0.05; // m³, a 50 L cylinder
+const BANK_FILL = [160e5, 210e5]; // Pa
 // Graham's law: through the same pinholes, helium escapes this many times
 // faster than air, √(M(air) / M(He))
 export const GRAHAM_FACTOR = Math.sqrt(AIR_MOLAR_MASS / HELIUM_MOLAR_MASS);
@@ -79,6 +85,7 @@ export interface GasLeg {
   cargo?: 'picked up' | 'dropped off';
   airMoles?: number; // mol of air leaked in, on a Dalton's law leg
   leakTest?: number; // mol/min of air through a test patch, on a Graham's law leg
+  bank?: number; // m³ of cylinders, on a real gas leg
 }
 
 const between = (rng: () => number, [low, high]: number[]) =>
@@ -358,6 +365,35 @@ function grahamBetween(
 export const heliumLeak = (g: GasLeg) =>
   (g.leakTest ?? 0) * GRAHAM_FACTOR * g.said;
 
+/**
+ * A real gas leg: the balloon starts empty, and Mr. G fills a bank of
+ * cylinders at the depot, then pumps it all in. Packed that tight, helium
+ * pushes harder than the ideal gas law says, so the pressure to fill the bank
+ * to comes from van der Waals, for the moles that float the balloon.
+ */
+function realBetween(from: Platform, to: Platform, rng: () => number): GasLeg {
+  const ideal = idealBetween(from, to, rng);
+  const n = neededMoles(ideal);
+  const t = ideal.gasTemperature;
+  // about the bank that holds them at a cylinder's pressure, in whole cylinders
+  const room =
+    n * HELIUM_VAN_DER_WAALS.b +
+    (n * GAS_CONSTANT * t) / between(rng, BANK_FILL);
+  return {
+    ...ideal,
+    law: 'real',
+    bank: Math.round(room / CYLINDER) * CYLINDER,
+  };
+}
+
+/** mol that fill the volume Mr. G needs, slack at the air's pressure */
+const neededMoles = (g: GasLeg) =>
+  solveGas({
+    p: airAt(g.leg.from.height).pressure,
+    v: g.said,
+    t: g.gasTemperature,
+  }).n;
+
 type Builder = (from: Platform, to: Platform, rng: () => number) => GasLeg;
 
 /** Each law's leg between any two platforms, for a route of mixed laws */
@@ -370,6 +406,7 @@ export const BUILDERS: Record<Law, Builder> = {
   ideal: idealBetween,
   dalton: daltonBetween,
   graham: grahamBetween,
+  real: realBetween,
 };
 
 /** A level's legs along its own route, the numbers seeded per leg */
@@ -385,6 +422,7 @@ export const combinedLeg = onRoute(COMBINED_ROUTE, combinedBetween);
 export const idealLeg = onRoute(IDEAL_ROUTE, idealBetween);
 export const daltonLeg = onRoute(DALTON_ROUTE, daltonBetween);
 export const grahamLeg = onRoute(GRAHAM_ROUTE, grahamBetween);
+export const realLeg = onRoute(REAL_ROUTE, realBetween);
 
 /** Whether Mr. G ties the envelope off at the answer, as a volume */
 export const tiesOff = (g: GasLeg) => g.law === 'boyle' || g.law === 'combined';
@@ -407,6 +445,7 @@ export const balloonFor = (g: GasLeg, tiedAt?: number): Balloon => ({
   ...BALLOON,
   payload: g.payload,
   leakTest: g.leakTest,
+  bank: g.bank,
   fullVolume: Math.min(tiedAt ?? g.envelope, g.envelope),
 });
 
@@ -441,6 +480,13 @@ export function rightAnswer(g: GasLeg): number {
       }).n;
     case 'graham':
       return g.moles + heliumLeak(g);
+    case 'real':
+      return vanDerWaalsPressure(
+        HELIUM_VAN_DER_WAALS,
+        neededMoles(g),
+        g.bank!,
+        g.gasTemperature,
+      );
     case 'dalton':
       // all the moles that fill the volume at the total pressure, less the air's
       return (

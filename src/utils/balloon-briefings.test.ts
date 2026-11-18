@@ -10,6 +10,7 @@ import {
   combinedLeg,
   daltonLeg,
   grahamLeg,
+  realLeg,
   idealLeg,
   gayLussacLeg,
   rightAnswer,
@@ -276,5 +277,41 @@ describe('Mr. G on a Graham’s law leg', () => {
     const right = rightAnswer(gr);
     expect(verdict(planFlight(gr, right * 1.1), gr)).toMatch(/over/);
     expect(verdict(planFlight(gr, right * 0.97), gr)).toMatch(/sank/);
+  });
+});
+
+describe('Mr. G on a real gas leg', () => {
+  const r = realLeg(0, 3);
+
+  it('names the next stop, and gives only the volume he needs', () => {
+    const text = briefing(r).join(' ');
+    expect(text).toMatch(new RegExp(r.leg.to.name));
+    const numbers = text.match(/[\d,.]*\d/g) ?? [];
+    expect(numbers).toHaveLength(1);
+    expect(Number(numbers[0]!.replace(/,/g, ''))).toBe(r.said);
+  });
+
+  it('hints at van der Waals, with helium’s constants', () => {
+    expect(hint(r)).toContain('(P + an²/V²)(V − nb) = nRT');
+    expect(hint(r)).toContain('0.0346');
+    expect(hint(r)).toContain('0.0238');
+  });
+
+  it('works the answer from the readings', () => {
+    const lines = worked(r);
+    const last = Number(
+      lines
+        .at(-1)!
+        .match(/= ([\d,.]+) bar$/)![1]
+        .replace(/,/g, ''),
+    );
+    expect((last * 1e5) / rightAnswer(r)).toBeCloseTo(1, 2);
+  });
+
+  it('asks for a pressure, and says what went wrong', () => {
+    expect(ask(r).units).toContain('bar');
+    const right = rightAnswer(r);
+    expect(verdict(planFlight(r, right * 1.1), r)).toMatch(/over/);
+    expect(verdict(planFlight(r, right * 0.9), r)).toMatch(/never left/);
   });
 });

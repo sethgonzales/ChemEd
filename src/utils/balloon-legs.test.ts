@@ -10,6 +10,7 @@ import {
   combinedLeg,
   daltonLeg,
   grahamLeg,
+  realLeg,
   idealLeg,
   gayLussacLeg,
   rightAnswer,
@@ -456,5 +457,58 @@ describe('Graham’s law legs', () => {
   it('gives fresh numbers on a retry, and the same ones for the same seed', () => {
     expect(grahamLeg(0, 42)).toEqual(grahamLeg(0, 42));
     expect(grahamLeg(0, 43)).not.toEqual(grahamLeg(0, 42));
+  });
+});
+
+describe('real gas legs', () => {
+  const R = 8.314462618;
+  const he = { a: 0.00346, b: 0.0000238 }; // Pa·m⁶/mol², m³/mol
+  const these = Array.from({ length: LEGS_PER_LEVEL }, (_, i) =>
+    realLeg(i, 42),
+  );
+  const many = Array.from({ length: 200 }, (_, s) =>
+    Array.from({ length: LEGS_PER_LEVEL }, (_, i) => realLeg(i, s)),
+  ).flat();
+  // the moles that fill the volume Mr. G needs, slack at the air's pressure
+  const needed = (g: GasLeg) =>
+    (airAt(g.leg.from.height).pressure * g.said) / (R * g.gasTemperature);
+
+  it('hop platform to platform at the same height, starting empty', () => {
+    for (const { leg } of these) expect(leg.to.height).toBe(leg.from.height);
+    for (const g of these) expect(startFlight(g).moles).toBe(0);
+  });
+
+  it('have a bank of whole 50 L cylinders', () => {
+    for (const g of many) {
+      const litres = balloonFor(g).bank! * 1000;
+      expect(Math.abs(litres / 50 - Math.round(litres / 50))).toBeLessThan(
+        1e-9,
+      );
+    }
+  });
+
+  it('ask for the pressure to fill the bank to: van der Waals, for the moles that float us', () => {
+    for (const g of these) {
+      const n = needed(g);
+      const v = balloonFor(g).bank!;
+      const t = g.gasTemperature;
+      const p = (n * R * t) / (v - n * he.b) - (he.a * n * n) / (v * v);
+      expect(rightAnswer(g) / p).toBeCloseTo(1, 6);
+    }
+  });
+
+  it('fill it to a cylinder’s pressures, where the ideal gas law misses', () => {
+    for (const g of many) {
+      expect(rightAnswer(g)).toBeGreaterThan(140e5);
+      expect(rightAnswer(g)).toBeLessThan(240e5);
+      const v = balloonFor(g).bank!;
+      const ideal = (needed(g) * R * g.gasTemperature) / v;
+      expect(Math.abs(ideal / rightAnswer(g) - 1)).toBeGreaterThan(0.025);
+    }
+  });
+
+  it('gives fresh numbers on a retry, and the same ones for the same seed', () => {
+    expect(realLeg(0, 42)).toEqual(realLeg(0, 42));
+    expect(realLeg(0, 43)).not.toEqual(realLeg(0, 42));
   });
 });
