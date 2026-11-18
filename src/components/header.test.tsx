@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '~/styles/theme-provider';
 import Header from './header';
@@ -11,10 +11,10 @@ jest.mock('~/utils/sounds', () => ({
 
 beforeEach(() => playBloop.mockClear());
 
-function renderHeader() {
+function renderHeader(page = '/') {
   render(
     <ThemeProvider>
-      <Header />
+      <Header page={page} />
     </ThemeProvider>,
   );
 }
@@ -49,11 +49,45 @@ describe('Header', () => {
     expect(playBloop).toHaveBeenCalled();
   });
 
-  it('has a mute switch for the sounds', () => {
+  it('has a sound button for the volume', () => {
     renderHeader();
-    expect(
-      screen.getByRole('button', { name: 'Mute sounds' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sound' })).toBeInTheDocument();
+  });
+
+  describe('scrolling down the page', () => {
+    const scrollTo = (y: number) =>
+      act(() => {
+        Object.assign(window, { scrollY: y });
+        window.dispatchEvent(new Event('scroll'));
+      });
+
+    beforeEach(() =>
+      Object.defineProperty(document.documentElement, 'scrollHeight', {
+        configurable: true,
+        value: 5000,
+      }),
+    );
+    afterEach(() => scrollTo(0));
+
+    it('shrinks to symbols beside its buttons, and grows back at the top', () => {
+      renderHeader();
+      scrollTo(400);
+      expect(screen.queryByText('Carbon')).not.toBeInTheDocument();
+      expect(screen.getByText('He')).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: 'ChemEd home' }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sound' })).toBeInTheDocument();
+
+      scrollTo(0);
+      expect(screen.getByText('Carbon')).toBeInTheDocument();
+    });
+  });
+
+  it('stays slim inside a simulation, even at the top of the page', () => {
+    renderHeader('/periodic-table');
+    expect(screen.queryByText('Carbon')).not.toBeInTheDocument();
+    expect(screen.getByText('He')).toBeInTheDocument();
   });
 
   it('has a switch for the readable font', () => {

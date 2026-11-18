@@ -31,7 +31,7 @@ export default function App({ Component, pageProps, router }: AppProps) {
       <div className={pixel.variable}>
         <GuideProvider page={router.pathname}>
           <Suspense fallback={<Loading />}>
-            <Header />
+            <Header page={router.pathname} />
             {/* on desktop, room at the bottom so pages can scroll clear of Mr. G */}
             <div className="p-6 sm:p-10 md:pb-36 text-secondary-500">
               <Component {...pageProps} />

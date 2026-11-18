@@ -7,7 +7,7 @@ import {
   themeFor,
   type Instrument,
 } from '~/utils/music';
-import { MUTE_EVENT, audioContext, isMuted } from '~/utils/sounds';
+import { MUTE_EVENT, audioContext, isMuted, speakers } from '~/utils/sounds';
 
 // Plays the soundtrack by scheduling each note a moment ahead on the audio
 // clock, which keeps time even when the page is busy. One theme at a time,
@@ -99,7 +99,7 @@ function start(id: string, from = 0) {
   const track = mode ? TRACKS[mode](theme) : theme;
   const beat = 60 / track.bpm; // s
   const out = ctx.createGain();
-  out.connect(ctx.destination);
+  out.connect(speakers()!);
   const t0 = ctx.currentTime + START_DELAY - from * beat;
   let scheduled = from; // beats scheduled so far
   const schedule = () => {

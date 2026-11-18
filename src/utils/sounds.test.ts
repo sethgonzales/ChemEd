@@ -1,8 +1,11 @@
 import { act, renderHook } from '@testing-library/react';
 import {
+  getVolume,
   isMuted,
   resetSounds,
   setMuted,
+  setVolume,
+  useVolume,
   useBloop,
   useChimeSound,
   useDamageSound,
@@ -16,7 +19,7 @@ import {
   useTick,
   useTreasureSound,
 } from './sounds';
-import { mockAudioContext } from './test-audio';
+import { mockAudioContext, speakers } from './test-audio';
 
 // every pitch the oscillators were given
 const pitches = (ctx: ReturnType<typeof mockAudioContext>['ctx']) =>
@@ -298,6 +301,64 @@ describe('muting', () => {
     Object.assign(globalThis, { AudioContext: undefined });
     const { result } = renderHook(() => useTreasureSound());
     expect(() => result.current()).not.toThrow();
+  });
+});
+
+describe('volume', () => {
+  const tick = () => renderHook(() => useTick()).result.current();
+  const door = () => renderHook(() => useDoorSound()).result.current();
+
+  it('starts at full volume', () => {
+    expect(getVolume()).toBe(1);
+  });
+
+  it('sends every sound, dry or echoing, through one volume control', () => {
+    const { ctx } = mockAudioContext();
+    tick();
+    jest.advanceTimersByTime(1000);
+    door();
+    const [volume, ...others] = speakers(ctx);
+    expect(others).toEqual([]);
+    expect(volume.gain.value).toBe(1);
+  });
+
+  it('turns sounds down, even ones already wired up, and is remembered', () => {
+    const { ctx } = mockAudioContext();
+    tick();
+    setVolume(0.5);
+    const [volume] = speakers(ctx);
+    expect(volume.gain.value).toBeGreaterThan(0);
+    expect(volume.gain.value).toBeLessThan(0.5); // halfway should sound half as loud
+    expect(getVolume()).toBe(0.5);
+    expect(localStorage.getItem('chem.sound.volume')).toBe('0.5');
+  });
+
+  it('starts new audio at the remembered volume', () => {
+    setVolume(0);
+    const { ctx } = mockAudioContext();
+    tick();
+    expect(speakers(ctx)[0].gain.value).toBe(0);
+  });
+
+  it('keeps to 0–100%, and ignores a garbled remembered value', () => {
+    setVolume(3);
+    expect(getVolume()).toBe(1);
+    setVolume(-1);
+    expect(getVolume()).toBe(0);
+    localStorage.setItem('chem.sound.volume', 'loud');
+    expect(getVolume()).toBe(1);
+  });
+});
+
+describe('useVolume', () => {
+  it('reads the remembered volume and sets it', () => {
+    setVolume(0.3);
+    const { result } = renderHook(() => useVolume());
+    expect(result.current[0]).toBe(0.3);
+
+    act(() => result.current[1](0.8));
+    expect(result.current[0]).toBe(0.8);
+    expect(getVolume()).toBe(0.8);
   });
 });
 

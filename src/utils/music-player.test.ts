@@ -1,8 +1,12 @@
 import { act } from '@testing-library/react';
 import { THEMES, noteHz, parseVoice } from './music';
 import { playMusic, resetMusic, stopMusic } from './music-player';
-import { resetSounds, setMuted } from './sounds';
-import { mockAudioContext, type MockAudioContext } from './test-audio';
+import { resetSounds, setMuted, setVolume } from './sounds';
+import {
+  mockAudioContext,
+  speakers,
+  type MockAudioContext,
+} from './test-audio';
 
 let ctx: MockAudioContext;
 beforeEach(() => {
@@ -144,6 +148,15 @@ describe('the music player', () => {
     act(() => setMuted(false));
     run(2);
     expect(played().length).toBeGreaterThan(0);
+  });
+
+  it('plays through the header’s volume control, like the sounds', () => {
+    setVolume(0.5);
+    playMusic('dungeon');
+    run(1);
+    const [volume, ...others] = speakers(ctx);
+    expect(others).toEqual([]);
+    expect(volume.gain.value).toBeLessThan(0.5);
   });
 
   it('stops when sounds are muted mid-tune', () => {

@@ -130,7 +130,7 @@ describe('the sounds each control makes', () => {
   it('header tiles bloop, without a tick on top', async () => {
     renderWith(
       <ThemeProvider>
-        <Header />
+        <Header page="/" />
       </ThemeProvider>,
     );
     await userEvent.click(screen.getByText('C'));

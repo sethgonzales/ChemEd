@@ -11,6 +11,7 @@ const TREASURE_NOTE = 0.09; // s between arpeggio notes
 const MIN_GAP = 40; // ms; a sound repeated sooner than this plays once
 
 const MUTED_KEY = 'chem.sound.muted';
+const VOLUME_KEY = 'chem.sound.volume'; // 0 to 1
 /** Fired on window when sounds are muted or unmuted, e.g. for the music */
 export const MUTE_EVENT = 'chem:muted';
 type Voice = (ctx: AudioContext, out: AudioNode, time: number) => void;
@@ -231,8 +232,8 @@ const DAMAGE_VOICES: Voice[] = [
   },
 ];
 
-/** Sends `input` to the speakers, plus fading echoes */
-function withEcho(ctx: AudioContext) {
+/** Sends `input` to `out`, plus fading echoes */
+function withEcho(ctx: AudioContext, out: AudioNode) {
   const input = ctx.createGain();
   const delay = ctx.createDelay();
   const feedback = ctx.createGain();
@@ -242,10 +243,10 @@ function withEcho(ctx: AudioContext) {
   muffle.type = 'lowpass';
   muffle.frequency.value = ECHO_LOWPASS;
 
-  input.connect(ctx.destination);
+  input.connect(out);
   input.connect(delay);
   delay.connect(muffle).connect(feedback).connect(delay);
-  feedback.connect(ctx.destination);
+  feedback.connect(out);
   return input;
 }
 
@@ -280,6 +281,45 @@ export function setMuted(muted: boolean) {
   window.dispatchEvent(new Event(MUTE_EVENT));
 }
 
+/** The volume the student chose in this browser, from 0 to 1 */
+export function getVolume() {
+  try {
+    const stored = localStorage.getItem(VOLUME_KEY);
+    const volume = stored === null ? NaN : Number(stored);
+    return Number.isFinite(volume) ? clamp(volume) : 1;
+  } catch {
+    return 1;
+  }
+}
+
+const clamp = (volume: number) => Math.min(1, Math.max(0, volume));
+
+// we hear loudness roughly logarithmically, so a slider's gain follows its
+// square: halfway then sounds about half as loud, not barely quieter
+const gainFor = (volume: number) => volume * volume;
+
+export function setVolume(volume: number) {
+  volume = clamp(volume);
+  try {
+    localStorage.setItem(VOLUME_KEY, String(volume));
+  } catch {
+    // storage can be blocked; the setting just won't be remembered
+  }
+  if (audio) audio.volume.gain.value = gainFor(volume);
+}
+
+/** The volume slider: [volume, setVolume] */
+export function useVolume() {
+  const [volume, setState] = useState(1);
+  // read after mount, so the server render and first client render match
+  useEffect(() => setState(getVolume()), []);
+  const set = (next: number) => {
+    setVolume(next);
+    setState(getVolume());
+  };
+  return [volume, set] as const;
+}
+
 /** The mute switch: [muted, toggle] */
 export function useMuted() {
   const [muted, setState] = useState(false);
@@ -293,8 +333,13 @@ export function useMuted() {
 }
 
 // One AudioContext for the whole page (browsers cap how many there can be),
-// with the echo built the first time a sound needs it
-let audio: { ctx: AudioContext; echo: AudioNode | null } | null = null;
+// and one volume control that every sound and the music pass through, with
+// the echo built the first time a sound needs it
+let audio: {
+  ctx: AudioContext;
+  volume: GainNode;
+  echo: AudioNode | null;
+} | null = null;
 const lastPlayed = new Map<Voice[], number>();
 
 /** Forgets the page's audio, so each test starts afresh */
@@ -306,11 +351,22 @@ export function resetSounds() {
 /** The page's AudioContext, made on first use and woken if it's asleep */
 export function audioContext(): AudioContext | null {
   if (typeof AudioContext === 'undefined') return null;
-  audio ??= { ctx: new AudioContext(), echo: null };
+  if (!audio) {
+    const ctx = new AudioContext();
+    const volume = ctx.createGain();
+    volume.gain.value = gainFor(getVolume());
+    volume.connect(ctx.destination);
+    audio = { ctx, volume, echo: null };
+  }
   // browsers suspend audio until a tap, and phones when they sleep; a click
   // is the moment to wake it
   if (audio.ctx.state === 'suspended') void audio.ctx.resume();
   return audio.ctx;
+}
+
+/** Where sounds and music go to be heard: the volume control */
+export function speakers(): AudioNode | null {
+  return audioContext() && audio!.volume;
 }
 
 /** Plays a random one of these voices, through the dungeon echo or dry */
@@ -324,7 +380,9 @@ function play(voices: Voice[], echo: boolean) {
   // held keys and fast clicks would otherwise play a burst
   if (last !== undefined && now - last < MIN_GAP) return;
   lastPlayed.set(voices, now);
-  const out = echo ? (audio.echo ??= withEcho(ctx)) : ctx.destination;
+  const out = echo
+    ? (audio.echo ??= withEcho(ctx, audio.volume))
+    : audio.volume;
   const voice = voices[Math.floor(Math.random() * voices.length)];
   voice(ctx, out, ctx.currentTime);
 }

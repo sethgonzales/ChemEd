@@ -43,3 +43,16 @@ export function mockAudioContext() {
 }
 
 export type MockAudioContext = ReturnType<typeof mockAudioContext>['ctx'];
+
+type MockNode = ReturnType<MockAudioContext['createGain']>;
+
+/** Every node wired straight to the speakers */
+export const speakers = (ctx: MockAudioContext) =>
+  [
+    ...ctx.createGain.mock.results,
+    ...ctx.createOscillator.mock.results,
+    ...ctx.createDelay.mock.results,
+    ...ctx.createBiquadFilter.mock.results,
+  ]
+    .map(({ value }) => value as MockNode)
+    .filter((n) => n.connect.mock.calls.some(([to]) => to === ctx.destination));

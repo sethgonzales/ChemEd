@@ -20,6 +20,7 @@ interface Props extends HoldEvents {
   type?: 'button' | 'submit'; // submit for buttons that send a form
   children: ReactNode;
   pressed?: boolean; // highlighted, and announced as a toggle when set
+  expanded?: boolean; // opens a panel: announced as open or closed when set
   disabled?: boolean;
 }
 
@@ -27,6 +28,7 @@ export default function Button({
   onClick,
   children,
   pressed,
+  expanded,
   disabled,
   type = 'button',
   ...events
@@ -35,6 +37,7 @@ export default function Button({
     <button
       type={type}
       aria-pressed={pressed}
+      aria-expanded={expanded}
       disabled={disabled}
       onClick={onClick}
       {...events}

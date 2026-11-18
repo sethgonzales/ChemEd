@@ -14,13 +14,13 @@
 - [ ] **Gas law balloon game** (its sealed door is on the home page, `GAMES` in `src/constants/index.ts`, path `/gas-balloon`): Mr. G rides a hot air balloon that you steer by changing gas properties (temperature, pressure, volume, amount of gas), flying it to an objective or collecting coins along the way. The focus is on spotting the relationships (Boyle's, Charles's, Gay-Lussac's and Avogadro's laws, the combined and ideal gas laws) and using them.
   - **Challenge mode**: reach a target, such as a set pressure, temperature or height, by working out the variables with a gas law calculation first.
   - To decide: a real hot air balloon is open at the bottom, so its pressure stays near the air's and it rises because heated air is less dense (Charles's law). Pressure and amount of gas need another way in, such as a sealed gas balloon, ballast, or a gauge on a tank aboard.
-- [ ] **Dungeon quest game**: a step-by-step dungeon crawl that strings the quizzes together as levels. Each level opens with a wall of story text setting up a chemistry problem to solve or something to rescue. Each ends with a chemistry-themed boss, beaten by answering questions from the simulations' question bank, which grows with each new simulation ([plan](docs/plans/dungeon-quest.md))
+- [x] **Dungeon quest game** (17 Nov 2026): a step-by-step dungeon crawl that strings the quizzes together as levels. Each level opens with a wall of story text setting up a chemistry problem to solve or something to rescue. Each ends with a chemistry-themed boss, beaten by answering questions from the simulations' question bank, which grows with each new simulation ([plan](docs/plans/dungeon-quest.md))
 - [x] **Electrochemistry** (16 Nov 2026): Voltaic (mix-and-match half-cells, Connect, voltmeter and bulb, electrodes thinning and plating, the Nernst equation worked, E° table, Predict mode with Mr. G) with a particle lens on each electrode and the salt bridge, and Electrolytic (water, copper plating, molten NaCl, cited minimum voltages, Faraday's law worked) ([plan](docs/plans/electrochemistry.md))
 
 ## Improvements
 
-- [ ] **A header that gives the page back**: the site header is sticky and takes a lot of room. Either let it scroll away with the page, or shrink it on scroll to the height of its buttons (theme picker, font and sound).
-- [ ] **Volume control in the header**: make the volume of the app's sounds and music adjustable from the header's sound button, rather than only on or off.
+- [x] **A header that gives the page back** (18 Nov 2026): inside a simulation the header is one slim row (symbol-only tiles beside the theme, font and sound buttons); on the home page it starts full size and shrinks once you scroll, growing back at the top (`useCompactHeader`).
+- [x] **Volume control in the header** (18 Nov 2026): the sound button opens a panel with a volume slider and Mute, remembered in the browser. Every sound and the music pass through one volume node in `src/utils/sounds.ts`.
 - [x] Periodic Table: more colour modes (metal/nonmetal, electronegativity, atomic radius) and search
 - [x] States of Matter: heating curve, choice of substance (water, benzene, mercury)
   - [x] Solid mercury's heat capacity at its melting point (NIST-JANAF, 28.485 J/(mol·K))
@@ -30,7 +30,7 @@
   - [x] Covers every `Dropdown` too (button and menu).
   - [x] Per-dropdown override: `<Dropdown readable>` uses the plain font; first used for the state pickers in Chemical Reactions' Predict tab, where the pixel font turned "(aq)" into "{aq}" (16 Nov 2026).
 - [x] **Sounds in the simulations** (16 Nov 2026): every button, tab, dropdown choice and checkbox gives the same quiet tick (`ClickSounds` in `_app`, opt out with `data-sound="none"`); picking an element or orbital box taps (`data-sound="tap"`, arrow keys too); a wrong answer thunks. One shared AudioContext, sounds spaced 40 ms apart, all under the mute button.
-  - [ ] Next: a tap when placing atoms, bonds and electrons in Lewis Structures; maybe a soft drip for burette drops (capped, as drops can be frequent).
+  - [x] Next: a tap when placing atoms, bonds and electrons in Lewis Structures; maybe a soft drip for burette drops (capped, as drops can be frequent).
 - [x] Migrate `next lint` (deprecated) to the ESLint CLI
 - [x] **Fact sweep and in-app citations** (13 Nov 2026): every value checked against IUPAC, NIST, Cordero et al. or the cited Wikipedia pages; fixes: 19 atomic masses to IUPAC 2024 abridged values (e.g. Zr 91.222, Ar 39.95), Tc [97], Sg [267], Hs [271], Cm electronegativity 1.3, NH₄⁺ pKa 9.25. Sources live in `src/constants/sources.ts` and show in each page’s Sources footer. Was: audit every real-world value the app states (element data, electronegativity, radii, substances, pKa and indicator ranges, E° values, molecule data, constants) and give each a source. Show the sources subtly on each page, e.g. a small "Sources" line at the bottom, so ChemEd models how to represent and cite data. Store a source with each data set in `src/constants/` so the citation can't drift from the value.
 
