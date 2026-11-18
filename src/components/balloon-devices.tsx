@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { BALLOON, type Platform } from '~/constants/balloon-world';
 import { ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
@@ -166,20 +166,13 @@ function Cylinder() {
   );
 }
 
-/** The envelope's volume: a shaded sphere inside a dashed ring, the whole envelope */
+/** The envelope's volume: an outline sphere, in a dashed ring for the whole envelope */
 function VolumeSphere({ fraction }: { fraction: number }) {
-  const id = `sphere-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   // the radius grows as the cube root of the volume, as a real sphere's does
   const r = round(7 + 13 * Math.cbrt(Math.min(1, Math.max(0, fraction))));
+  const line = { fill: 'none', stroke: '#0f172a', strokeWidth: 1.4 };
   return (
     <svg viewBox="0 0 48 48" className="h-full w-full" aria-hidden="true">
-      <defs>
-        <radialGradient id={id} cx="0.35" cy="0.32" r="0.75">
-          <stop offset="0" stopColor="#fbbf8a" />
-          <stop offset="0.45" stopColor="#e4572e" />
-          <stop offset="1" stopColor="#7f1d1d" />
-        </radialGradient>
-      </defs>
       <circle
         cx={24}
         cy={24}
@@ -189,25 +182,10 @@ function VolumeSphere({ fraction }: { fraction: number }) {
         strokeWidth={1.2}
         strokeDasharray="2.5 2"
       />
-      <circle cx={24} cy={24} r={r} fill={`url(#${id})`} />
-      <ellipse
-        cx={24}
-        cy={24}
-        rx={r}
-        ry={round(r * 0.32)}
-        fill="none"
-        stroke="#7f1d1d"
-        strokeOpacity={0.45}
-        strokeWidth={0.8}
-      />
-      <ellipse
-        cx={round(24 - r * 0.35)}
-        cy={round(24 - r * 0.4)}
-        rx={round(r * 0.22)}
-        ry={round(r * 0.14)}
-        fill="#fff"
-        fillOpacity={0.7}
-      />
+      <circle cx={24} cy={24} r={r} {...line} />
+      {/* the equator and a meridian make it read as round, not flat */}
+      <ellipse cx={24} cy={24} rx={r} ry={round(r * 0.32)} {...line} />
+      <ellipse cx={24} cy={24} rx={round(r * 0.32)} ry={r} {...line} />
     </svg>
   );
 }

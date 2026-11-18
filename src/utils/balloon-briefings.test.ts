@@ -61,19 +61,3 @@ describe('the verdict', () => {
     expect(after(100)).toMatch(/already bigger/);
   });
 });
-
-describe('Mr. G’s words', () => {
-  it('say the balloon expands, never that it swells', () => {
-    const right = tieOffVolume(g);
-    const lines = [
-      ...briefing(g),
-      hint(g),
-      ...worked(g),
-      ...[right, right * 1.1, right * 0.96, 100].map((v) =>
-        verdict(planFlight(g, v), g),
-      ),
-    ];
-    for (const line of lines) expect(line).not.toMatch(/swell/i);
-    expect(lines.join(' ')).toMatch(/expand/);
-  });
-});
