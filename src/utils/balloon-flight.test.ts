@@ -329,10 +329,17 @@ describe('flying a Graham’s law leg', () => {
   const gr = grahamLeg(0, 7);
   const right = rightAnswer(gr);
 
-  it('lands with the right helium, leaking down to what floats it as it arrives', () => {
+  it('lands with the right helium, topped up as it sets off and leaking down to what floats it as it arrives', () => {
     const plan = planFlight(gr, right);
     expect(plan.outcome).toBe('landed');
-    expect(flightState(gr, plan, 0).flight.moles).toBeCloseTo(right, 6);
+    expect(flightState(gr, plan, 0).flight.moles).toBe(gr.moles);
+    const most = Math.max(
+      ...Array.from(
+        { length: 51 },
+        (_, i) => flightState(gr, plan, i / 50).flight.moles,
+      ),
+    );
+    expect(most).toBeGreaterThan(gr.moles);
     expect(flightState(gr, plan, 1).flight.moles).toBeCloseTo(gr.moles, -1);
   });
 
@@ -363,5 +370,72 @@ describe('flying a real gas leg', () => {
     const needed =
       (airAt(r.leg.from.height).pressure * r.said) / (R * r.gasTemperature);
     expect(end.moles / needed).toBeCloseTo(1, 4);
+  });
+});
+
+describe('bursting', () => {
+  const makers = [
+    boyleLeg,
+    charlesLeg,
+    gayLussacLeg,
+    avogadroLeg,
+    combinedLeg,
+    idealLeg,
+    daltonLeg,
+    grahamLeg,
+    realLeg,
+  ];
+  const legs = makers.flatMap((make) =>
+    Array.from({ length: 30 }, (_, s) => make(s % 3, s)),
+  );
+  const BY = [0.5, 0.9, 1.1, 1.3, 2, 5];
+  const times = Array.from({ length: 51 }, (_, i) => i / 50);
+  const drawnBurst = (leg: GasLeg, by: number) => {
+    const plan = planFlight(leg, rightAnswer(leg) * by);
+    return times.map((t) => {
+      const { balloon, flight } = flightState(leg, plan, t);
+      return !!flight.burst || gasInside(balloon, flight).burst;
+    });
+  };
+
+  it('never shows a burst envelope on a flight that doesn’t burst', () => {
+    for (const leg of legs)
+      for (const by of BY) {
+        const plan = planFlight(leg, rightAnswer(leg) * by);
+        if (plan.outcome !== 'burst')
+          expect(drawnBurst(leg, by)).not.toContain(true);
+      }
+  });
+
+  it('once burst, stays burst', () => {
+    for (const leg of legs)
+      for (const by of BY) {
+        const seen = drawnBurst(leg, by);
+        const first = seen.indexOf(true);
+        if (first >= 0) expect(seen.slice(first)).not.toContain(false);
+      }
+  });
+
+  it('overfilling on the platform: fills whole at first, pops partway through filling, and never leaves', () => {
+    const leg = idealLeg(0, 7);
+    const plan = planFlight(leg, rightAnswer(leg) * 5);
+    expect(plan.outcome).toBe('burst');
+    expect(plan.stopAt).toBe(leg.leg.from.distance);
+    expect(plan.popsAt!).toBeGreaterThan(0.05);
+    const seen = drawnBurst(leg, 5);
+    expect(seen[0]).toBe(false);
+    for (const t of times) {
+      const at = flightAt(leg, plan, t);
+      expect(at.distance).toBe(leg.leg.from.distance);
+      expect(at.height).toBe(leg.leg.from.height);
+    }
+  });
+
+  it('overheating on the platform pops it too, before it leaves', () => {
+    const leg = charlesLeg(0, 7);
+    // far hotter than the right answer: the slack envelope fills and overstretches
+    const plan = planFlight(leg, rightAnswer(leg) * 5);
+    expect(plan.outcome).toBe('burst');
+    expect(plan.stopAt).toBe(leg.leg.from.distance);
   });
 });

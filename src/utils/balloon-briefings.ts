@@ -384,6 +384,13 @@ export function verdict(plan: FlightPlan, g: GasLeg): string {
     plan.stopAt === from.distance
   )
     return `With no more helium than floats us now, the leak had us sinking from the start. We never left ${from.name}.`;
+  // a burst from too much: Gay-Lussac's has its own, the sun's doing
+  if (plan.outcome === 'burst' && g.law !== 'gay-lussac') {
+    const what = g.law === 'charles' ? 'Too hot' : 'Too much helium';
+    return plan.stopAt === from.distance
+      ? `${what}: it stretched the fabric past its limit before we could lift off, and burst. We never left ${from.name}.`
+      : `${what}: we had lift to spare, and as we climbed into thinner air the balloon swelled past its limit and burst.`;
+  }
   return (MISSES[g.law][plan.outcome] ?? '')
     .replace('{to}', to.name)
     .replace('{from}', from.name);

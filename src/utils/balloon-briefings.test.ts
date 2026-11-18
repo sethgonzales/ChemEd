@@ -10,6 +10,8 @@ import {
   combinedLeg,
   daltonLeg,
   grahamLeg,
+  idealLeg as idealBurstLeg,
+  charlesLeg as charlesBurstLeg,
   realLeg,
   idealLeg,
   gayLussacLeg,
@@ -313,5 +315,28 @@ describe('Mr. G on a real gas leg', () => {
     const right = rightAnswer(r);
     expect(verdict(planFlight(r, right * 1.1), r)).toMatch(/over/);
     expect(verdict(planFlight(r, right * 0.9), r)).toMatch(/never left/);
+  });
+});
+
+describe('Mr. G when too much bursts the balloon', () => {
+  const ideal = idealBurstLeg(0, 7);
+  const charles = charlesBurstLeg(0, 7);
+  const said = (g: GasLeg, by: number) => {
+    const plan = planFlight(g, rightAnswer(g) * by);
+    expect(plan.outcome).toBe('burst');
+    return verdict(plan, g);
+  };
+
+  it('says it burst filling, before we left', () => {
+    expect(said(ideal, 5)).toMatch(/burst/);
+    expect(said(ideal, 5)).toMatch(
+      new RegExp(`never left ${ideal.leg.from.name}`),
+    );
+    expect(said(charles, 5)).toMatch(/burst/);
+  });
+
+  it('says it burst climbing, when it got away first', () => {
+    expect(said(ideal, 1.3)).toMatch(/burst/);
+    expect(said(ideal, 1.3)).toMatch(/climb/);
   });
 });

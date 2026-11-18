@@ -16,6 +16,7 @@ import {
   startFlight,
   tiesOff,
   type GasLeg,
+  type Law,
 } from '~/utils/balloon-legs';
 
 // A leg flown on the student's answer, which goes in as the control it
@@ -70,7 +71,7 @@ function controlled(g: GasLeg, answer: number): Flight {
         g.gasTemperature,
       ),
     };
-  if (g.law === 'avogadro' || g.law === 'ideal' || g.law === 'dalton')
+  if (['avogadro', 'ideal', 'dalton', 'graham'].includes(g.law))
     return { ...start, moles: answer };
   return start;
 }
@@ -103,7 +104,70 @@ const tooHigh = (g: GasLeg, height: number) =>
     g.leg.to.height + MAX_OVERSHOOT,
   );
 
+// the laws whose answer fills or heats the balloon on the platform, so too
+// much can stretch the fabric past its limit
+const FILLS: Law[] = [
+  'charles',
+  'avogadro',
+  'ideal',
+  'dalton',
+  'graham',
+  'real',
+];
+const BURST_STEPS = 200; // checks for a burst through the flight
+
+/**
+ * The flight on the student's answer. Filling or heating happens slowly, so
+ * a balloon given too much pops the moment it passes its limit: on the
+ * platform, it never leaves; climbing into thinner air, it falls from there.
+ */
 export function planFlight(g: GasLeg, answer: number): FlightPlan {
+  const plan = unburst(g, answer);
+  if (!FILLS.includes(g.law)) return plan;
+  const { from, to } = g.leg;
+  const full = { ...controlled(g, answer), height: from.height };
+  const onPad = gasInside(balloonFor(g), full).burst;
+  // the sky shown stops short of where it would really burst: it pops as it
+  // climbs out of the top
+  const popsAt =
+    firstBurst(g, plan, onPad) ?? (burstsClimbing(g, full) ? RISE : undefined);
+  if (popsAt === undefined) return plan;
+  if (onPad)
+    return {
+      ...plan,
+      outcome: 'burst',
+      popsAt,
+      cruise: from.height,
+      stopAt: from.distance,
+    };
+  const span = to.distance - from.distance;
+  return {
+    ...plan,
+    outcome: 'burst',
+    popsAt,
+    stopAt: from.distance + (smooth(popsAt) + DRIFT * (1 - popsAt)) * span,
+  };
+}
+
+/** Whether, rising freely, it passes its limit before it floats level */
+function burstsClimbing(g: GasLeg, flight: Flight) {
+  const top = floatHeight(balloonFor(g), flight);
+  return (
+    top !== null && gasInside(balloonFor(g), { ...flight, height: top }).burst
+  );
+}
+
+/** When through the flight the gas first passes the fabric's limit, if ever */
+function firstBurst(g: GasLeg, plan: FlightPlan, onPad: boolean) {
+  for (let i = 0; i <= BURST_STEPS; i++) {
+    const t = i / BURST_STEPS;
+    const height = onPad ? g.leg.from.height : flightAt(g, plan, t).height;
+    const flight = { ...startFlight(g), ...gasAt(g, plan, t, height), height };
+    if (gasInside(balloonFor(g), flight).burst) return t;
+  }
+}
+
+function unburst(g: GasLeg, answer: number): FlightPlan {
   const { from, to } = g.leg;
   const span = to.distance - from.distance;
   const tiedAt = tiesOff(g) ? Math.min(answer, g.envelope) : undefined;
@@ -316,9 +380,52 @@ export function flightState(
       distance: g.leg.from.distance,
     };
   const at = flightAt(g, plan, t);
+  return {
+    balloon: balloonFor(g, tiedAt(g, plan)),
+    flight: { ...start, ...gasAt(g, plan, t, at.height), height: at.height },
+    distance: at.distance,
+  };
+}
+
+/**
+ * The volume the cord holds it to. Tied round a balloon already bigger, it
+ * holds nothing: a cord can't squeeze the gas smaller.
+ */
+function tiedAt(g: GasLeg, plan: FlightPlan) {
+  if (plan.tiedAt === undefined) return undefined;
+  return Math.max(plan.tiedAt, gasInside(balloonFor(g), startFlight(g)).volume);
+}
+
+/** The gas at a point through the flight; torn open, it pours out */
+function gasAt(
+  g: GasLeg,
+  plan: FlightPlan,
+  t: number,
+  height: number, // m, where it is now
+): Partial<Flight> {
+  if (g.law === 'gay-lussac') return sunlit(g, plan, t, height);
+  const intact = (at: number) => controlledAt(g, plan, at);
+  if (plan.outcome !== 'burst' || t < plan.popsAt!) return intact(t);
+  const popped = { ...startFlight(g), ...intact(plan.popsAt!) };
+  const left = Math.max(0, 1 - (t - plan.popsAt!) / ESCAPE);
+  return {
+    gasTemperature: lerp(
+      airAt(height).temperature,
+      popped.gasTemperature,
+      left,
+    ),
+    moles: popped.moles * left,
+    airMoles: (popped.airMoles ?? 0) * left,
+    burst: true,
+  };
+}
+
+/** The gas as the answer sets it, before anything tears */
+function controlledAt(g: GasLeg, plan: FlightPlan, t: number): Partial<Flight> {
+  const start = startFlight(g);
   const ramp = smooth(Math.min(1, t / CLIMB));
   const answered = controlled(g, plan.answer);
-  const gas: Partial<Flight> = {
+  return {
     boyle: {},
     // turned down, the heater lets the helium cool all the way up
     combined: {
@@ -335,13 +442,10 @@ export function flightState(
     ideal: { moles: lerp(start.moles, answered.moles, ramp) },
     dalton: { moles: lerp(start.moles, answered.moles, ramp) },
     real: { moles: lerp(start.moles, answered.moles, ramp) },
-    // set off with the answer, it leaks steadily through the fabric
-    graham: { moles: plan.answer - heliumLeak(g) * t },
-    'gay-lussac': g.law === 'gay-lussac' ? sunlit(g, plan, t, at.height) : {},
+    // topped up to the answer, it leaks steadily through the fabric
+    graham: {
+      moles: lerp(start.moles, answered.moles, ramp) - heliumLeak(g) * t,
+    },
+    'gay-lussac': {},
   }[g.law];
-  return {
-    balloon: balloonFor(g, plan.tiedAt),
-    flight: { ...start, ...gas, height: at.height },
-    distance: at.distance,
-  };
 }
