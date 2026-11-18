@@ -176,3 +176,31 @@ describe('BalloonScene', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('BalloonScene, on a wide screen', () => {
+  const narrow = window.matchMedia;
+  beforeEach(() => {
+    window.matchMedia = (query: string) =>
+      ({
+        ...narrow(query),
+        matches: query.includes('min-width'),
+      }) as MediaQueryList;
+  });
+  afterEach(() => {
+    window.matchMedia = narrow;
+  });
+
+  it('writes Mr. G’s words across the sky from just past the height ruler, in black for contrast', () => {
+    render(
+      <BalloonScene balloon={balloon} flight={flight} distance={0} leg={leg}>
+        <p>Next stop: Red Mesa.</p>
+      </BalloonScene>,
+    );
+    const panel = screen.getByText('Next stop: Red Mesa.').parentElement!;
+    const ruler = screen.getByRole('list', { name: 'Height' });
+    const left = parseFloat(panel.style.left);
+    expect(left).toBeGreaterThan(parseFloat(ruler.style.width));
+    expect(left).toBeLessThanOrEqual(parseFloat(ruler.style.width) + 16);
+    expect(panel).toHaveClass('text-black');
+  });
+});

@@ -13,6 +13,12 @@ describe('BalloonRadio', () => {
     expect(within(radio).getByText('Next stop: Red Mesa.')).toBeInTheDocument();
   });
 
+  it('talks in the game’s pixel font, so the stylized-text setting reaches it', () => {
+    render(<BalloonRadio>Next stop: Red Mesa.</BalloonRadio>);
+    // font-pixel turns plain when the student picks the readable font
+    expect(screen.getByText('Next stop: Red Mesa.')).toHaveClass('font-pixel');
+  });
+
   it('takes any rider, for a student’s avatar later', () => {
     render(
       <BalloonRadio

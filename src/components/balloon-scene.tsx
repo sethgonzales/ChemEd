@@ -749,9 +749,9 @@ interface Props {
   children?: ReactNode; // Mr. G and the controls: in the sky when there's room
 }
 
-// the panel starts this far across, right of the balloon and its gauges,
-// which the camera keeps about a third of the way in
-const PANEL_FROM = 0.48;
+const RULER_WIDTH = 48; // CSS px: the height ruler down the left edge
+// CSS px: Mr. G's panel starts just past the ruler, so it never hides a height
+const PANEL_INSET = RULER_WIDTH + 8;
 
 /** One leg of the journey, side on, with the camera following the balloon */
 export default function BalloonScene({
@@ -974,7 +974,8 @@ export default function BalloonScene({
       {/* under the gauges, so they're never hidden behind it */}
       <ul
         aria-label="Height"
-        className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-sky-100/70 to-transparent font-sans text-[10px] text-slate-800 sm:text-[11px]"
+        style={{ width: RULER_WIDTH }}
+        className="pointer-events-none absolute inset-y-0 left-0 bg-gradient-to-r from-sky-100/70 to-transparent font-sans text-[10px] text-slate-800 sm:text-[11px]"
       >
         {rulerMarks(leg, { y: cam.y, height: view.height }).map((m) => (
           <li
@@ -1085,12 +1086,13 @@ export default function BalloonScene({
         </div>
       )}
 
-      {/* Mr. G and the controls, up in the sky right of the balloon */}
+      {/* Mr. G and the controls, across the top of the sky: black on the
+          pale sky, with a light halo to keep it clear of clouds */}
       {children && inSky && (
         <div
-          className="absolute top-2 z-20 flex flex-col gap-3 has-[[aria-expanded=true]]:z-40"
+          className="absolute top-2 z-20 flex flex-col gap-3 text-black [text-shadow:0_0_3px_rgb(255_255_255/0.9),0_0_8px_rgb(255_255_255/0.6)] has-[[aria-expanded=true]]:z-40"
           style={{
-            left: screen.width * PANEL_FROM,
+            left: PANEL_INSET,
             right: instruments ? SKY_COLUMN + 8 : 8,
           }}
         >

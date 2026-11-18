@@ -75,9 +75,8 @@ const SCIENTISTS: Record<string, string> = {
 const starText = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
 
 // Mr. G's words float in the sky with no card behind them, part of the
-// scene; a shadow keeps them readable against the clouds
-const IN_SKY =
-  'bg-transparent p-0 [text-shadow:0_1px_2px_rgb(15_23_42/0.9),0_0_6px_rgb(15_23_42/0.6)]';
+// scene, in whatever colour the scene gives them
+const IN_SKY = 'bg-transparent p-0 text-inherit';
 
 // the launch field, where every flight starts: what you see before one
 const LAUNCH = boyleLeg(0, 0);
