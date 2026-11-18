@@ -4,6 +4,7 @@ import BalloonScene from '~/components/balloon-scene';
 import Button from '~/components/button';
 import CalcPad, { Working } from '~/components/calc-pad';
 import Container from '~/components/container';
+import FadeSwap from '~/components/fade-swap';
 import { Said, TypedBriefing } from '~/components/typed-text';
 import { ATMOSPHERE_SOURCE } from '~/constants/atmosphere';
 import { VAN_DER_WAALS_SOURCE } from '~/constants/van-der-waals';
@@ -39,37 +40,16 @@ import { takenBy } from '~/utils/balloon-free';
 import { DEV_TOOLS } from '~/utils/dev-tools';
 import { COURSES, type Course } from '~/utils/quest';
 import { useCoinSound, useMissSound, useTreasureSound } from '~/utils/sounds';
+import { useFlightClock } from '~/utils/use-flight-clock';
 import { useMedia } from '~/utils/use-media';
 
 export const FLIGHT_MS = 6000; // a leg's flight, from take-off to landing or miss
 const QUICK_FLIGHT_MS = 1500; // with reduced motion
-const TICK_MS = 16; // about 60 frames a second, so the flight glides
+// moving to another leg: the scene fades out, switches and fades back in, so
+// the view doesn't jump; matches the veil's transition
+export const DIP_MS = 300;
 
 const newSeed = () => Math.floor(Math.random() * 2 ** 31);
-
-/** Runs a flight's clock from 0 to 1, then calls onDone */
-function useFlightClock(running: boolean, onDone: () => void) {
-  const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
-  const duration = reducedMotion ? QUICK_FLIGHT_MS : FLIGHT_MS;
-  const [t, setT] = useState(0);
-  useEffect(() => {
-    if (!running) return;
-    setT(0);
-    let elapsed = 0;
-    const id = setInterval(() => {
-      elapsed += TICK_MS;
-      setT(Math.min(1, elapsed / duration));
-      if (elapsed >= duration) {
-        clearInterval(id);
-        onDone();
-      }
-    }, TICK_MS);
-    return () => clearInterval(id);
-    // onDone changes each render; the clock only restarts with a new flight
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, duration]);
-  return t;
-}
 
 const SCIENTISTS: Record<string, string> = {
   boyle: 'Boyle',
@@ -185,23 +165,26 @@ function FlightRadio({
   setGame,
   burst,
   onLevels,
+  dip,
 }: {
   game: GameState;
   setGame: (g: GameState) => void;
   burst: boolean;
   onLevels: () => void;
+  dip: (then: () => void) => void;
 }) {
   const g = gasLeg(game);
   const plan = game.plan;
   const question = ask(g);
   const last = game.leg + 1 >= game.legs;
 
-  const goOn = () => {
-    const after = next(game);
-    if (after.phase === 'done')
-      saveStars(game.course, game.level, starsFor(game.misses));
-    setGame(after);
-  };
+  const goOn = () =>
+    dip(() => {
+      const after = next(game);
+      if (after.phase === 'done')
+        saveStars(game.course, game.level, starsFor(game.misses));
+      setGame(after);
+    });
 
   return (
     <>
@@ -291,16 +274,33 @@ export default function BalloonRiser() {
   const [stars, setStars] = useState<Stars>({});
   useEffect(() => setStars(loadStars()), [game?.phase]);
 
-  const toLevels = () => setGame(null);
+  const reducedMotion = useMedia('(prefers-reduced-motion: reduce)');
+  const [dipping, setDipping] = useState(false);
+  const dipTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(dipTimer.current), []);
+  const dip = (then: () => void) => {
+    if (reducedMotion) return then();
+    setDipping(true);
+    clearTimeout(dipTimer.current);
+    dipTimer.current = setTimeout(() => {
+      then();
+      setDipping(false);
+    }, DIP_MS);
+  };
+  const toLevels = () => dip(() => setGame(null));
 
   const playTreasure = useTreasureSound();
   const playMiss = useMissSound();
-  const t = useFlightClock(game?.phase === 'flying', () => {
-    if (!game) return;
-    const done = arrive(game);
-    (done.phase === 'landed' ? playTreasure : playMiss)();
-    setGame(done);
-  });
+  const t = useFlightClock(
+    game?.phase === 'flying' ? `${game.level}-${game.leg}-${game.seed}` : null,
+    reducedMotion ? QUICK_FLIGHT_MS : FLIGHT_MS,
+    () => {
+      if (!game) return;
+      const done = arrive(game);
+      (done.phase === 'landed' ? playTreasure : playMiss)();
+      setGame(done);
+    },
+  );
 
   // one scene for every screen, so moving between them doesn't rebuild it:
   // the launch field until a leg is under way
@@ -373,60 +373,68 @@ export default function BalloonRiser() {
           leg={g.leg}
           instruments={!!flying}
           coins={coins.map((c, i) => ({ ...c, taken: taken[i] }))}
+          veiled={dipping}
           controls={
-            briefed && (
-              <CalcPad
-                key={`${briefed.leg}-${briefed.seed}`}
-                label={ask(g).label}
-                units={ask(g).units}
-                hint={hint(g)}
-                action={ask(g).action}
-                onSubmit={(v) => setGame(fly(briefed, v))}
-                working={false}
-                stacked
-              />
+            flying && (
+              <FadeSwap
+                step={briefed ? `${briefed.leg}-${briefed.seed}` : 'none'}
+              >
+                {briefed && (
+                  <CalcPad
+                    label={ask(g).label}
+                    units={ask(g).units}
+                    hint={hint(g)}
+                    action={ask(g).action}
+                    onSubmit={(v) => setGame(fly(briefed, v))}
+                    working={false}
+                    stacked
+                  />
+                )}
+              </FadeSwap>
             )
           }
         >
           <BalloonRadio className={IN_SKY}>
-            {/* each step fades in afresh, rather than snapping into place */}
-            <div
-              key={
+            {/* each step fades in over the last, rather than snapping into place */}
+            <FadeSwap
+              step={
                 !course
                   ? 'gate'
                   : !game
                     ? 'levels'
                     : `${game.phase}-${game.leg}-${game.seed}`
               }
-              data-fade
-              className="fade-in flex flex-col gap-1.5"
             >
-              {!course ? (
-                <Gate onPick={setCourse} />
-              ) : !game ? (
-                <Levels
-                  course={course}
-                  stars={stars}
-                  onPlay={(level) =>
-                    setGame(startLevel(course, level, newSeed()))
-                  }
-                  onChangeCourse={() => setCourse(null)}
-                />
-              ) : game.phase === 'done' ? (
-                <Done game={game} onLevels={toLevels} />
-              ) : (
-                <FlightRadio
-                  game={game}
-                  setGame={setGame}
-                  burst={!!shown.flight.burst}
-                  onLevels={toLevels}
-                />
-              )}
-            </div>
+              <div className="flex flex-col gap-1.5">
+                {!course ? (
+                  <Gate onPick={setCourse} />
+                ) : !game ? (
+                  <Levels
+                    course={course}
+                    stars={stars}
+                    onPlay={(level) =>
+                      dip(() => setGame(startLevel(course, level, newSeed())))
+                    }
+                    onChangeCourse={() => setCourse(null)}
+                  />
+                ) : game.phase === 'done' ? (
+                  <Done game={game} onLevels={toLevels} />
+                ) : (
+                  <FlightRadio
+                    game={game}
+                    setGame={setGame}
+                    burst={!!shown.flight.burst}
+                    onLevels={toLevels}
+                    dip={dip}
+                  />
+                )}
+              </div>
+            </FadeSwap>
           </BalloonRadio>
         </BalloonScene>
 
-        {briefed && <Working key={`${briefed.leg}-${briefed.seed}`} />}
+        {/* yours through the whole leg, flight and all, to check against */}
+        {flying && <Working key={`${flying.leg}-${flying.seed}`} />}
         {briefed && DEV_TOOLS && (
           <div
             role="group"

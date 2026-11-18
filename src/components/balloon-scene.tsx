@@ -747,6 +747,7 @@ interface Props {
   children?: ReactNode; // Mr. G's words: in the sky when there's room
   controls?: ReactNode; // the answer: bottom right, under the gauges, when there's room
   coins?: { distance: number; height: number; taken: boolean }[]; // free flight's, along the way
+  veiled?: boolean; // faded out, while moving on to another leg
 }
 
 const RULER_WIDTH = 48; // CSS px: the height ruler down the left edge
@@ -771,6 +772,7 @@ export default function BalloonScene({
   children,
   controls,
   coins = [],
+  veiled = false,
 }: Props) {
   const { frame, view, scale, measured } = useViewSize();
   const inSky = useMedia('(min-width: 1024px)');
@@ -897,6 +899,14 @@ export default function BalloonScene({
 
   const scene = (
     <div ref={frame} className="relative w-full overflow-hidden pixel-control">
+      {/* the dip between legs: a veil fades in, the leg changes, it fades out */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          'pointer-events-none absolute inset-0 z-50 bg-primary-900 transition-opacity duration-300 motion-reduce:transition-none',
+          veiled ? 'opacity-100' : 'opacity-0',
+        )}
+      />
       <svg
         viewBox={`${cam.x} ${cam.y} ${view.width} ${view.height}`}
         shapeRendering="crispEdges"
@@ -1138,6 +1148,8 @@ export default function BalloonScene({
           className={cn(
             'absolute right-2 bottom-2 z-20 flex w-60 flex-col gap-2 has-[[aria-expanded=true]]:z-40',
             ON_SKY,
+            // the hint and any problem on a panel, to read over the gauges
+            '[&_p]:rounded-sm [&_p]:bg-white/85 [&_p]:px-2 [&_p]:py-1.5',
           )}
         >
           {controls}

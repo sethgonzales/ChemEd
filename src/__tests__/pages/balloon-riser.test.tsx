@@ -1,7 +1,8 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SOURCES } from '~/constants/sources';
-import BalloonRiser, { FLIGHT_MS } from '~/pages/balloon-riser';
+import { FADE_OUT_MS } from '~/components/fade-swap';
+import BalloonRiser, { DIP_MS, FLIGHT_MS } from '~/pages/balloon-riser';
 import { ask } from '~/utils/balloon-briefings';
 import { gasLeg, startLevel as newGame } from '~/utils/balloon-game';
 import {
@@ -34,6 +35,7 @@ async function startBoyle(u: ReturnType<typeof user>) {
   render(<BalloonRiser />);
   await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
   await u.click(screen.getByRole('button', { name: /^Boyle’s law/ }));
+  act(() => jest.advanceTimersByTime(DIP_MS)); // the scene dips to the new leg
 }
 
 async function answer(u: ReturnType<typeof user>, value: number) {
@@ -70,6 +72,7 @@ describe('Balloon Riser page', () => {
     await answer(u, tieOffVolume(boyleLeg(0, seed)));
     expect(screen.getByText('We’re down on Red Mesa!')).toBeInTheDocument();
     await u.click(screen.getByRole('button', { name: 'Next leg' }));
+    act(() => jest.advanceTimersByTime(DIP_MS)); // the scene dips to the new leg
     expect(screen.getByText(/Next stop: Eagle Lookout/)).toBeInTheDocument();
   });
 
@@ -98,6 +101,7 @@ async function startLevel(u: ReturnType<typeof user>, name: RegExp) {
   render(<BalloonRiser />);
   await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
   await u.click(screen.getByRole('button', { name }));
+  act(() => jest.advanceTimersByTime(DIP_MS)); // the scene dips to the new leg
 }
 
 async function answerIn(
@@ -232,6 +236,7 @@ describe('moving between screens', () => {
     await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
     expect(basket()).toBe(first);
     await u.click(screen.getByRole('button', { name: /^Boyle’s law/ }));
+    act(() => jest.advanceTimersByTime(DIP_MS)); // the scene dips to the new leg
     expect(basket()).toBe(first);
   });
 });
@@ -250,31 +255,65 @@ describe('the back arrow', () => {
     const u = user();
     await startBoyle(u);
     await u.click(screen.getByRole('button', { name: 'Back to levels' }));
+    act(() => jest.advanceTimersByTime(DIP_MS)); // the scene dips to the new leg
     expect(screen.getByRole('button', { name: /^Boyle’s law/ })).toBeEnabled();
     expect(screen.queryByText('Leg 1 of 3')).not.toBeInTheDocument();
   });
 });
 
 describe('between steps', () => {
-  const faded = () => document.querySelector('[data-fade]');
+  // drawn, but on its way out: hidden from screen readers and clicks
+  const fading = (text: string | RegExp) =>
+    screen.getAllByText(text).some((el) => el.closest('[inert]'));
 
-  it('fades Mr. G’s words in afresh from the briefing to the flight, and from landing to the next leg', async () => {
-    const u = user();
+  async function landFirstLeg(u: ReturnType<typeof user>) {
     await startBoyle(u);
-    const brief = faded();
-    expect(brief).not.toBeNull();
     await u.type(
       screen.getByRole('textbox', { name: 'Volume to tie off at' }),
       String(Math.round(tieOffVolume(boyleLeg(0, seed)))),
     );
     await u.click(screen.getByRole('button', { name: 'Tie off and fly' }));
-    const flying = faded();
-    expect(flying).not.toBe(brief);
+  }
+
+  it('fades the briefing and the answer out as the flight’s words fade in', async () => {
+    await landFirstLeg(user());
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(fading(/Next stop: Red Mesa/)).toBe(true);
+    expect(fading('Volume to tie off at')).toBe(true);
+    expect(
+      screen.queryByRole('button', { name: 'Tie off and fly' }),
+    ).toBeNull();
+    act(() => jest.advanceTimersByTime(FADE_OUT_MS));
+    expect(screen.queryByText('Volume to tie off at')).toBeNull();
+  });
+
+  it('keeps your working through the flight', async () => {
+    const u = user();
+    await startBoyle(u);
+    await u.type(
+      screen.getByRole('textbox', { name: 'Working' }),
+      'P1V1 = P2V2',
+    );
+    await u.type(
+      screen.getByRole('textbox', { name: 'Volume to tie off at' }),
+      String(Math.round(tieOffVolume(boyleLeg(0, seed)))),
+    );
+    await u.click(screen.getByRole('button', { name: 'Tie off and fly' }));
+    expect(screen.getByRole('textbox', { name: 'Working' })).toHaveValue(
+      'P1V1 = P2V2',
+    );
+  });
+
+  it('dips the scene out and back in to move on to the next leg', async () => {
+    const u = user();
+    await landFirstLeg(u);
     act(() => jest.advanceTimersByTime(FLIGHT_MS + 500));
-    const landed = faded();
-    expect(landed).not.toBe(flying);
     await u.click(screen.getByRole('button', { name: 'Next leg' }));
-    expect(faded()).not.toBe(landed);
+    // still the last leg while the veil comes down
+    expect(screen.getByText('Leg 1 of 3')).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(DIP_MS));
+    expect(screen.getByText('Leg 2 of 3')).toBeInTheDocument();
+    expect(screen.getByText(/Next stop:/)).toBeInTheDocument();
   });
 });
 
@@ -298,6 +337,7 @@ describe('the combined gas law level', () => {
     render(<BalloonRiser />);
     await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
     await u.click(screen.getByRole('button', { name: /^Combined gas law/ }));
+    act(() => jest.advanceTimersByTime(DIP_MS)); // the scene dips to the new leg
     await answer(u, rightAnswer(combinedLeg(0, seed)));
     expect(
       screen.getByText(`We’re down on ${combinedLeg(0, seed).leg.to.name}!`),
@@ -311,6 +351,7 @@ describe('the ideal gas law level', () => {
     render(<BalloonRiser />);
     await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
     await u.click(screen.getByRole('button', { name: /^Ideal gas law/ }));
+    act(() => jest.advanceTimersByTime(DIP_MS)); // the scene dips to the new leg
     await u.type(
       screen.getByRole('textbox', { name: 'Helium to fill' }),
       String(Math.round(rightAnswer(idealLeg(0, seed)))),
@@ -330,6 +371,7 @@ describe('free flight', () => {
     render(<BalloonRiser />);
     await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
     await u.click(screen.getByRole('button', { name: /^Free flight/ }));
+    act(() => jest.advanceTimersByTime(DIP_MS)); // the scene dips to the new leg
     const g = firstLeg();
     await u.type(
       screen.getByRole('textbox', { name: ask(g).label }),

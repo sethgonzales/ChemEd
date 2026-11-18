@@ -158,6 +158,19 @@
   }
 }
 
+/* The step before fades out over the new one, then goes */
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@utility fade-out {
+  animation: fade-out 0.25s ease-in forwards;
+  @media (prefers-reduced-motion: reduce) {
+    visibility: hidden;
+  }
+}
+
 /* Each Dungeon Quest screen fades in from the dark; the boss's door swings open */
 @keyframes quest-fade-in {
   from {
