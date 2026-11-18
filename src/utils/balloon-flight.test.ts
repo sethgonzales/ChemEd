@@ -119,7 +119,10 @@ describe.each(Object.entries(flat))('flying a %s leg', (_, leg) => {
     const plan = planFlight(leg, answer);
     const { flight } = flightState(leg, plan, 1);
     if (leg.law === 'avogadro') expect(flight.moles).toBeCloseTo(answer, 6);
-    else expect(flight.gasTemperature).toBeCloseTo(answer, 0);
+    else if (leg.law === 'charles')
+      expect(flight.gasTemperature).toBeCloseTo(answer, 0);
+    // at the vent, held a touch under the red line
+    else expect(flight.gasTemperature / answer).toBeCloseTo(0.98, 2);
   });
 });
 
@@ -195,5 +198,59 @@ describe('the burst line on a Gay-Lussac’s law leg', () => {
       expect(
         gasInside(balloonFor(leg), flightState(leg, plan, t).flight).burst,
       ).toBe(false);
+  });
+});
+
+describe('the shape of a flight', () => {
+  const path = (leg: GasLeg, answer: number) => {
+    const plan = planFlight(leg, answer);
+    return Array.from({ length: 201 }, (_, i) => flightAt(leg, plan, i / 200));
+  };
+
+  it('arcs up and back down onto a platform at the same height', () => {
+    const leg = charlesLeg(0, 7);
+    const points = path(leg, rightAnswer(leg));
+    const top = Math.max(...points.map((p) => p.height));
+    const peak = points.findIndex((p) => p.height === top);
+    expect(top).toBeGreaterThan(leg.leg.from.height + 50);
+    expect(peak).toBeGreaterThan(40);
+    expect(peak).toBeLessThan(160);
+    // up all the way to the top, then down all the way
+    for (let i = 1; i <= peak; i++)
+      expect(points[i].height).toBeGreaterThanOrEqual(points[i - 1].height);
+    for (let i = peak + 1; i < points.length; i++)
+      expect(points[i].height).toBeLessThanOrEqual(points[i - 1].height);
+  });
+
+  it('moves smoothly: no jumps, and it eases off and in', () => {
+    const leg = boyleLeg(0, 7);
+    const points = path(leg, tieOffVolume(leg));
+    const steps = points
+      .slice(1)
+      .map((p, i) => p.distance - points[i].distance);
+    const most = Math.max(...steps);
+    for (let i = 1; i < steps.length; i++)
+      expect(Math.abs(steps[i] - steps[i - 1])).toBeLessThan(most * 0.05);
+    expect(steps[0]).toBeLessThan(most * 0.1);
+    expect(steps.at(-1)!).toBeLessThan(most * 0.1);
+  });
+
+  it('starts falling the moment it pops, faster and faster', () => {
+    const leg = gayLussacLeg(0, 7);
+    const plan = planFlight(leg, rightAnswer(leg) * 1.05);
+    const popped = (t: number) => flightState(leg, plan, t).flight.burst;
+    let i = 0;
+    while (!popped(i / 200)) i++;
+    const points = path(leg, rightAnswer(leg) * 1.05).slice(i);
+    const drops = points.slice(1).map((p, k) => points[k].height - p.height);
+    for (const drop of drops) expect(drop).toBeGreaterThanOrEqual(0);
+    expect(drops[1]).toBeGreaterThan(0);
+    expect(Math.max(...drops)).toBeGreaterThan(drops[1] * 3);
+    // a visible drop within a tenth of the flight (0.6 s), not a slow sag
+    const dropped = points[0].height - points[20].height;
+    expect(dropped).toBeGreaterThan(40);
+    // and it's down well before the flight's over, lying on the ground
+    const end = flightAt(leg, plan, 1);
+    expect(flightAt(leg, plan, 0.9).height).toBeCloseTo(end.height, 0);
   });
 });

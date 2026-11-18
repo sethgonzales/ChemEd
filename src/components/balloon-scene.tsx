@@ -25,19 +25,16 @@ import {
   worldX,
   worldY,
 } from '~/utils/balloon-camera';
-import { ENVELOPE_RADIUS, envelopeRadius } from '~/utils/balloon-view';
+import {
+  ENVELOPE_RADIUS,
+  GUESSED_WIDTH,
+  envelopeRadius,
+  viewSize,
+} from '~/utils/balloon-view';
 import { halfSize } from '~/utils/mini-sprite';
+import { useMedia } from '~/utils/use-media';
 import { Painter } from '~/utils/pixel-painter';
 
-// The view is a window on the leg's world, in art pixels. It's sized from the
-// screen so pixels stay about the same size everywhere; on a phone you see
-// less of the world, not a smaller one.
-const CSS_PER_ART = 3.4; // screen px per art px, roughly
-const MIN_VIEW = 170; // art px wide; a phone sees less, so its gauges have room
-const MAX_VIEW = 520;
-const ASPECT = 0.36; // height over width: room for the land and a balloon above it
-// a taller view on phones: room for the column of five gauges at the right
-const MIN_VIEW_HEIGHT = 190;
 const COLUMN = 2; // art px per column of ground
 const PARALLAX = 0.5; // the far hills move half as fast as the camera
 const SIGN_OFFSET = 330; // m from a landing spot to its signpost, clear of the balloon's gauges
@@ -614,36 +611,67 @@ function envelopeRows(radius: number, taut: boolean) {
   return p.rows();
 }
 
-// lengths (art px) of the torn gores, left to right: ragged on purpose
-const SHREDS = [6, 10, 8, 11, 7];
-const LEAN = 3; // rows per px the fabric trails sideways in the wind
+// the burst envelope's peels, split open from the top like a banana's:
+// [where on the cup's rim (−1 to 1), how high it arches (art px), how far out]
+const PEELS: [number, number, number][] = [
+  [-1, 3, 3],
+  [-0.4, 6, 6],
+  [0.4, 5, 6],
+  [1, 3, 3],
+];
+const DROOP = 4; // art px the peels hang down past the rim, flopped over
+const CUP = 5; // art px, the radius of the envelope's bottom, still whole
 
 /**
- * A burst envelope: limp, torn gores trailing up and off to one side from
- * the ropes, the way a falling balloon's fabric streams above it
+ * A burst envelope, split open like a banana: the bottom still whole, and its
+ * panels peeled back from the tear, curling out and over
  */
 function burstRows() {
   const p = new Painter(CRAFT_W, CRAFT_H - BASKET_H);
   const cx = CRAFT_W / 2;
   const mouth = CRAFT_H - BASKET_H - RIDER_SHOWN - ROPE; // where the ropes meet it
-  const left = Math.round(cx - SHREDS.length / 2);
-  SHREDS.forEach((length, i) => {
-    for (let k = 0; k < length; k++)
-      // dark folds and faded panels, never bright: it's slack cloth
+  const rimY = mouth - CUP; // the cup's open top
+  // the whole bottom: a half sphere, its gores still striped
+  for (let py = rimY; py < mouth; py++)
+    for (let px = Math.floor(cx - CUP); px <= cx + CUP; px++) {
+      const dx = (px + 0.5 - cx) / CUP;
+      const dy = (py + 0.5 - rimY) / CUP;
+      if (dx * dx + dy * dy <= 1)
+        p.set(px, py, Math.floor((dx + 1) * 3) % 2 ? 'n' : 'N');
+    }
+  // the peels: arching up and out from the rim, then flopping over to hang
+  // down outside the cup, their darker inside showing once they've turned
+  PEELS.forEach(([along, height, out], i) => {
+    const x0 = cx + along * (CUP - 0.5);
+    const side = Math.sign(along);
+    const STEPS = 32;
+    for (let k = 0; k <= STEPS; k++) {
+      const turn = (k / STEPS) * Math.PI; // up and over
       p.set(
-        left + i + Math.floor(k / LEAN),
-        mouth - 1 - k,
-        (i + Math.floor(k / 4)) % 2 ? 'f' : 'N',
+        x0 + (side * out * (1 - Math.cos(turn))) / 2,
+        rimY - height * Math.sin(turn),
+        turn > Math.PI / 2 ? 'f' : i % 2 ? 'n' : 'N',
       );
+    }
+    // the tip, hanging straight down
+    p.line(x0 + side * out, rimY, x0 + side * out, rimY + DROOP, 'f');
   });
-  const rimY = CRAFT_H - BASKET_H;
+  // the tear, dark inside the cup
+  p.line(cx - CUP + 1, rimY, cx + CUP - 1, rimY, 'f', false);
   const bx = (CRAFT_W - BASKET_W) / 2;
-  p.line(left, mouth, bx, rimY - 1, 'T', false);
   p.line(
-    left + SHREDS.length - 1,
-    mouth,
+    cx - CUP * 0.7,
+    mouth - 1,
+    bx,
+    mouth + ROPE + RIDER_SHOWN - 1,
+    'T',
+    false,
+  );
+  p.line(
+    cx + CUP * 0.7,
+    mouth - 1,
     bx + BASKET_W - 1,
-    rimY - 1,
+    mouth + ROPE + RIDER_SHOWN - 1,
     'T',
     false,
   );
@@ -661,9 +689,17 @@ function basketRows() {
 /** The view's size in art px, from the space it has on screen */
 function useViewSize() {
   const frame = useRef<HTMLDivElement>(null);
-  const [screenWidth, setScreenWidth] = useState(400 * CSS_PER_ART); // CSS px
+  const [screenWidth, setScreenWidth] = useState(GUESSED_WIDTH); // CSS px
   // until it's measured, the gauges' places are only the server's guess
   const [measured, setMeasured] = useState(false);
+  // the window's height too, so the scene fits on the screen
+  const [windowHeight, setWindowHeight] = useState(900); // CSS px
+  useEffect(() => {
+    const resize = () => setWindowHeight(window.innerHeight);
+    resize();
+    window.addEventListener('resize', resize);
+    return () => window.removeEventListener('resize', resize);
+  }, []);
   useEffect(() => {
     const el = frame.current;
     if (!el || typeof ResizeObserver === 'undefined') {
@@ -677,15 +713,11 @@ function useViewSize() {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  const width = Math.round(
-    Math.min(MAX_VIEW, Math.max(MIN_VIEW, screenWidth / CSS_PER_ART)),
-  );
-  const height = Math.round(Math.max(MIN_VIEW_HEIGHT, width * ASPECT));
-  // CSS px per art px, for placing the gauges over the art
+  const { width, height, scale } = viewSize(screenWidth, windowHeight);
   return {
     frame,
     view: { width, height },
-    scale: screenWidth / width,
+    scale, // CSS px per art px, for placing the gauges over the art
     measured,
   };
 }
@@ -713,7 +745,13 @@ interface Props {
   distance: number; // m along the route
   leg: Leg;
   rider?: Rider; // Mr. G, until a student's avatar takes his place
+  instruments?: boolean; // the gauges, once there's a leg to fly
+  children?: ReactNode; // Mr. G and the controls: in the sky when there's room
 }
+
+// the panel starts this far across, right of the balloon and its gauges,
+// which the camera keeps about a third of the way in
+const PANEL_FROM = 0.48;
 
 /** One leg of the journey, side on, with the camera following the balloon */
 export default function BalloonScene({
@@ -722,8 +760,11 @@ export default function BalloonScene({
   distance,
   leg,
   rider = MR_G,
+  instruments = true,
+  children,
 }: Props) {
   const { frame, view, scale, measured } = useViewSize();
+  const inSky = useMedia('(min-width: 1024px)');
   const world = worldSize(leg);
   const gas = gasInside(balloon, flight);
   // drawn against the whole envelope, even when Mr. G has tied it off smaller
@@ -738,8 +779,10 @@ export default function BalloonScene({
 
   const at = { x: worldX(leg, distance), y: worldY(leg, flight.height) };
   const cam = camera(leg, view, at);
-  const craftX = Math.round(at.x - CRAFT_W / 2);
-  const craftY = Math.round(at.y - CRAFT_H);
+  // not snapped to whole pixels: the camera glides, so the balloon must too,
+  // or it jitters against the world
+  const craftX = at.x - CRAFT_W / 2;
+  const craftY = at.y - CRAFT_H;
   const rimY = craftY + CRAFT_H - BASKET_H;
   const inView = (wx: number, wy: number) => ({
     left: `${((wx - cam.x) / view.width) * 100}%`,
@@ -831,7 +874,7 @@ export default function BalloonScene({
             ),
           };
 
-  return (
+  const scene = (
     <div ref={frame} className="relative w-full overflow-hidden pixel-control">
       <svg
         viewBox={`${cam.x} ${cam.y} ${view.width} ${view.height}`}
@@ -942,98 +985,123 @@ export default function BalloonScene({
       </ul>
 
       {/* the balloon's own gauges, tethered to it */}
-      <div className={measured ? undefined : 'invisible'}>
-        <svg
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          aria-hidden="true"
-        >
-          {own.map(({ device, x, y }) => (
-            <line
-              key={device.name}
-              x1={craft.x}
-              y1={craft.y}
-              x2={x}
-              y2={y}
-              stroke="#fff7d6"
-              strokeOpacity={0.7}
-              strokeWidth={1}
-              strokeDasharray="3 3"
-            />
-          ))}
-          {stationInView && blocked && (
-            <line
-              x1={station.x}
-              y1={station.y + 10}
-              x2={board.x}
-              y2={board.y - STATION_BOARD.height / 2}
-              stroke="#f8fafc"
-              strokeOpacity={0.7}
-              strokeDasharray="3 3"
-            />
-          )}
-        </svg>
-        <div role="group" aria-label="The balloon">
-          {own.map(({ device, x, y }) => (
-            <div
-              key={device.name}
-              className="absolute -translate-x-1/2 -translate-y-1/2 has-[[aria-expanded=true]]:z-30"
-              style={{ left: x, top: y }}
-            >
-              <Gauge
-                device={device}
-                opens={y < screen.height / 2 ? 'down' : 'up'}
-                shift={cardShift(x)}
-              />
-            </div>
-          ))}
-        </div>
-
-        {stationInView && (
-          <div
-            role="group"
-            aria-label={`${next.name} weather station`}
-            className="absolute flex -translate-x-1/2 -translate-y-full gap-1 has-[[aria-expanded=true]]:z-30"
-            style={{ left: board.x, top: board.y }}
+      {instruments && (
+        <div className={measured ? undefined : 'invisible'}>
+          <svg
+            className="pointer-events-none absolute inset-0 h-full w-full"
+            aria-hidden="true"
           >
-            {stationDevices(next).map((device) => (
-              <Gauge
+            {own.map(({ device, x, y }) => (
+              <line
                 key={device.name}
-                device={device}
-                opens="up"
-                shift={cardShift(board.x)}
+                x1={craft.x}
+                y1={craft.y}
+                x2={x}
+                y2={y}
+                stroke="#fff7d6"
+                strokeOpacity={0.7}
+                strokeWidth={1}
+                strokeDasharray="3 3"
               />
             ))}
+            {stationInView && blocked && (
+              <line
+                x1={station.x}
+                y1={station.y + 10}
+                x2={board.x}
+                y2={board.y - STATION_BOARD.height / 2}
+                stroke="#f8fafc"
+                strokeOpacity={0.7}
+                strokeDasharray="3 3"
+              />
+            )}
+          </svg>
+          <div role="group" aria-label="The balloon">
+            {own.map(({ device, x, y }) => (
+              <div
+                key={device.name}
+                className="absolute -translate-x-1/2 -translate-y-1/2 has-[[aria-expanded=true]]:z-30"
+                style={{ left: x, top: y }}
+              >
+                <Gauge
+                  device={device}
+                  opens={y < screen.height / 2 ? 'down' : 'up'}
+                  shift={cardShift(x)}
+                />
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+
+          {stationInView && (
+            <div
+              role="group"
+              aria-label={`${next.name} weather station`}
+              className="absolute flex -translate-x-1/2 -translate-y-full gap-1 has-[[aria-expanded=true]]:z-30"
+              style={{ left: board.x, top: board.y }}
+            >
+              {stationDevices(next).map((device) => (
+                <Gauge
+                  key={device.name}
+                  device={device}
+                  opens="up"
+                  shift={cardShift(board.x)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* the sky's instruments, apart from the balloon's, and below them the
           next stop's station, radioing its readings while it's out of sight */}
-      <div className="absolute top-1.5 right-1.5 flex flex-col items-stretch gap-1.5 has-[[aria-expanded=true]]:z-30 sm:top-2 sm:right-2">
-        <div
-          role="group"
-          aria-label="The air here"
-          className="flex flex-col items-center gap-1 rounded-sm bg-primary-800/40 p-1 sm:gap-2 sm:p-1.5"
-        >
-          {airDevices(balloon, flight).map((device) => (
-            <Gauge key={device.name} device={device} opens="left" />
-          ))}
-        </div>
-        {!stationInView && (
+      {instruments && (
+        <div className="absolute top-1.5 right-1.5 flex flex-col items-stretch gap-1.5 has-[[aria-expanded=true]]:z-30 sm:top-2 sm:right-2">
           <div
             role="group"
-            aria-label={`${next.name} weather station, by radio`}
+            aria-label="The air here"
             className="flex flex-col items-center gap-1 rounded-sm bg-primary-800/40 p-1 sm:gap-2 sm:p-1.5"
           >
-            <span className="max-w-16 text-center font-sans text-[10px] leading-tight text-white sm:max-w-20 sm:text-xs">
-              {next.name} ›
-            </span>
-            {stationDevices(next).map((device) => (
+            {airDevices(balloon, flight).map((device) => (
               <Gauge key={device.name} device={device} opens="left" />
             ))}
           </div>
-        )}
-      </div>
+          {!stationInView && (
+            <div
+              role="group"
+              aria-label={`${next.name} weather station, by radio`}
+              className="flex flex-col items-center gap-1 rounded-sm bg-primary-800/40 p-1 sm:gap-2 sm:p-1.5"
+            >
+              <span className="max-w-16 text-center font-sans text-[10px] leading-tight text-white sm:max-w-20 sm:text-xs">
+                {next.name} ›
+              </span>
+              {stationDevices(next).map((device) => (
+                <Gauge key={device.name} device={device} opens="left" />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mr. G and the controls, up in the sky right of the balloon */}
+      {children && inSky && (
+        <div
+          className="absolute top-2 z-20 flex flex-col gap-3 has-[[aria-expanded=true]]:z-40"
+          style={{
+            left: screen.width * PANEL_FROM,
+            right: instruments ? SKY_COLUMN + 8 : 8,
+          }}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+  // narrower, there's no room in the sky: it goes underneath. Always the same
+  // wrapper, so switching doesn't remount the frame its size is measured from
+  return (
+    <div className="flex flex-col gap-4">
+      {scene}
+      {!inSky && children}
     </div>
   );
 }

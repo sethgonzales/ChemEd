@@ -1,6 +1,11 @@
 import { airAt } from './atmosphere';
 import type { Balloon, Flight } from './balloon';
-import { ENVELOPE_RADIUS, envelopeRadius, readings } from './balloon-view';
+import {
+  ENVELOPE_RADIUS,
+  envelopeRadius,
+  readings,
+  viewSize,
+} from './balloon-view';
 
 const balloon: Balloon = {
   fullVolume: 1000,
@@ -46,5 +51,25 @@ describe('envelopeRadius', () => {
 
   it('never draws bigger than full', () => {
     expect(envelopeRadius(2000, 1000)).toBe(ENVELOPE_RADIUS);
+  });
+});
+
+describe('the size of the view', () => {
+  it('keeps pixels about the same size, seeing less of the world on a phone', () => {
+    const phone = viewSize(375, 800);
+    const laptop = viewSize(1200, 900);
+    expect(phone.width).toBeLessThan(laptop.width);
+    expect(phone.scale).toBeGreaterThan(1.5);
+    expect(laptop.scale).toBeGreaterThan(1.5);
+  });
+
+  it('fits a laptop’s screen, with room left for the controls', () => {
+    const { height, scale } = viewSize(1200, 800);
+    expect(height * scale).toBeLessThanOrEqual(800 * 0.66);
+  });
+
+  it('stays tall enough for the gauge column on a short screen', () => {
+    const { height, scale } = viewSize(1200, 400);
+    expect(height * scale).toBeGreaterThanOrEqual(370);
   });
 });

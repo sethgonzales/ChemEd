@@ -169,3 +169,53 @@ describe('the heater, the burst line and the tank', () => {
     expect(screen.getByText('We’re down on Clay Mesa!')).toBeInTheDocument();
   });
 });
+
+describe('the launch field, first thing', () => {
+  it('asks for the course in the sky over the launch field', () => {
+    render(<BalloonRiser />);
+    expect(
+      screen.getByRole('img', {
+        name: /Mr\. G in the balloon’s basket, at 200 m/,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/^Morning!/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'General Chemistry' }),
+    ).toBeInTheDocument();
+  });
+
+  it('lists the levels there too, without instruments yet', async () => {
+    const u = user();
+    render(<BalloonRiser />);
+    await u.click(screen.getByRole('button', { name: 'General Chemistry' }));
+    expect(
+      screen.getByRole('img', { name: /balloon’s basket/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'The balloon' })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Boyle’s law/ })).toBeEnabled();
+  });
+});
+
+describe('dev tools, for testing a leg', () => {
+  it('fly a right answer onto the platform', async () => {
+    const u = user();
+    await startBoyle(u);
+    await u.click(screen.getByRole('button', { name: 'Fly the right answer' }));
+    act(() => jest.advanceTimersByTime(FLIGHT_MS + 500));
+    expect(screen.getByText('We’re down on Red Mesa!')).toBeInTheDocument();
+  });
+
+  it('fly a wrong answer, too high or too low', async () => {
+    const u = user();
+    await startBoyle(u);
+    await u.click(screen.getByRole('button', { name: 'Fly 10% too high' }));
+    act(() => jest.advanceTimersByTime(FLIGHT_MS + 500));
+    expect(screen.getByText(/sailed right over Red Mesa/)).toBeInTheDocument();
+    await u.click(screen.getByRole('button', { name: 'Try again' }));
+    await u.click(screen.getByRole('button', { name: 'Fly 10% too low' }));
+    act(() => jest.advanceTimersByTime(FLIGHT_MS + 500));
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument();
+  });
+});

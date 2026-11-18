@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import CalcPad from './calc-pad';
+import CalcPad, { Working } from './calc-pad';
 
 const renderPad = () => {
   const onSubmit = jest.fn();
@@ -54,6 +54,24 @@ describe('CalcPad', () => {
 
   it('has room to work it out', () => {
     renderPad();
+    expect(
+      screen.getByRole('textbox', { name: 'Working' }),
+    ).toBeInTheDocument();
+  });
+
+  it('can leave its working space to sit somewhere else', () => {
+    render(
+      <CalcPad
+        label="Volume to tie off at"
+        units={['m³', 'L']}
+        hint="Boyle’s law"
+        action="Tie off and fly"
+        onSubmit={jest.fn()}
+        working={false}
+      />,
+    );
+    expect(screen.queryByRole('textbox', { name: 'Working' })).toBeNull();
+    render(<Working />);
     expect(
       screen.getByRole('textbox', { name: 'Working' }),
     ).toBeInTheDocument();

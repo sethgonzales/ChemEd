@@ -55,7 +55,7 @@ export default function Gauge({ device, opens = 'down', shift = 0 }: Props) {
         <div
           id={id}
           className={cn(
-            'absolute flex w-48 gap-2 rounded-sm bg-primary-700 p-2 text-left text-white shadow-lg ring-1 ring-primary-800',
+            'absolute flex w-48 flex-col gap-1.5 rounded-sm bg-primary-700 p-2 text-left text-white shadow-lg ring-1 ring-primary-800',
             CARD[opens],
           )}
           style={
@@ -64,17 +64,23 @@ export default function Gauge({ device, opens = 'down', shift = 0 }: Props) {
               : { transform: `translateX(calc(-50% + ${shift}px))` }
           }
         >
-          <span className="block size-12 shrink-0 sm:size-16">
-            {device.picture}
+          {/* the device and its name side by side, the words below with the
+              card's full width */}
+          <span className="flex items-center gap-2">
+            <span className="block size-10 shrink-0 sm:size-12">
+              {device.picture}
+            </span>
+            <span className="flex min-w-0 flex-col items-start gap-1">
+              <span className="text-sm font-semibold leading-tight">
+                {device.name}
+              </span>
+              <span className="rounded-sm bg-[#10261a] px-1.5 font-mono text-base font-semibold tabular-nums text-[#86efac]">
+                {device.reading}
+              </span>
+            </span>
           </span>
-          <span className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs font-semibold">{device.name}</span>
-            <span className="self-start rounded-sm bg-[#10261a] px-1.5 font-mono text-sm font-semibold tabular-nums text-[#86efac]">
-              {device.reading}
-            </span>
-            <span className="font-sans text-[11px] leading-snug text-white/85">
-              {device.measures}
-            </span>
+          <span className="font-sans text-xs leading-snug text-white/85">
+            {device.measures}
           </span>
         </div>
       )}

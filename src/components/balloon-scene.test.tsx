@@ -136,4 +136,30 @@ describe('BalloonScene', () => {
     renderScene();
     expect(screen.queryByRole('img', { name: /burst/ })).toBeNull();
   });
+
+  it('holds Mr. G and the controls in the scene', () => {
+    render(
+      <BalloonScene balloon={balloon} flight={flight} distance={0} leg={leg}>
+        <p>Morning!</p>
+      </BalloonScene>,
+    );
+    expect(screen.getByText('Morning!')).toBeInTheDocument();
+  });
+
+  it('can leave the instruments out, before there’s a leg to fly', () => {
+    render(
+      <BalloonScene
+        balloon={balloon}
+        flight={flight}
+        distance={0}
+        leg={leg}
+        instruments={false}
+      />,
+    );
+    expect(screen.queryByRole('group', { name: 'The balloon' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'The air here' })).toBeNull();
+    expect(
+      screen.getByRole('img', { name: /Mr\. G in the balloon’s basket/ }),
+    ).toBeInTheDocument();
+  });
 });

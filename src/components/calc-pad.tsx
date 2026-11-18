@@ -12,6 +12,7 @@ interface Props {
   action: string; // the main button, e.g. "Tie off and fly"
   onSubmit: (value: number) => void; // in SI units
   disabled?: boolean;
+  working?: boolean; // its own scratch space; false when it sits elsewhere
 }
 
 // "540,000" or "5.4e5": commas and spaces are only for reading
@@ -28,6 +29,7 @@ export default function CalcPad({
   action,
   onSubmit,
   disabled,
+  working = true,
 }: Props) {
   const [text, setText] = useState('');
   const [unit, setUnit] = useState<GasUnit>(units[0]);
@@ -62,7 +64,7 @@ export default function CalcPad({
           disabled={disabled}
           className={cn(
             PIXEL_CONTROL,
-            'w-32 bg-white px-3 py-2 font-mono text-gray-900 tabular-nums',
+            'w-28 bg-white px-3 py-2 font-mono text-gray-900 tabular-nums',
           )}
         />
         <Dropdown label={unit} ariaLabel={`Unit: ${unit}`} inline readable>
@@ -89,16 +91,23 @@ export default function CalcPad({
         </p>
       )}
       {hinted && <p className="font-sans text-sm text-white/90">{hint}</p>}
-      <label className="flex flex-col gap-1 text-sm">
-        Working
-        <textarea
-          rows={2}
-          className={cn(
-            PIXEL_CONTROL,
-            'bg-white px-3 py-2 font-mono text-sm text-gray-900',
-          )}
-        />
-      </label>
+      {working && <Working />}
     </form>
+  );
+}
+
+/** Scratch space for the student's working */
+export function Working() {
+  return (
+    <label className="flex flex-col gap-1 text-sm">
+      Working
+      <textarea
+        rows={2}
+        className={cn(
+          PIXEL_CONTROL,
+          'bg-white px-3 py-2 font-mono text-sm text-gray-900',
+        )}
+      />
+    </label>
   );
 }

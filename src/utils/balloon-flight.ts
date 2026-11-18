@@ -22,17 +22,21 @@ import {
 export type Outcome = 'landed' | 'over' | 'short' | 'burst';
 
 export const TOLERANCE = 0.02; // an answer within 2% lands: rounding the readings is fine
-const CLIMB = 0.4; // of the flight spent climbing, or heating up
+const CLIMB = 0.4; // of the flight spent heating up, or filling and venting
+const RISE = 0.6; // of the flight spent rising to its height
+const ARC = 120; // m the flight arcs above a straight climb, at its middle
 const SINK = 0.25; // of a short flight spent sinking back down
+const DRIFT = 0.1; // of the leg a burst balloon drifts on while it falls
+const FALL = 0.3; // of the flight a burst balloon takes to hit the ground
 const OVERSHOOT = 600; // m past the platform a balloon that's too high drifts
 const CLEARANCE = 20; // m the basket needs above the ground
 // m above the platform: below the top of the scene's sky
 export const MAX_OVERSHOOT = SKY_ROOM - 200;
 const MIN_OVERSHOOT = 150; // m: too high is always high enough to see
 const SCAN_STEP = 10; // m
-const BURST_AT = 0.5; // of the way across, where an overheated balloon bursts
 const VENTED_AT = 0.7; // of the way across, where a vented balloon runs out of lift
 const SUN = 1.05; // the sun heats the helium this far past the red line
+const LANDING_MARGIN = 0.98; // of the red line's temperature, where a good vent holds it
 const ESCAPE = 0.1; // of the flight it takes a burst balloon's helium to escape
 
 export interface FlightPlan {
@@ -41,6 +45,7 @@ export interface FlightPlan {
   outcome: Outcome;
   cruise: number; // m: the height it holds
   stopAt: number; // m along the route, where the flight ends
+  popsAt?: number; // of the flight, when a burst balloon tears open
 }
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
@@ -92,14 +97,25 @@ export function planFlight(g: GasLeg, answer: number): FlightPlan {
       stopAt: to.distance,
     };
 
-  if (g.law === 'gay-lussac')
-    // too hot, it bursts on the way; too cool, he vents helium it needed
+  if (g.law === 'gay-lussac') {
+    // too cool, he vents helium it needed, and it sinks once it cools
+    if (error < 0)
+      return {
+        ...plan,
+        outcome: 'short',
+        cruise: from.height,
+        stopAt: from.distance + VENTED_AT * span,
+      };
+    // too hot, it bursts on the way, as the sun heats it past the red line
+    const popsAt = popTime(g);
     return {
       ...plan,
-      outcome: error > 0 ? 'burst' : 'short',
+      outcome: 'burst',
       cruise: from.height,
-      stopAt: from.distance + (error > 0 ? BURST_AT : VENTED_AT) * span,
+      popsAt,
+      stopAt: from.distance + (smooth(popsAt) + DRIFT * (1 - popsAt)) * span,
     };
+  }
 
   if (g.law !== 'boyle') {
     // too small to float, it never leaves the platform
@@ -137,28 +153,67 @@ export function planFlight(g: GasLeg, answer: number): FlightPlan {
   return { ...plan, outcome: 'short', cruise: tied, stopAt: d - 4 * SCAN_STEP };
 }
 
-const sinks = (plan: FlightPlan) =>
-  plan.outcome === 'short' || plan.outcome === 'burst';
+/** The sun's heating through a Gay-Lussac's law leg: up to a peak, then holding */
+const sunHeat = (g: GasLeg, peak: number, t: number) =>
+  lerp(g.gasTemperature, peak, smooth(Math.min(1, t / CLIMB)));
 
-/** Where the balloon is at a point through the flight, t from 0 to 1 */
+/** When, through the flight, the sun heats the helium past the red line */
+function popTime(g: GasLeg) {
+  const line = burstTemperature(g);
+  // halving: the heat only rises
+  let low = 0;
+  let high = CLIMB;
+  for (let i = 0; i < 30; i++) {
+    const mid = (low + high) / 2;
+    if (sunHeat(g, line * SUN, mid) > line) high = mid;
+    else low = mid;
+  }
+  return high;
+}
+
+/**
+ * Where the balloon is at a point through the flight, t from 0 to 1. It eases
+ * off and in, rising to its height in a gentle arc that comes back down onto
+ * where it's headed. Out of lift, it sinks; burst, it falls from that moment.
+ */
 export function flightAt(g: GasLeg, plan: FlightPlan, t: number) {
-  const { from } = g.leg;
+  const { from, to } = g.leg;
   if (plan.stopAt === from.distance)
     return { distance: from.distance, height: from.height };
-  const travel = sinks(plan) ? 1 - SINK : 1;
-  const along = Math.min(1, t / travel);
-  const distance = lerp(from.distance, plan.stopAt, along);
-  const climbed = lerp(
-    from.height,
-    plan.cruise,
-    smooth(Math.min(1, t / CLIMB)),
-  );
-  if (t <= travel) return { distance, height: climbed };
-  // out of lift, it sinks to the ground
-  const sunk = smooth((t - travel) / SINK);
+  if (t >= 1 && plan.outcome === 'landed')
+    return { distance: to.distance, height: to.height };
+  // a burst balloon was heading for the platform when it popped
+  const aim = plan.outcome === 'burst' ? to.distance : plan.stopAt;
+  const glide = (at: number) => ({
+    distance: lerp(from.distance, aim, smooth(at)),
+    height:
+      lerp(from.height, plan.cruise, smooth(Math.min(1, at / RISE))) +
+      ARC * Math.sin(Math.PI * at),
+  });
+  const fallAt =
+    plan.outcome === 'burst'
+      ? plan.popsAt!
+      : plan.outcome === 'short'
+        ? 1 - SINK
+        : 1;
+  if (t <= fallAt) return glide(t);
+  const start = glide(fallAt);
+  const s = (t - fallAt) / (1 - fallAt);
+  if (plan.outcome === 'burst') {
+    // nothing holding it up: it falls faster and faster, drifting a little,
+    // and lies on the ground for the rest of the flight
+    const fell = Math.min(1, (t - fallAt) / FALL);
+    const distance = lerp(start.distance, plan.stopAt, Math.sqrt(fell));
+    return {
+      distance,
+      height: lerp(start.height, groundAt(g.leg, distance), fell * fell),
+    };
+  }
+  // out of lift, it sinks gently to the ground
+  const distance = glide(t).distance;
   return {
     distance,
-    height: lerp(plan.cruise, groundAt(g.leg, distance), sunk),
+    height: lerp(start.height, groundAt(g.leg, distance), smooth(s)),
   };
 }
 
@@ -171,27 +226,19 @@ function sunlit(
 ): Partial<Flight> {
   const t1 = g.gasTemperature;
   const line = burstTemperature(g);
-  // landing, it never quite passes the line; otherwise the sun takes it past
+  // landing, Mr. G vents a touch under the line, leaving room for the arc's
+  // thinner air up top; otherwise the sun takes it past
   const peak =
     plan.outcome === 'landed'
-      ? Math.min(plan.answer, line * 0.999)
+      ? Math.min(plan.answer, line) * LANDING_MARGIN
       : line * SUN;
-  const heatedAt = (at: number) =>
-    lerp(t1, peak, smooth(Math.min(1, at / CLIMB)));
-  const heated = heatedAt(t);
+  const heated = sunHeat(g, peak, t);
   if (plan.outcome === 'burst') {
-    // the moment it passes the line, found by halving: heating only rises
-    let low = 0;
-    let high = CLIMB;
-    for (let i = 0; i < 30; i++) {
-      const mid = (low + high) / 2;
-      if (heatedAt(mid) > line) high = mid;
-      else low = mid;
-    }
-    if (t < high) return { gasTemperature: heated };
+    const popsAt = plan.popsAt!;
+    if (t < popsAt) return { gasTemperature: heated };
     // torn open, the helium rushes out, and the outside air takes its place
     // round the thermometer
-    const left = Math.max(0, 1 - (t - high) / ESCAPE);
+    const left = Math.max(0, 1 - (t - popsAt) / ESCAPE);
     return {
       gasTemperature: lerp(airAt(height).temperature, heated, left),
       moles: g.moles * left,
