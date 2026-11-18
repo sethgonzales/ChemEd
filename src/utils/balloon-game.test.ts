@@ -65,6 +65,7 @@ describe('a level of Balloon Riser', () => {
       'ideal',
       'free',
       'dalton',
+      'graham',
     ]);
   });
 

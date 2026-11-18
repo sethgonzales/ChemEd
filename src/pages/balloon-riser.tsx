@@ -76,6 +76,7 @@ const SCIENTISTS: Record<string, string> = {
   'gay-lussac': 'Gay-Lussac',
   avogadro: 'Avogadro',
   dalton: 'Dalton',
+  graham: 'Graham',
 };
 
 const starText = (n: number) => '★'.repeat(n) + '☆'.repeat(3 - n);
@@ -338,7 +339,13 @@ export default function BalloonRiser() {
       {...(game
         ? { back: { label: 'Back to levels', onClick: toLevels } }
         : { backHref: '/' })}
-      sources={[ATMOSPHERE_SOURCE, 'codata', 'siBrochure', 'ciaawWeights']}
+      sources={[
+        ATMOSPHERE_SOURCE,
+        'codata',
+        'siBrochure',
+        'ciaawWeights',
+        'grahamsLaw',
+      ]}
     >
       <div className="flex flex-col gap-4">
         {flying && (

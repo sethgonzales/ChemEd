@@ -9,6 +9,7 @@ import {
   charlesLeg,
   combinedLeg,
   daltonLeg,
+  grahamLeg,
   idealLeg,
   gayLussacLeg,
   rightAnswer,
@@ -406,5 +407,54 @@ describe('Dalton’s law legs', () => {
   it('gives fresh numbers on a retry, and the same ones for the same seed', () => {
     expect(daltonLeg(0, 42)).toEqual(daltonLeg(0, 42));
     expect(daltonLeg(0, 43)).not.toEqual(daltonLeg(0, 42));
+  });
+});
+
+describe('Graham’s law legs', () => {
+  const GRAHAM = Math.sqrt(28.9644 / 4.002602); // √(M(air) / M(He))
+  const these = Array.from({ length: LEGS_PER_LEVEL }, (_, i) =>
+    grahamLeg(i, 42),
+  );
+  const many = Array.from({ length: 200 }, (_, s) =>
+    Array.from({ length: LEGS_PER_LEVEL }, (_, i) => grahamLeg(i, s)),
+  ).flat();
+
+  it('hop platform to platform at the same height, floating level to begin with', () => {
+    for (const { leg } of these) expect(leg.to.height).toBe(leg.from.height);
+    for (const g of these) {
+      const at = (k: number) => withGas(g, { moles: g.moles * k });
+      expect(liftOff(balloonFor(g), at(1.01))).toBe(true);
+      expect(liftOff(balloonFor(g), at(0.99))).toBe(false);
+    }
+  });
+
+  it('ask for the helium to set off with: what floats us now, plus what leaks out on the way, Graham’s law faster than air', () => {
+    for (const g of these) {
+      const air = balloonFor(g).leakTest!; // leak tester, mol/min
+      expect(rightAnswer(g) / (g.moles + air * GRAHAM * g.said)).toBeCloseTo(
+        1,
+        6,
+      );
+    }
+  });
+
+  it('need Graham’s factor and the leak: leaving either out misses', () => {
+    for (const g of many) {
+      const air = balloonFor(g).leakTest!;
+      const right = rightAnswer(g);
+      expect(Math.abs(g.moles / right - 1)).toBeGreaterThan(0.025);
+      expect(Math.abs((g.moles + air * g.said) / right - 1)).toBeGreaterThan(
+        0.025,
+      );
+    }
+  });
+
+  it('gives a hop of whole five minutes', () => {
+    for (const g of many) expect(g.said % 5).toBe(0);
+  });
+
+  it('gives fresh numbers on a retry, and the same ones for the same seed', () => {
+    expect(grahamLeg(0, 42)).toEqual(grahamLeg(0, 42));
+    expect(grahamLeg(0, 43)).not.toEqual(grahamLeg(0, 42));
   });
 });

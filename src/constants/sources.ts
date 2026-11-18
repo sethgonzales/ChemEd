@@ -24,6 +24,15 @@ const ALL = {
     url: 'https://en.wikipedia.org/wiki/Standard_electrode_potential_(data_page)',
     accessed: '2026-11-13',
   },
+  grahamsLaw: {
+    topic:
+      'Graham’s law: a gas effuses at a rate inversely proportional to the square root of its molar mass; the page credits Petrucci, Harwood and Herring, General Chemistry (8th ed., 2002), pp. 206–208',
+    ...WIKIPEDIA,
+    year: 2026,
+    title: 'Graham’s law',
+    url: 'https://en.wikipedia.org/wiki/Graham%27s_law',
+    accessed: '2026-11-18',
+  },
   codata: {
     topic: 'The Faraday constant F and the gas constant R',
     author: 'Tiesinga, E., Mohr, P. J., Newell, D. B. and Taylor, B. N.',

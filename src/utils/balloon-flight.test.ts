@@ -14,6 +14,7 @@ import {
   charlesLeg,
   combinedLeg,
   daltonLeg,
+  grahamLeg,
   idealLeg,
   gayLussacLeg,
   rightAnswer,
@@ -320,5 +321,25 @@ describe('flying a Dalton’s law leg', () => {
     const end = flightState(d, plan, 1).flight;
     expect(end.moles).toBeCloseTo(right, 6);
     expect(end.airMoles).toBe(d.airMoles);
+  });
+});
+
+describe('flying a Graham’s law leg', () => {
+  const gr = grahamLeg(0, 7);
+  const right = rightAnswer(gr);
+
+  it('lands with the right helium, leaking down to what floats it as it arrives', () => {
+    const plan = planFlight(gr, right);
+    expect(plan.outcome).toBe('landed');
+    expect(flightState(gr, plan, 0).flight.moles).toBeCloseTo(right, 6);
+    expect(flightState(gr, plan, 1).flight.moles).toBeCloseTo(gr.moles, -1);
+  });
+
+  it('climbs over with too much, and sinks partway across with too little', () => {
+    expect(planFlight(gr, right * 1.1).outcome).toBe('over');
+    const short = planFlight(gr, right * 0.97);
+    expect(short.outcome).toBe('short');
+    expect(short.stopAt).toBeGreaterThan(gr.leg.from.distance);
+    expect(short.stopAt).toBeLessThan(gr.leg.to.distance);
   });
 });

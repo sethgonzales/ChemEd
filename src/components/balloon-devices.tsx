@@ -279,6 +279,20 @@ export function balloonDevices(balloon: Balloon, flight: Flight): Device[] {
           },
         ]
       : []),
+    // only on a leaky hop: air's rate through a test patch of the fabric
+    ...(balloon.leakTest
+      ? [
+          {
+            name: 'Leak tester',
+            reading: `air ${fmt(balloon.leakTest, 1)} mol/min`,
+            measures:
+              'How fast air leaks out through a test patch of the fabric’s pinholes. Helium, lighter, leaks faster.',
+            picture: (
+              <Dial value={balloon.leakTest} min={0} max={50} unit="mol/min" />
+            ),
+          },
+        ]
+      : []),
   ];
 }
 

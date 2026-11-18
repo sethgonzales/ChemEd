@@ -94,6 +94,21 @@ describe('BalloonScene', () => {
     expect(within(own).getAllByRole('button')).toHaveLength(5);
   });
 
+  it('adds a leak tester when the fabric’s been tested, reading the air’s leak rate', () => {
+    render(
+      <BalloonScene
+        balloon={{ ...balloon, leakTest: 18.4 }}
+        flight={flight}
+        distance={0}
+        leg={leg}
+      />,
+    );
+    const own = screen.getByRole('group', { name: 'The balloon' });
+    expect(gauge(own, 'Leak tester')).toHaveAccessibleName(
+      'Leak tester: air 18.4 mol/min',
+    );
+  });
+
   it('keeps the air’s instruments apart from the balloon’s', () => {
     renderScene(undefined, { distance: 0, flight: seaLevel });
     const air = screen.getByRole('group', { name: 'The air here' });

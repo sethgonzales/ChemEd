@@ -10,6 +10,7 @@ import { solveGas } from '~/utils/gas-laws';
 import {
   balloonFor,
   arrivalTemperature,
+  heliumLeak,
   rightAnswer,
   startFlight,
   tiesOff,
@@ -122,6 +123,32 @@ export function planFlight(g: GasLeg, answer: number): FlightPlan {
       cruise: from.height,
       popsAt,
       stopAt: from.distance + (smooth(popsAt) + DRIFT * (1 - popsAt)) * span,
+    };
+  }
+
+  if (g.law === 'graham') {
+    const leak = heliumLeak(g);
+    // too much: even leaking, it has lift to spare all the way and climbs over
+    if (error > 0) {
+      const floats = floatHeight(balloonFor(g), {
+        ...startFlight(g),
+        moles: answer - leak,
+      });
+      return {
+        ...plan,
+        outcome: 'over',
+        cruise: tooHigh(g, floats ?? to.height),
+        stopAt: to.distance + OVERSHOOT,
+      };
+    }
+    // too little: it sets off, and sinks once the leak takes it below what
+    // floats it; with no more than that to begin with, it never leaves
+    const lasts = (answer - g.moles) / leak; // of the hop
+    return {
+      ...plan,
+      outcome: 'short',
+      cruise: from.height,
+      stopAt: lasts > 0 ? from.distance + lasts * span : from.distance,
     };
   }
 
@@ -295,6 +322,8 @@ export function flightState(
     avogadro: { moles: lerp(start.moles, answered.moles, ramp) },
     ideal: { moles: lerp(start.moles, answered.moles, ramp) },
     dalton: { moles: lerp(start.moles, answered.moles, ramp) },
+    // set off with the answer, it leaks steadily through the fabric
+    graham: { moles: plan.answer - heliumLeak(g) * t },
     'gay-lussac': g.law === 'gay-lussac' ? sunlit(g, plan, t, at.height) : {},
   }[g.law];
   return {

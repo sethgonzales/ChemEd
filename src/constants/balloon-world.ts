@@ -87,3 +87,11 @@ export const DALTON_ROUTE = level(600, [
   ['Heron Lookout', 'lookout'],
   ['Willow Ridge', 'ridge'],
 ]);
+
+// the long hops: across the wide salt flats, the fabric leaking all the way
+export const GRAHAM_ROUTE = level(1500, [
+  ['Salt Mesa', 'mesa'],
+  ['Mirage Lookout', 'lookout'],
+  ['Flats Field', 'field'],
+  ['Last Ridge', 'ridge'],
+]);

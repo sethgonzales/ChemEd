@@ -53,7 +53,7 @@ describe('Balloon Riser page', () => {
     expect(screen.getByRole('button', { name: /^Boyle’s law/ })).toBeEnabled();
     expect(screen.getByRole('button', { name: /^Free flight/ })).toBeEnabled();
     expect(
-      screen.getByRole('button', { name: /^Graham’s law \(coming soon\)/ }),
+      screen.getByRole('button', { name: /^Real gases \(coming soon\)/ }),
     ).toBeDisabled();
   });
 
