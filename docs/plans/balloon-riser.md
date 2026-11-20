@@ -1,8 +1,8 @@
 # Balloon Riser — plan
 
-Status: **approved** (18 Nov 2026), see Decisions. Phases 1–4 built (engine, the look, Boyle's, then Charles's, Gay-Lussac's and Avogadro's); phase 5 built (combined, ideal, free flight); phase 6 built (Dalton's, Graham's, real gases): every level is open. To do: phase 7, the Dungeon Quest gas laws chamber (scope it first).
+Status: **approved** (18 Nov 2026), see Decisions. Phases 1–4 built (engine, the look, Boyle's, then Charles's, Gay-Lussac's and Avogadro's); phase 5 built (combined, ideal, free flight); phase 6 built (Dalton's and real gases; Graham's was built, then taken out on 20 Nov 2026): every level is open. To do: phase 7, the Dungeon Quest gas laws chamber (scoped, see phase 7).
 
-A game where Mr. G flies a sealed gas balloon from platform to platform across a side-on sky. Each hop is a gas law problem worked out with real numbers: the student reads the instruments, types an answer, and the balloon flies on that number. The flight is the feedback: a right answer lands on the platform, a wrong one overshoots or sinks short. It covers Boyle's, Charles's, Gay-Lussac's and Avogadro's laws, and the combined and ideal gas laws. Dalton's law, Graham's law and real gases are AP extras.
+A game where Mr. G flies a sealed gas balloon from platform to platform across a side-on sky. Each hop is a gas law problem worked out with real numbers: the student reads the instruments, types an answer, and the balloon flies on that number. The flight is the feedback: a right answer lands on the platform, a wrong one overshoots or sinks short. It covers Boyle's, Charles's, Gay-Lussac's and Avogadro's laws, and the combined and ideal gas laws. Dalton's law and real gases are AP extras.
 
 Replaces the sealed "Gas Law Balloon" door (`GAMES` in `src/constants/index.ts`), renamed **Balloon Riser** at `/balloon-riser`.
 
@@ -61,8 +61,7 @@ How Mr. G might brief each law (the bracketed values are the student's to read o
 | 6 | Ideal gas law | Moles to fill or vent for a given float | PV = nRT |
 | 7 | Free flight | Every control, hands on, to a far platform with coins on the way | Any |
 | AP 1 | Dalton's law | A balloon of mixed helium and air | Partial pressures, mole fractions |
-| AP 2 | Graham's law | A long flight: helium leaks out of the fabric faster than air leaks in | Rate ∝ 1/√M |
-| AP 3 | Real gases | The high-pressure helium tank isn't ideal | van der Waals vs ideal |
+| AP 2 | Real gases | The high-pressure helium tank isn't ideal | van der Waals vs ideal |
 
 - **The course** (General Chemistry or AP) is picked at the start, like Dungeon Quest's gate. AP gets the AP levels and harder numbers (more steps, unit conversions).
 - **Tolerance**: an answer within about 2% lands, so rounding the instrument readings doesn't fail a correct method.
@@ -98,7 +97,6 @@ Each goes in `src/constants/sources.ts` and the page's Sources footer before it'
 - **The gas constant R**: CODATA 2022, via NIST.
 - **Molar masses**: He, H₂, N₂, O₂ and dry air (IUPAC standard atomic weights; the composition of dry air from the U.S. Standard Atmosphere).
 - **van der Waals constants for helium**: CRC Handbook.
-- **Graham's law**: a textbook or a Wikipedia page that cites one.
 - **The balloon itself** (fabric size, burst pressure, the basket's and Mr. G's mass): game values, labelled as such, kept in the range of real balloons.
 
 ## Phases (each test-first)
@@ -114,16 +112,28 @@ Each goes in `src/constants/sources.ts` and the page's Sources footer before it'
    - **Combined** (built): a long climb into the cold. Mr. G turns the heater down to a T₂ he states, and the student finds the volume to tie off at, V₂ = P₁V₁T₂/(P₂T₁), flown like Boyle's. It asks for V₂ rather than T₂ because, tied off, a hotter answer fills out lower and falls short, which reads backwards. The heater drops at least 9 K, so Boyle's law alone misses.
    - **Ideal** (built): the balloon was packed away overnight, so each leg starts empty, with nothing to scale from (no V₁ or n₁). Mr. G gives the volume that floats there; the student reads P and T and finds the moles to fill, n = PV/RT. Flown like Avogadro's: too much climbs over, too little never leaves.
    - **Free flight** (built): five legs from the launch field out to Far Horizon, each on a law picked at random (never the same twice running), continuing from where the last landed. Climbing laws climb, the rest hold height; heights stay under 2,000 m, and Avogadro's cargo legs only on low ground, where all the numbers work. A retry keeps the leg's law and platforms with fresh numbers. Three coins hang along the path a right answer flies; a miss keeps those it passed, and the leg's coins are gone after it. Score: a point a coin, and 5 for each leg landed first time.
-6. **AP levels**: Dalton's law, Graham's law, real gases.
+6. **AP levels**: Dalton's law and real gases.
    - **Dalton's** (built): overnight, air seeped into the envelope and some helium out. A gas analyser reads the air's partial pressure inside; Mr. G gives the bigger volume that floats the heavier mix; the student finds the helium to have: n(He) = PV₂/RT − p(air)·V₁/RT. Leaving the air out, or keeping the helium there is, both miss. Flown like Avogadro's.
-   - **Graham's** (built): long level hops across the salt flats, the fabric leaking helium through pinholes the whole way. Mr. G tested a patch with air; a leak tester reads air's rate (mol/min), and he gives the hop's minutes. Helium escapes √(M(air)/M(He)) ≈ 2.69 times faster, so the student finds the helium to set off with: n = n₁ + rate(air) × 2.69 × minutes. Too much climbs over; too little sets off and sinks partway once the leak takes it below floating. Graham's law cited from Wikipedia (crediting Petrucci et al., General Chemistry, 8th ed.).
+   - **Graham's** (taken out, 20 Nov 2026): it was built as a long hop with helium leaking through pinholes, but it's more abstract than the core laws, so it's gone from the game and the chamber.
    - **Real gases** (built): the balloon starts empty; Mr. G fills a bank of 50 L cylinders at the depot to about 160–210 bar, then pumps it all in. He gives the volume to float; the bank's volume is on a Cylinder bank instrument. The student finds the moles with PV = nRT (thin in the balloon, ideal is fine), then the bank pressure with van der Waals, P = nRT/(V − nb) − an²/V², with helium's a = 0.0346 L²·bar/mol² and b = 0.0238 L/mol (CRC 53rd ed., via Wikipedia). The ideal answer under-fills by well over the 2% tolerance, so the balloon never leaves. The game takes van der Waals as the gas's true behaviour; real helium at 200 bar deviates from ideal by roughly half what van der Waals predicts, which is fine for teaching the equation but worth knowing.
-7. **Dungeon Quest**: a gas laws question source and chamber.
+7. **Dungeon Quest**: a gas laws question source and chamber (scoped 20 Nov 2026, not built).
+   - **Laws covered:** only the core ones from General Chemistry and AP: Boyle's, Charles's, Gay-Lussac's, Avogadro's, combined and ideal. No Graham's law, Dalton's law or real gases.
+   - **Chamber:** "Gas Laws", id `gases`, 7th in the topic order (after Chemical Reactions, before Titrations). Its question source is keyed by `/balloon-riser` in `src/utils/quest-sources.ts`. Villain: **the Pressure Djinn**.
+   - **Rooms (2): plain random gas law calculations.** These are not Balloon Riser legs. Each room states a short scenario with its numbers, and the student types the answer with its unit in the `CalcPad`. It's solved with `solveGas` and passes within the game's 2% tolerance. A miss shows the worked answer and deals new numbers.
+     - Room 1 uses one law with something held constant (Boyle's, Charles's, Gay-Lussac's or Avogadro's).
+     - Room 2 uses the combined or the ideal gas law.
+     - General Chemistry keeps the units friendly (K, atm or kPa, L, mol). AP mixes them (°C, mmHg, mL), so converting is part of the problem.
+   - **Boss (multiple choice), three question types:**
+     1. **Which law applies:** a scenario saying what's held constant; pick the law.
+     2. **Which way it goes:** for example "T doubles at constant P: what happens to V?" (doubles, halves, ×4, no change).
+     3. **Solve a law:** pick the value. The wrong choices are real slips: forgetting kelvin, flipping the ratio, R in the wrong units.
+     - Levels: 1 = which law and which way; 2 = solve one law; 3 = combined and ideal with mixed units. General Chemistry asks levels 1–2, AP asks 2–3.
+   - **Facts:** R, the atmosphere and 0 °C already come from `src/constants/physical.ts` (CODATA, SI Brochure). The only new fact is 760 mmHg = 1 atm, which needs a citation. Every scenario number is generated and labelled as a game value.
 
 ## Decisions (18 Nov 2026)
 
 1. **Name**: Balloon Riser, at `/balloon-riser`.
-2. **AP extras**: Dalton's law, Graham's law and real gases are in, as AP levels.
+2. **AP extras**: Dalton's law and real gases are in, as AP levels. Graham's law was too, until 20 Nov 2026.
 3. **Answers are typed**, with units, at every platform, free flight included.
 4. **Values are measured, not given**: the briefing states only the goal; every number comes from an instrument or a platform's weather station.
 5. **The rider is the player's sprite**: Mr. G until avatars exist.

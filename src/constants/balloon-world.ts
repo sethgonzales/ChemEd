@@ -88,14 +88,6 @@ export const DALTON_ROUTE = level(600, [
   ['Willow Ridge', 'ridge'],
 ]);
 
-// the long hops: across the wide salt flats, the fabric leaking all the way
-export const GRAHAM_ROUTE = level(1500, [
-  ['Salt Mesa', 'mesa'],
-  ['Mirage Lookout', 'lookout'],
-  ['Flats Field', 'field'],
-  ['Last Ridge', 'ridge'],
-]);
-
 // out past the helium depot, where the cylinder banks are filled
 export const REAL_ROUTE = level(900, [
   ['Depot Field', 'field'],

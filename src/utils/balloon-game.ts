@@ -14,7 +14,6 @@ import {
   charlesLeg,
   combinedLeg,
   daltonLeg,
-  grahamLeg,
   realLeg,
   idealLeg,
   gayLussacLeg,
@@ -41,7 +40,6 @@ export const LEVELS: Level[] = [
   { id: 'ideal', title: 'Ideal gas law', ready: true },
   { id: 'free', title: 'Free flight', ready: true },
   { id: 'dalton', title: 'Dalton’s law', ap: true, ready: true },
-  { id: 'graham', title: 'Graham’s law', ap: true, ready: true },
   { id: 'real', title: 'Real gases', ap: true, ready: true },
 ];
 
@@ -91,7 +89,6 @@ const LEGS: Record<string, (index: number, seed: number) => GasLeg> = {
   combined: combinedLeg,
   ideal: idealLeg,
   dalton: daltonLeg,
-  graham: grahamLeg,
   real: realLeg,
 };
 

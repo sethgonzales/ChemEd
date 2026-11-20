@@ -58,7 +58,6 @@ const SCIENTISTS: Record<string, string> = {
   'gay-lussac': 'Gay-Lussac',
   avogadro: 'Avogadro',
   dalton: 'Dalton',
-  graham: 'Graham',
   real: 'van der Waals',
 };
 
@@ -348,7 +347,6 @@ export default function BalloonRiser() {
         'codata',
         'siBrochure',
         'ciaawWeights',
-        'grahamsLaw',
         VAN_DER_WAALS_SOURCE,
       ]}
     >

@@ -14,7 +14,6 @@ import {
   charlesLeg,
   combinedLeg,
   daltonLeg,
-  grahamLeg,
   realLeg,
   idealLeg,
   gayLussacLeg,
@@ -325,33 +324,6 @@ describe('flying a Dalton’s law leg', () => {
   });
 });
 
-describe('flying a Graham’s law leg', () => {
-  const gr = grahamLeg(0, 7);
-  const right = rightAnswer(gr);
-
-  it('lands with the right helium, topped up as it sets off and leaking down to what floats it as it arrives', () => {
-    const plan = planFlight(gr, right);
-    expect(plan.outcome).toBe('landed');
-    expect(flightState(gr, plan, 0).flight.moles).toBe(gr.moles);
-    const most = Math.max(
-      ...Array.from(
-        { length: 51 },
-        (_, i) => flightState(gr, plan, i / 50).flight.moles,
-      ),
-    );
-    expect(most).toBeGreaterThan(gr.moles);
-    expect(flightState(gr, plan, 1).flight.moles).toBeCloseTo(gr.moles, -1);
-  });
-
-  it('climbs over with too much, and sinks partway across with too little', () => {
-    expect(planFlight(gr, right * 1.1).outcome).toBe('over');
-    const short = planFlight(gr, right * 0.97);
-    expect(short.outcome).toBe('short');
-    expect(short.stopAt).toBeGreaterThan(gr.leg.from.distance);
-    expect(short.stopAt).toBeLessThan(gr.leg.to.distance);
-  });
-});
-
 describe('flying a real gas leg', () => {
   const r = realLeg(0, 7);
   const right = rightAnswer(r);
@@ -382,7 +354,6 @@ describe('bursting', () => {
     combinedLeg,
     idealLeg,
     daltonLeg,
-    grahamLeg,
     realLeg,
   ];
   const legs = makers.flatMap((make) =>

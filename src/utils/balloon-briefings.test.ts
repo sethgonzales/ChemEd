@@ -9,7 +9,6 @@ import {
   charlesLeg,
   combinedLeg,
   daltonLeg,
-  grahamLeg,
   idealLeg as idealBurstLeg,
   charlesLeg as charlesBurstLeg,
   realLeg,
@@ -243,42 +242,6 @@ describe('Mr. G on a Dalton’s law leg', () => {
     const right = rightAnswer(d);
     expect(verdict(planFlight(d, right * 1.1), d)).toMatch(/over/);
     expect(verdict(planFlight(d, right * 0.9), d)).toMatch(/never left/);
-  });
-});
-
-describe('Mr. G on a Graham’s law leg', () => {
-  const gr = grahamLeg(0, 3);
-
-  it('names the next stop, and gives only the hop’s minutes', () => {
-    const text = briefing(gr).join(' ');
-    expect(text).toMatch(new RegExp(gr.leg.to.name));
-    const numbers = text.match(/[\d,.]*\d/g) ?? [];
-    expect(numbers).toHaveLength(1);
-    expect(Number(numbers[0])).toBe(gr.said);
-  });
-
-  it('hints at Graham’s law, with the molar masses', () => {
-    expect(hint(gr)).toContain('√(M(air)/M(He))');
-    expect(hint(gr)).toContain('4.003');
-    expect(hint(gr)).toContain('28.96');
-  });
-
-  it('works the answer from the readings', () => {
-    const lines = worked(gr);
-    const last = Number(
-      lines
-        .at(-1)!
-        .match(/= ([\d,.]+) mol$/)![1]
-        .replace(/,/g, ''),
-    );
-    expect(last / rightAnswer(gr)).toBeCloseTo(1, 2);
-  });
-
-  it('asks for moles of helium, and says what went wrong', () => {
-    expect(ask(gr).units).toContain('mol');
-    const right = rightAnswer(gr);
-    expect(verdict(planFlight(gr, right * 1.1), gr)).toMatch(/over/);
-    expect(verdict(planFlight(gr, right * 0.97), gr)).toMatch(/sank/);
   });
 });
 

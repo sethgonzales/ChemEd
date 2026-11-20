@@ -1,8 +1,7 @@
-import { AIR_MOLAR_MASS } from '~/constants/atmosphere';
 import { HELIUM_VAN_DER_WAALS } from '~/constants/van-der-waals';
 import { GAS_CONSTANT, ZERO_CELSIUS } from '~/constants/physical';
 import { airAt } from '~/utils/atmosphere';
-import { HELIUM_MOLAR_MASS, gasInside } from '~/utils/balloon';
+import { gasInside } from '~/utils/balloon';
 import type { FlightPlan } from '~/utils/balloon-flight';
 import {
   balloonFor,
@@ -49,10 +48,6 @@ const VDW_A = (HELIUM_VAN_DER_WAALS.a * 10).toFixed(4); // L²·bar/mol²
 const VDW_B = (HELIUM_VAN_DER_WAALS.b * 1000).toFixed(4); // L/mol
 const R_BAR = (GAS_CONSTANT / 100).toFixed(5); // L·bar/(mol·K)
 
-// as the hint and working give them, g/mol
-const M_HE = (HELIUM_MOLAR_MASS * 1000).toFixed(3);
-const M_AIR = (AIR_MOLAR_MASS * 1000).toFixed(2);
-
 const kPa = (pa: number) => fmt(pa / 1000, 1);
 // R as students use it, to four figures
 const R = GAS_CONSTANT.toFixed(3);
@@ -82,13 +77,6 @@ const ASKS: Record<Law, Ask> = {
     units: ['bar', 'kPa', 'atm'],
     action: 'Fill, pump in and fly',
     flying: 'Bank’s full and pumping in. Here we go…',
-  },
-  graham: {
-    label: 'Helium to set off with',
-    units: ['mol'],
-    action: 'Fill and fly',
-    flying:
-      'Topped up. Here’s hoping the leak’s no worse than the tester says…',
   },
   dalton: {
     label: 'Helium to have',
@@ -147,13 +135,6 @@ export function briefing(g: GasLeg): string[] {
         `To float across we need to be ${fmt(g.said)} m³. Packed into cylinders, helium doesn’t quite follow the ideal gas law.`,
         'Help me find the pressure to fill the bank to.',
       ];
-    case 'graham':
-      return [
-        `Next stop: ${to}, a long hop across the flats at the same height.`,
-        'We’re floating level now, but the fabric leaks: helium seeps out through tiny pinholes the whole way. I tested a patch with air, and the leak tester reads how fast air gets out.',
-        `Helium’s lighter, so it escapes faster. The hop takes ${g.said} minutes, and if we run low on the way, we’ll sink before we get there.`,
-        'Help me find how many moles of helium to set off with.',
-      ];
     case 'dalton':
       return [
         `Next stop: ${to}, across at the same height.`,
@@ -207,8 +188,6 @@ export function hint(g: GasLeg): string {
       return `Boyle’s law: with the temperature and the helium fixed, P₁V₁ = P₂V₂. P₁ and V₁ are ours now, on the balloon gauge and the volume meter. P₂ is the air pressure at ${g.leg.to.name}: its weather station reads it.`;
     case 'real':
       return `Two steps. In the balloon the helium’s thin, so the ideal gas law works: n = PV ÷ RT, with P the air pressure on the balloon gauge, T on the helium thermometer and V the volume I need. Packed into the bank it isn’t, so use van der Waals: (P + an²/V²)(V − nb) = nRT, so P = nRT ÷ (V − nb) − an²/V². For helium a = ${VDW_A} L²·bar/mol² and b = ${VDW_B} L/mol; with V in litres, use R = ${R_BAR} L·bar/(mol·K) and P comes out in bar.`;
-    case 'graham':
-      return `Graham’s law: a gas escapes through tiny holes at a rate inversely proportional to the square root of its molar mass, so helium leaks √(M(air)/M(He)) times as fast as air, with M(He) = ${M_HE} g/mol and M(air) = ${M_AIR} g/mol. The leak tester reads air’s rate; over the hop’s minutes, helium’s rate gives what we’ll lose. Set off with what we have now, on the helium counter, plus that.`;
     case 'dalton':
       return `Dalton’s law: each gas in the mix fills the balloon as if it were alone, so the partial pressures add up, P = p(He) + p(air), and each gas’s moles follow from its own: n = pV/RT. The air’s partial pressure is on the gas analyser, V₁ on the volume meter and T on the helium thermometer: that gives the air’s moles. At the volume I need, the total pressure on the balloon gauge gives all the moles; the helium is what’s left. R = ${R} J/(mol·K), with P in pascals.`;
     case 'ideal':
@@ -245,18 +224,6 @@ export function worked(g: GasLeg): string[] {
         `nRT ÷ (V − nb) = ${fmt(n)} × ${R_BAR} × ${fmt(r.kelvin, 2)} ÷ ${fmt(room, 1)} = ${fmt(push, 1)} bar`,
         `an²/V² = ${VDW_A} × ${fmt(n)}² ÷ ${fmt(v)}² = ${fmt(pull, 2)} bar`,
         `P = ${fmt(push, 1)} − ${fmt(pull, 2)} = ${fmt(push - pull, 1)} bar`,
-      ];
-    }
-    case 'graham': {
-      const factor = Math.sqrt(Number(M_AIR) / Number(M_HE));
-      const rate = g.leakTest! * Number(factor.toFixed(3));
-      const lost = rate * g.said;
-      return [
-        'Helium leaks √(M(air)/M(He)) times as fast as air:',
-        `√(${M_AIR} g/mol ÷ ${M_HE} g/mol) = ${fmt(factor, 3)}`,
-        `rate(He) = ${fmt(g.leakTest!, 1)} mol/min × ${fmt(factor, 3)} = ${fmt(rate, 1)} mol/min`,
-        `Lost on the way: ${fmt(rate, 1)} mol/min × ${g.said} min = ${fmt(lost)} mol`,
-        `n = ${fmt(r.n1)} mol + ${fmt(lost)} mol = ${fmt(r.n1 + lost)} mol`,
       ];
     }
     case 'dalton': {
@@ -345,11 +312,6 @@ const MISSES: Record<Law, Partial<Record<FlightPlan['outcome'], string>>> = {
     short:
       'Not filled full enough: packed that tight, helium pushes harder than the ideal gas law says, so the bank held less than we needed and we never left {from}.',
   },
-  graham: {
-    over: 'Too much helium: even with the leak we had lift to spare, and climbed right over {to}.',
-    short:
-      'Too little helium: partway across the leak took us below floating, and we sank before {to}.',
-  },
   dalton: {
     over: 'Too much helium: we were bigger than we needed, had lift to spare, and climbed right over {to}.',
     short:
@@ -378,12 +340,6 @@ export function verdict(plan: FlightPlan, g: GasLeg): string {
   if (plan.outcome === 'landed') return `We’re down on ${to.name}!`;
   if (tiesOff(g) && plan.outcome === 'short' && plan.stopAt === from.distance)
     return `We’re already bigger than that, so tied off there we couldn’t expand, and without expanding we couldn’t climb. We never left ${from.name}.`;
-  if (
-    g.law === 'graham' &&
-    plan.outcome === 'short' &&
-    plan.stopAt === from.distance
-  )
-    return `With no more helium than floats us now, the leak had us sinking from the start. We never left ${from.name}.`;
   // a burst from too much: Gay-Lussac's has its own, the sun's doing
   if (plan.outcome === 'burst' && g.law !== 'gay-lussac') {
     const what = g.law === 'charles' ? 'Too hot' : 'Too much helium';

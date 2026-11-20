@@ -24,15 +24,6 @@ const ALL = {
     url: 'https://en.wikipedia.org/wiki/Standard_electrode_potential_(data_page)',
     accessed: '2026-11-13',
   },
-  grahamsLaw: {
-    topic:
-      'Graham’s law: a gas effuses at a rate inversely proportional to the square root of its molar mass; the page credits Petrucci, Harwood and Herring, General Chemistry (8th ed., 2002), pp. 206–208',
-    ...WIKIPEDIA,
-    year: 2026,
-    title: 'Graham’s law',
-    url: 'https://en.wikipedia.org/wiki/Graham%27s_law',
-    accessed: '2026-11-18',
-  },
   vanDerWaals: {
     topic:
       'Helium’s van der Waals constants, a = 0.0346 L²·bar/mol² and b = 0.0238 L/mol; the page credits Weast, CRC Handbook of Chemistry and Physics (53rd ed., 1972)',
