@@ -41,7 +41,8 @@ export default function VolumeButton() {
   };
 
   return (
-    <div ref={ref} className="relative">
+    // flex, so the button stretches to the header row like its neighbours
+    <div ref={ref} className="relative flex">
       <Button expanded={open} onClick={() => setOpen(!open)}>
         <Icon size={20} aria-hidden="true" />
         <span className="sr-only">Sound</span>
