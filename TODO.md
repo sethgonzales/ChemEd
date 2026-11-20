@@ -17,6 +17,7 @@
 
 ## Improvements
 
+- [ ] **Structured working boxes for stoichiometry**: find a package (or build one) so the plain-text Working boxes accept shorthand that turns into blocks. For example, typing `()-()` makes a dimensional-analysis fraction with a top and a bottom to fill in, so a student can chain conversion factors (g → mol → mol → g) rather than writing them as plain text. Used by `Working` in `src/components/calc-pad.tsx` (Balloon Riser, the Gas Laws rooms) and any later stoichiometry practice.
 - [x] **Volume button the same height as the other header buttons** (20 Nov 2026): it sat 38px tall beside the 42px theme and font buttons, as its wrapper didn't let it stretch to the header row.
 - [x] **A header that gives the page back** (18 Nov 2026): inside a simulation the header is one slim row (symbol-only tiles beside the theme, font and sound buttons); on the home page it starts full size and shrinks once you scroll, growing back at the top (`useCompactHeader`).
 - [x] **Volume control in the header** (18 Nov 2026): the sound button opens a panel with a volume slider and Mute, remembered in the browser. Every sound and the music pass through one volume node in `src/utils/sounds.ts`.
