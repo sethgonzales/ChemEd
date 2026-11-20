@@ -16,6 +16,7 @@ import {
   electrochemistryQuestion,
 } from '~/utils/quest-electrochemistry';
 import { ELECTRON_LEVELS, electronQuestion } from '~/utils/quest-electrons';
+import { GAS_LEVELS, gasQuestion } from '~/utils/quest-gases';
 import { LEWIS_LEVELS, lewisQuestion } from '~/utils/quest-lewis';
 import { PERIODIC_LEVELS, periodicQuestion } from '~/utils/quest-periodic';
 import { REACTION_LEVELS, reactionQuestion } from '~/utils/quest-reactions';
@@ -80,5 +81,12 @@ export const QUESTION_SOURCES: Record<string, QuestionSource> = {
     question: reactionQuestion,
     // solubility for precipitates; strong acids and bases split into ions
     sources: [SOLUBILITY_SOURCE, STRONG_SOURCE, ION_CHARGE_SOURCE],
+  },
+  // a game, not a simulation, but its laws get a chamber too
+  '/balloon-riser': {
+    levels: GAS_LEVELS,
+    question: gasQuestion,
+    // R and the atmosphere, 0 °C in kelvin, and mmHg to the atmosphere
+    sources: ['codata', 'siBrochure', 'torr'],
   },
 };

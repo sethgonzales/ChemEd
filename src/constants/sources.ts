@@ -33,6 +33,15 @@ const ALL = {
     url: 'https://en.wikipedia.org/wiki/Van_der_Waals_constants_(data_page)',
     accessed: '2026-11-18',
   },
+  torr: {
+    topic:
+      'Pressure units: 1 atm = 101.325 kPa = 760 Torr exactly, and 1 mmHg is within 0.000015% of 1 Torr, so 760 mmHg = 1 atm; the page credits Cohen et al., Quantities, Units and Symbols in Physical Chemistry (IUPAC Green Book, 3rd ed., 2007)',
+    ...WIKIPEDIA,
+    year: 2026,
+    title: 'Torr',
+    url: 'https://en.wikipedia.org/wiki/Torr',
+    accessed: '2026-11-20',
+  },
   codata: {
     topic: 'The Faraday constant F and the gas constant R',
     author: 'Tiesinga, E., Mohr, P. J., Newell, D. B. and Taylor, B. N.',

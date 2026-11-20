@@ -14,6 +14,8 @@ import { PARTICLE_MOTION, phaseOf } from '~/utils/states-of-matter';
 import { PREDICT_POOL, predict } from '~/utils/predict';
 import { reactionRooms } from '~/utils/quest-reactions';
 import { titrationPool } from '~/utils/quest-titrations';
+import { fromSI } from '~/utils/gas-laws';
+import { problemText, roomProblem } from '~/utils/quest-gases';
 import { newUnknown } from '~/utils/titrations';
 import { ANALYTE_VOLUME, TITRANT_CONCENTRATION } from '~/constants/titrations';
 import { analyzeCell, coupleFor, newChallenge } from '~/utils/electrochemistry';
@@ -485,6 +487,59 @@ describe('the Titrations rooms, as data and a finished curve', () => {
   });
 });
 
+describe('the gas laws rooms', () => {
+  const GasRoom = ROOMS.gases;
+  const setup = (room = 0, course: 'general' | 'ap' = 'general') => {
+    const onSolve = jest.fn();
+    const onMiss = jest.fn();
+    render(
+      <GasRoom
+        seed={SEED}
+        course={course}
+        room={room}
+        rooms={2}
+        onSolve={onSolve}
+        onMiss={onMiss}
+      />,
+    );
+    return {
+      onSolve,
+      onMiss,
+      problem: roomProblem(roomRng(SEED, room), course, room),
+    };
+  };
+  const answer = async (value: number) => {
+    await userEvent.type(
+      screen.getByRole('textbox', { name: /^[PVnT]₂?$/ }),
+      value.toPrecision(4),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Check' }));
+  };
+
+  it.each([0, 1])('sets out room %i’s problem, with every given', (room) => {
+    const { problem } = setup(room);
+    expect(screen.getByText(problemText(problem))).toBeInTheDocument();
+  });
+
+  it('opens for the right answer, in the unit asked', async () => {
+    const { onSolve, problem } = setup(1, 'ap');
+    await answer(fromSI(problem.answer, problem.find.unit));
+    expect(onSolve).toHaveBeenCalled();
+  });
+
+  it('stays shut for a wrong answer, works it through, and deals new numbers', async () => {
+    const { onSolve, onMiss, problem } = setup();
+    await answer(fromSI(problem.answer, problem.find.unit) * 1.5);
+    expect(onSolve).not.toHaveBeenCalled();
+    expect(onMiss).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/Not quite/)).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(problem.worked[0].slice(0, 20))),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(problemText(problem))).toBeNull();
+  });
+});
+
 describe('the Electrochemistry rooms', () => {
   const VoltaicRoom = ROOMS.electrochemistry;
   const cell = newChallenge(roomRng(SEED, 0));
@@ -602,6 +657,7 @@ describe('in a room beside its door', () => {
     reactions: 'Check',
     titrations: 'Check',
     electrochemistry: 'Check',
+    gases: 'Check',
     balancing: null, // it opens by itself once balanced
   };
 

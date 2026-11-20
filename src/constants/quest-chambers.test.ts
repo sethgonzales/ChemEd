@@ -1,5 +1,5 @@
 import { COURSES, createRng, type Course } from '~/utils/quest';
-import { SIMULATIONS } from '~/constants';
+import { GAMES, SIMULATIONS } from '~/constants';
 import { QUESTION_SOURCES } from '~/utils/quest-sources';
 import { ROOMS } from '~/components/quest-rooms';
 import { CHAMBERS, CHAMBER_IDS, findChamber } from './quest-chambers';
@@ -80,6 +80,13 @@ describe('the Dungeon Quest’s chambers', () => {
     expect(c.villain.name).toBe('The Acid Hydra');
   });
 
+  it('includes the gas laws, from Balloon Riser, and their Pressure Djinn', () => {
+    const c = findChamber('gases')!;
+    expect(c.topic).toBe('Gas Laws');
+    expect(c.page).toBe('/balloon-riser');
+    expect(c.villain.name).toBe('The Pressure Djinn');
+  });
+
   it('includes Electrochemistry and its Voltaic Wraith', () => {
     const c = findChamber('electrochemistry')!;
     expect(c.topic).toBe('Electrochemistry');
@@ -87,7 +94,7 @@ describe('the Dungeon Quest’s chambers', () => {
   });
 
   it('builds a chamber for every topic', () => {
-    expect(CHAMBERS).toHaveLength(8);
+    expect(CHAMBERS).toHaveLength(9);
   });
 
   it('keeps the dungeon’s topic order', () => {
@@ -98,6 +105,7 @@ describe('the Dungeon Quest’s chambers', () => {
       'states',
       'balancing',
       'reactions',
+      'gases',
       'titrations',
       'electrochemistry',
     ];
@@ -109,8 +117,10 @@ describe('the Dungeon Quest’s chambers', () => {
   it.each(CHAMBERS.map((c) => [c.id, c] as const))(
     '%s asks its simulation’s questions, and has rooms to play',
     (_, c) => {
-      const sim = SIMULATIONS.find((s) => s.path === c.page)!;
-      expect(sim.title).toBe(c.topic);
+      // a simulation shares its title; a game (Balloon Riser) names its topic
+      const sim = SIMULATIONS.find((s) => s.path === c.page);
+      if (sim) expect(sim.title).toBe(c.topic);
+      else expect(GAMES.map((g) => g.path)).toContain(c.page);
       const source = QUESTION_SOURCES[c.page];
       expect(c.bossQuestion).toBe(source.question);
       expect(c.courses).toBe(source.levels);

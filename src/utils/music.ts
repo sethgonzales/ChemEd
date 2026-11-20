@@ -113,6 +113,7 @@ const MINOR = [0, 2, 3, 5, 7, 8, 10];
 const MINOR_LEADING = [...MINOR, 11]; // with the raised 7th at cadences
 const DORIAN = [0, 2, 3, 5, 7, 9, 10];
 const PHRYGIAN_DOMINANT = [0, 1, 4, 5, 7, 8, 10]; // the sound of the desert
+const WHOLE_TONE = [0, 2, 4, 6, 8, 10]; // even steps, nowhere to land
 
 const FIGHT_SPEED = 1.3; // times the theme's tempo
 const KICK_VOLUME = 0.1;
@@ -477,6 +478,45 @@ const WRITTEN: Record<string, Track> = {
         instrument: 'pluck',
         volume: 0.015,
         notes: balloonVoice(([, , , high]) => repeat(`-:0.5 ${high}:0.5`, 2)),
+      },
+    ],
+  },
+
+  // the Djinn: the whole-tone scale, with no home note to settle on, so it
+  // drifts like a gas: rising and falling arpeggios under a slow, airy tune
+  gases: {
+    bpm: 84,
+    key: { tonic: 'C', scale: WHOLE_TONE },
+    voices: [
+      {
+        instrument: 'bell',
+        volume: 0.03,
+        notes: repeat(
+          bars(
+            even('C4 E4 G#4 C5 G#4 E4 D4 F#4'),
+            even('D4 F#4 A#4 D5 A#4 F#4 E4 G#4'),
+          ),
+          4,
+        ),
+      },
+      {
+        instrument: 'lead',
+        volume: 0.025,
+        notes: bars(
+          'C5:2 D5:1 E5:1',
+          'F#5:3 E5:1',
+          'D5:2 C5:1 A#4:1',
+          'G#4:4',
+          'A#4:2 C5:1 D5:1',
+          'E5:2 F#5:2',
+          'G#5:2 F#5:1 E5:1',
+          'D5:4',
+        ),
+      },
+      {
+        instrument: 'bass',
+        volume: 0.06,
+        notes: wholes('C2 D2 E2 D2 C2 E2 F#2 D2'),
       },
     ],
   },

@@ -2,6 +2,7 @@
 // simulation's topic: Mr. G's story, a door for each room, and its boss.
 
 import type { VillainArt } from '~/components/villain';
+import { DJINN } from '~/constants/villains/djinn';
 import { GOLEM } from '~/constants/villains/golem';
 import { HYDRA } from '~/constants/villains/hydra';
 import { LICH } from '~/constants/villains/lich';
@@ -186,6 +187,31 @@ export const CHAMBERS: QuestChamber[] = [
     ],
     bossHp: 5,
     ...asks('/chemical-reactions'),
+  },
+  {
+    id: 'gases',
+    topic: 'Gas Laws',
+    villain: DJINN,
+    story: [
+      'A flask lies on its side in the dark, its cork popped. Something violet curls out of the neck and swells into a shape: the Pressure Djinn.',
+      'It fills whatever room it’s given, and it seals its doors with gases under pressure. Each one opens when you work out how the gas will change.',
+      'Get through two doors, then answer the Djinn’s questions to squeeze it back into its flask. Ready?',
+    ],
+    rooms: 2,
+    doors: [
+      {
+        name: 'The piston door',
+        story:
+          'A piston holds this door shut. One quantity of its gas changes while others stay fixed. Work out the one that’s missing.',
+      },
+      {
+        name: 'The Djinn’s flask',
+        story:
+          'This time more than one thing changes at once, or there’s only the gas itself to go on. Find the value that opens it.',
+      },
+    ],
+    bossHp: 5,
+    ...asks('/balloon-riser'),
   },
   {
     id: 'titrations',

@@ -1,6 +1,6 @@
 # Dungeon Quest — plan
 
-Status: **phases 1–6 built** (17 Nov 2026): the engine, the look, the gate, map and home door, a question source for every simulation, and all eight chambers with their villains and rooms. The Alchemist’s final chamber opens once every chosen chamber is cleared: two trials borrowed from them, then 8 HP of mixed questions labelled by topic. See Decisions
+Status: **phases 1–6 built** (17 Nov 2026): the engine, the look, the gate, map and home door, a question source for every simulation, and all eight chambers with their villains and rooms. A ninth, Gas Laws (from Balloon Riser, with the Pressure Djinn), joined on 20 Nov 2026. The Alchemist’s final chamber opens once every chosen chamber is cleared: two trials borrowed from them, then 8 HP of mixed questions labelled by topic. See Decisions
 
 A step-by-step dungeon crawl that strings the simulations' quizzes together as levels. Each level is a chamber: a wall of story text sets up a problem, a few rooms each pose a challenge, and a chemistry boss waits at the end. The dungeon grows with the app: every new simulation adds its questions to the bank and its own chamber to the quest.
 
@@ -64,7 +64,7 @@ A chamber takes **about 5 minutes**: a story wall of a few lines, 2 rooms and a 
 | 4 | States of Matter | Phase at a temperature, heating-curve reading | The Frost Wyrm |
 | 5 | Reaction Balancing | Balance the bridge, the door seal | The Unbalanced Golem |
 | 6 | Chemical Reactions | Sort a reaction, predict the products | The Precipitate Slime |
-| 7 | Gas Laws (planned, from Balloon Riser) | A one-law calculation, a combined or ideal calculation | The Pressure Djinn |
+| 7 | Gas Laws (from Balloon Riser, 20 Nov 2026) | A one-law calculation, a combined or ideal calculation | The Pressure Djinn |
 | 8 | Titrations | Read the burette, pick the indicator | The Acid Hydra |
 | 9 | Electrochemistry | Pick the anode, find E°cell | The Voltaic Wraith |
 | ★ | Final chamber | — | The Alchemist (questions from every chamber) |
@@ -94,7 +94,7 @@ The dark comes from an overlay on the theme's own scale, so every theme still wo
 - **The Precipitate Slime**: a clear ooze with solid clouding inside it
 - **The Acid Hydra**: heads made of flasks, each in a different indicator colour
 - **The Voltaic Wraith**: a ghost crackling between two electrodes
-- **The Pressure Djinn** (planned): a swirling gas spirit in a stoppered flask. It swells as it attacks and shrinks when hit. On defeat the stopper pops and it hisses away as vapour.
+- **The Pressure Djinn**: a swirling gas spirit in a stoppered flask. It swells as it attacks and shrinks when hit. On defeat the stopper pops and it hisses away as vapour.
 - **The Alchemist**: the final boss, wearing a bit of every other villain
 
 **Every villain has the same frames:**
@@ -163,7 +163,7 @@ Logins and Firestore progress, avatars and unlocks, free movement around a map, 
     | States of Matter | water's phases, then every substance's phases and melting and boiling points | heat to melt or boil n mol |
     | Reaction Balancing | fill the coefficient, pick the balanced equation, count atoms | replacement and redox equations |
     | Chemical Reactions | reaction types, precipitates | net ionic equations |
-    | Gas Laws (planned) | which law applies, which way a quantity goes, solve one law | combined and ideal laws with mixed units |
+    | Gas Laws | which law applies, which way a quantity goes, solve one law | combined and ideal laws with mixed units |
     | Titrations | the equivalence pH, indicators, concentration from a reading | pH halfway to equivalence (pKa) |
     | Electrochemistry | which metal is oxidized, which way electrons flow | E°cell |
 

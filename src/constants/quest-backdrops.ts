@@ -11,6 +11,7 @@ export type Decor =
   | 'drips' // the Slime's sewer
   | 'reeds' // the Hydra's swamp
   | 'wires' // the Wraith's crackling cables
+  | 'gauges' // the Djinn's gas line and pressure gauges
   | 'shelves'; // the Alchemist's laboratory
 
 export interface Backdrop {
@@ -88,6 +89,15 @@ export const BACKDROPS: Record<string, Backdrop> = {
     flame: { core: '#ecfccb', outer: '#84cc16', glow: '132 204 22' },
     light: '200 255 120',
     decor: 'drips',
+  },
+  gases: {
+    stones: ['#221e33', '#28233c', '#1d1a2c', '#2f2945'],
+    mortar: '#09080e',
+    edge: '#4c4470',
+    growth: ['#a78bfa', '#c4b5fd'], // condensed vapour
+    flame: { core: '#f5f3ff', outer: '#a78bfa', glow: '167 139 250' },
+    light: '200 185 255',
+    decor: 'gauges',
   },
   titrations: {
     stones: ['#1f2d2a', '#243531', '#1b2825', '#2b3e39'],

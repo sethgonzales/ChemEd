@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from 'react';
 import Button from '~/components/button';
+import { useCheckSlot } from '~/components/check-slot';
 import Dropdown, { DropdownItem } from '~/components/dropdown';
 import { toSI, type GasUnit } from '~/utils/gas-laws';
 import { PIXEL_CONTROL } from '~/utils/pixel';
@@ -39,8 +40,7 @@ export default function CalcPad({
   const [hinted, setHinted] = useState(false);
   const id = useId();
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
+  const check = () => {
     const value = parse(text);
     if (!Number.isFinite(value)) {
       setProblem('Type a number, like 540.');
@@ -49,6 +49,16 @@ export default function CalcPad({
     setProblem('');
     onSubmit(toSI(value, unit));
   };
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    check();
+  };
+  // in a Dungeon Quest room, the main button goes on the door
+  const slotted = useCheckSlot({
+    label: action,
+    disabled: disabled || !text.trim(),
+    run: check,
+  });
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
@@ -88,9 +98,11 @@ export default function CalcPad({
             ))}
           </Dropdown>
         </div>
-        <Button type="submit" pressed disabled={disabled}>
-          {action}
-        </Button>
+        {!slotted && (
+          <Button type="submit" pressed disabled={disabled}>
+            {action}
+          </Button>
+        )}
         <Button expanded={hinted} onClick={() => setHinted((h) => !h)}>
           Hint
         </Button>

@@ -44,7 +44,7 @@ const UNITS = {
   kPa: [1000, 0],
   bar: [100000, 0], // defined as 100 kPa
   atm: [ATMOSPHERE, 0],
-  mmHg: [ATMOSPHERE / 760, 0], // 760 mmHg (torr) to the atmosphere
+  mmHg: [ATMOSPHERE / 760, 0], // 760 mmHg (torr) to the atmosphere (source: torr)
   'm³': [1, 0],
   L: [0.001, 0],
   mL: [0.000001, 0],

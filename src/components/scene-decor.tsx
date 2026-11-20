@@ -301,6 +301,44 @@ const wires = (
   </Layer>
 );
 
+// the Djinn: a steel gas line along the ceiling, with pressure gauges hung
+// from it and vapour hissing from its joints
+const GAUGES = [70, 240, 410]; // x of each gauge
+const gauges = (
+  <Layer decor="gauges" at="top" height={80}>
+    <rect y={6} width={W} height={7} fill="#64748b" />
+    <rect y={6} width={W} height={2} fill="#94a3b8" />
+    {GAUGES.map((x, i) => (
+      <g key={x}>
+        <rect x={x - 2} y={13} width={4} height={12} fill="#475569" />
+        <circle cx={x} cy={38} r={14} fill="#334155" />
+        <circle cx={x} cy={38} r={11} fill="#e2e8f0" />
+        {/* the red line, top right of each dial */}
+        <path
+          d={`M ${x + 6} ${30} A 10 10 0 0 1 ${x + 10} ${36}`}
+          fill="none"
+          stroke="#dc2626"
+          strokeWidth={3}
+        />
+        <line
+          x1={x}
+          y1={38}
+          x2={x + 8 * Math.cos(-2.4 + i * 0.9)}
+          y2={38 + 8 * Math.sin(-2.4 + i * 0.9)}
+          stroke="#0f172a"
+          strokeWidth={2}
+        />
+      </g>
+    ))}
+    <g className="quest-flame" fill="#ddd6fe" opacity={0.6}>
+      <circle cx={150} cy={18} r={4} />
+      <circle cx={156} cy={24} r={5} />
+      <circle cx={330} cy={18} r={4} />
+      <circle cx={325} cy={25} r={5} />
+    </g>
+  </Layer>
+);
+
 // the Alchemist: shelves of flasks on either side
 const FLASK_COLOURS = ['#f472b6', '#22d3ee', '#facc15', '#a3e635', '#c084fc'];
 function shelf(x: number, y: number) {
@@ -347,6 +385,7 @@ const DECOR: Record<Decor, ReactNode> = {
   drips,
   reeds,
   wires,
+  gauges,
   shelves,
 };
 

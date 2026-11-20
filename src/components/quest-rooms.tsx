@@ -3,6 +3,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Button from '~/components/button';
+import CalcPad from '~/components/calc-pad';
 import { useCheckSlot } from '~/components/check-slot';
 import ConfigurationBuilder from '~/components/configuration-builder';
 import type { Settings } from '~/components/lewis-builder';
@@ -59,6 +60,15 @@ import { lewisRooms, type StructureChoice } from '~/utils/quest-lewis';
 import { elementRiddle } from '~/utils/quest-periodic';
 import { reactionRooms } from '~/utils/quest-reactions';
 import { titrationPool } from '~/utils/quest-titrations';
+import { fromSI } from '~/utils/gas-laws';
+import {
+  answerUnits,
+  format,
+  isRight,
+  problemText,
+  roomProblem,
+  type GasProblem,
+} from '~/utils/quest-gases';
 import { statesRooms } from '~/utils/quest-states';
 import {
   PARTICLE_MOTION,
@@ -550,6 +560,57 @@ function TitrationRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
   );
 }
 
+/**
+ * The Djinn's rooms: a gas law worked out from the numbers given, typed with
+ * its unit. A miss shows the working and deals new numbers, as the answer's
+ * been given away.
+ */
+function GasRoom({ seed, course, room, onSolve, onMiss }: RoomProps) {
+  const rng = useMemo(() => roomRng(seed, room), [seed, room]);
+  const [problem, setProblem] = useState(() => roomProblem(rng, course, room));
+  const [verdict, setVerdict] = useState<RoomAnswer | null>(null);
+  const [missed, setMissed] = useState<GasProblem | null>(null);
+  const text = problemText(problem);
+  const { unit } = problem.find;
+
+  const check = (si: number) => {
+    const right = isRight(problem, si);
+    setVerdict((v) => ({
+      right,
+      text: right
+        ? `Right: ${format(fromSI(problem.answer, unit), unit)}.`
+        : 'Here’s how that one works out, and some new numbers to try.',
+      attempt: (v?.attempt ?? 0) + 1,
+    }));
+    if (right) return onSolve();
+    onMiss?.();
+    setMissed(problem);
+    setProblem(roomProblem(rng, course, room));
+  };
+
+  return (
+    <ScenePanel className="flex flex-col gap-3">
+      <p className="font-sans">{text}</p>
+      <CalcPad
+        key={text}
+        label={problem.find.symbol}
+        units={answerUnits(problem)}
+        hint={`${problem.worked[0]} Any temperature goes in kelvin.`}
+        action="Check"
+        onSubmit={check}
+      />
+      <RoomVerdict verdict={verdict} />
+      {missed && (
+        <ol className="flex flex-col gap-1 font-sans text-sm">
+          {missed.worked.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ol>
+      )}
+    </ScenePanel>
+  );
+}
+
 /** The Wraith's rooms: name a cell's anode and predict its voltage */
 function VoltaicRoom({ seed, room, onSolve, onMiss }: RoomProps) {
   const random = useMemo(() => roomRng(seed, room), [seed, room]);
@@ -592,4 +653,5 @@ export const ROOMS: Record<string, (props: RoomProps) => ReactNode> = {
   reactions: ReactionRoom,
   titrations: TitrationRoom,
   electrochemistry: VoltaicRoom,
+  gases: GasRoom,
 };
